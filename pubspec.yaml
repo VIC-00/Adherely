@@ -1,0 +1,41 @@
+name: medadhere
+description: "MedAdhere — Medication Adherence Dashboard"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+  google_fonts: ^6.2.1
+  sqflite: ^2.3.3+1
+  path: ^1.9.0
+  flutter_local_notifications: ^17.1.2
+  timezone: ^0.9.3
+  intl: ^0.20.3
+  shared_preferences: ^2.5.5
+  provider: ^6.1.5+1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  sqflite_common_ffi: ^2.4.2
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.8
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/fonts/
+
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 700
