@@ -11,7 +11,10 @@ class SettingsProvider extends ChangeNotifier {
 
   final List<ToggleItem> _profileToggles = [];
   List<ToggleItem> get profileToggles => List.unmodifiable(_profileToggles);
-  List<ToggleItem> get globalToggles => List.unmodifiable(_profileToggles);
+  
+  final List<ToggleItem> _notificationToggles = [];
+  List<ToggleItem> get notificationToggles => List.unmodifiable(_notificationToggles);
+  List<ToggleItem> get globalToggles => List.unmodifiable(_notificationToggles);
   
   bool _dbEnabled = true;
 
@@ -28,13 +31,21 @@ class SettingsProvider extends ChangeNotifier {
     )));
 
     _profileToggles.clear();
+    _notificationToggles.clear();
     if (togglesData.isNotEmpty) {
-      _profileToggles.addAll(togglesData.map((t) => ToggleItem(
-        label: t['label'] as String,
-        sub: t['sub'] as String,
-        on: t['on'] == 1,
-        color: Color(t['color'] as int),
-      )));
+      for (final t in togglesData) {
+        final toggle = ToggleItem(
+          label: t['label'] as String,
+          sub: t['sub'] as String,
+          on: t['value'] == 1,
+          color: t['color'] != null ? Color(t['color'] as int) : null,
+        );
+        if (toggle.label == 'Dark Mode') {
+          _profileToggles.add(toggle);
+        } else if (toggle.label == 'Push Notifications' || toggle.label == 'Voice Reminders' || toggle.label == 'Caregiver SMS Alerts') {
+          _notificationToggles.add(toggle);
+        }
+      }
     }
     notifyListeners();
   }
@@ -54,12 +65,15 @@ class SettingsProvider extends ChangeNotifier {
 
     _caregivers.clear();
     _caregivers.addAll([
-      const Caregiver(name: 'Robert Mitchell', relation: 'Husband', phone: '(555) 019-2834', active: true),
-      const Caregiver(name: 'Emily Mitchell', relation: 'Daughter / Primary Caregiver', phone: '(555) 019-5821', active: false),
+      const Caregiver(id: 1, name: 'Robert Mitchell', relation: 'Husband', phone: '(555) 019-2834', active: true),
+      const Caregiver(id: 2, name: 'Emily Mitchell', relation: 'Daughter / Primary Caregiver', phone: '(555) 019-5821', active: false),
     ]);
 
     _profileToggles.clear();
-    _profileToggles.addAll(const [
+    _profileToggles.add(const ToggleItem(label: 'Dark Mode', sub: 'Matches system settings', on: false, color: Color(0xFF6B7280)));
+
+    _notificationToggles.clear();
+    _notificationToggles.addAll(const [
       ToggleItem(label: 'Push Notifications', sub: 'Daily reminders and refills alerts', on: true, color: Color(0xFF10B981)),
       ToggleItem(label: 'Voice Reminders', sub: 'Audible spoken alerts for schedules', on: true, color: Color(0xFFF59E0B)),
       ToggleItem(label: 'Caregiver SMS Alerts', sub: 'Alert network if doses are missed', on: false, color: Color(0xFF8B5CF6)),
@@ -67,7 +81,7 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> toggleGlobal(int index) async {
+  Future<void> toggleProfileToggle(int index) async {
     if (index < 0 || index >= _profileToggles.length) return;
     final t = _profileToggles[index];
     _profileToggles[index] = ToggleItem(
@@ -80,7 +94,26 @@ class SettingsProvider extends ChangeNotifier {
     if (!_dbEnabled) return;
     try {
       final db = await DatabaseHelper.instance.database;
-      await db.update('profile_toggles', {'on': !t.on ? 1 : 0}, where: 'label = ?', whereArgs: [t.label]);
+      await db.update('profile_toggles', {'value': !t.on ? 1 : 0}, where: 'label = ?', whereArgs: [t.label]);
+    } catch (e) {
+      debugPrint("DB Write Error: $e");
+    }
+  }
+
+  Future<void> toggleNotificationToggle(int index) async {
+    if (index < 0 || index >= _notificationToggles.length) return;
+    final t = _notificationToggles[index];
+    _notificationToggles[index] = ToggleItem(
+      label: t.label,
+      sub: t.sub,
+      on: !t.on,
+      color: t.color,
+    );
+    notifyListeners();
+    if (!_dbEnabled) return;
+    try {
+      final db = await DatabaseHelper.instance.database;
+      await db.update('profile_toggles', {'value': !t.on ? 1 : 0}, where: 'label = ?', whereArgs: [t.label]);
     } catch (e) {
       debugPrint("DB Write Error: $e");
     }
@@ -121,19 +154,49 @@ class SettingsProvider extends ChangeNotifier {
   }
 
   Future<void> addCaregiver(Caregiver c) async {
-    _caregivers.add(c);
-    notifyListeners();
-    if (!_dbEnabled) return;
+    if (!_dbEnabled) {
+      _caregivers.add(c);
+      notifyListeners();
+      return;
+    }
     try {
       final db = await DatabaseHelper.instance.database;
-      await db.insert('caregivers', {
+      final insertedId = await db.insert('caregivers', {
         'name': c.name,
         'relation': c.relation,
         'phone': c.phone,
         'active': c.active ? 1 : 0,
       });
+      _caregivers.add(Caregiver(
+        id: insertedId,
+        name: c.name,
+        relation: c.relation,
+        phone: c.phone,
+        active: c.active,
+      ));
+      notifyListeners();
     } catch (e) {
       debugPrint("DB Write Error: $e");
+    }
+  }
+
+  Future<void> editCaregiver(int id, Caregiver newCaregiver) async {
+    final idx = _caregivers.indexWhere((c) => c.id == id);
+    if (idx != -1) {
+      _caregivers[idx] = newCaregiver;
+      notifyListeners();
+      if (!_dbEnabled) return;
+      try {
+        final db = await DatabaseHelper.instance.database;
+        await db.update('caregivers', {
+          'name': newCaregiver.name,
+          'relation': newCaregiver.relation,
+          'phone': newCaregiver.phone,
+          'active': newCaregiver.active ? 1 : 0,
+        }, where: 'id = ?', whereArgs: [id]);
+      } catch (e) {
+        debugPrint("DB Caregiver Update Error: $e");
+      }
     }
   }
 }

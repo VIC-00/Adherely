@@ -58,7 +58,7 @@ class _AddMedScreenState extends State<AddMedScreen> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-              decoration: const BoxDecoration(color: Colors.white, border: Border(bottom: BorderSide(color: AppColors.hairline))),
+              decoration: BoxDecoration(color: AppColors.cardBg, border: Border(bottom: BorderSide(color: AppColors.hairline))),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -69,12 +69,12 @@ class _AddMedScreenState extends State<AddMedScreen> {
                         child: Container(
                           width: 32,
                           height: 32,
-                          decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(10)),
-                          child: const Icon(Icons.arrow_back_rounded, size: 16, color: AppColors.ink700),
+                          decoration: BoxDecoration(color: AppColors.isDark ? const Color(0xFF374151) : const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(10)),
+                          child: Icon(Icons.arrow_back_rounded, size: 16, color: AppColors.ink700),
                         ),
                       ),
                       const SizedBox(width: 12),
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -128,7 +128,7 @@ class _AddMedScreenState extends State<AddMedScreen> {
             // Bottom CTA
             Container(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              decoration: const BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: AppColors.hairline))),
+              decoration: BoxDecoration(color: AppColors.cardBg, border: Border(top: BorderSide(color: AppColors.hairline))),
               child: Row(
                 children: [
                   if (_step > 1)
@@ -136,7 +136,7 @@ class _AddMedScreenState extends State<AddMedScreen> {
                       child: OutlinedButton(
                         onPressed: () => setState(() => _step -= 1),
                         style: OutlinedButton.styleFrom(
-                          backgroundColor: const Color(0xFFF3F4F6),
+                          backgroundColor: AppColors.isDark ? const Color(0xFF374151) : const Color(0xFFF3F4F6),
                           foregroundColor: AppColors.ink700,
                           side: BorderSide.none,
                           padding: const EdgeInsets.symmetric(vertical: 14),
@@ -216,14 +216,14 @@ class _AddMedScreenState extends State<AddMedScreen> {
           required: true,
           child: TextFormField(
             controller: _nameController,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.ink900),
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.ink900),
             decoration: InputDecoration(
               hintText: 'e.g. Lisinopril',
               filled: true,
               fillColor: Colors.white,
               contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.border, width: 1.5)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.border, width: 1.5)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
               focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5)),
             ),
           ),
@@ -237,14 +237,14 @@ class _AddMedScreenState extends State<AddMedScreen> {
                 required: true,
                 child: TextFormField(
                   controller: _doseController,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.ink900),
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.ink900),
                   decoration: InputDecoration(
                     hintText: 'e.g. 10mg',
                     filled: true,
                     fillColor: Colors.white,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.border, width: 1.5)),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.border, width: 1.5)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
                     focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5)),
                   ),
                 ),
@@ -256,13 +256,14 @@ class _AddMedScreenState extends State<AddMedScreen> {
                 label: 'Form',
                 child: DropdownButtonFormField<String>(
                   initialValue: _form,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.ink900),
+                  dropdownColor: Colors.white,
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.ink900),
                   decoration: InputDecoration(
                     filled: true,
                     fillColor: Colors.white,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 4),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.border, width: 1.5)),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.border, width: 1.5)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
                     focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5)),
                   ),
                   items: const ['Tablet', 'Capsule', 'Liquid', 'Injection']
@@ -368,10 +369,21 @@ class _AddMedScreenState extends State<AddMedScreen> {
                     final TimeOfDay? picked = await showTimePicker(
                       context: context,
                       initialTime: TimeOfDay.now(),
+                      builder: (context, child) {
+                        return MediaQuery(
+                          data: MediaQuery.of(context).copyWith(
+                            textScaler: TextScaler.noScaling,
+                          ),
+                          child: child!,
+                        );
+                      },
                     );
                     if (picked != null) {
                       setState(() {
-                        _time = picked.format(context);
+                        final hour = picked.hourOfPeriod == 0 ? 12 : picked.hourOfPeriod;
+                        final minute = picked.minute.toString().padLeft(2, '0');
+                        final period = picked.period == DayPeriod.am ? 'AM' : 'PM';
+                        _time = '$hour:$minute $period';
                       });
                     }
                   } else {
@@ -400,19 +412,19 @@ class _AddMedScreenState extends State<AddMedScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Pills in supply', style: TextStyle(fontSize: 11, color: AppColors.ink500)),
+                    Text('Pills in supply', style: TextStyle(fontSize: 11, color: AppColors.ink500)),
                     const SizedBox(height: 4),
                     TextFormField(
                       controller: _supplyController,
                       keyboardType: TextInputType.number,
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.ink900),
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.ink900),
                       decoration: InputDecoration(
                         hintText: 'e.g. 30',
                         filled: true,
                         fillColor: Colors.white,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.border, width: 1.5)),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.border, width: 1.5)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
                         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5)),
                       ),
                     ),
@@ -424,19 +436,19 @@ class _AddMedScreenState extends State<AddMedScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Refill alert (days)', style: TextStyle(fontSize: 11, color: AppColors.ink500)),
+                    Text('Refill alert (days)', style: TextStyle(fontSize: 11, color: AppColors.ink500)),
                     const SizedBox(height: 4),
                     TextFormField(
                       controller: _refillAlertController,
                       keyboardType: TextInputType.number,
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.ink900),
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.ink900),
                       decoration: InputDecoration(
                         hintText: 'e.g. 7',
                         filled: true,
                         fillColor: Colors.white,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.border, width: 1.5)),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.border, width: 1.5)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
                         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5)),
                       ),
                     ),
@@ -469,14 +481,14 @@ class _AddMedScreenState extends State<AddMedScreen> {
               const SizedBox(height: 8),
               RichText(
                 text: TextSpan(
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.ink900),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.ink900),
                   children: [
                     TextSpan(text: '${_nameController.text.trim().isNotEmpty ? _nameController.text.trim() : 'Medication'} '),
                     TextSpan(text: _doseController.text.trim().isNotEmpty ? _doseController.text.trim() : 'dose', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16)),
                   ],
                 ),
               ),
-              Text('$_freq · $_time', style: const TextStyle(fontSize: 12, color: AppColors.ink500)),
+              Text('$_freq · $_time', style: TextStyle(fontSize: 12, color: AppColors.ink500)),
             ],
           ),
         ),
@@ -557,7 +569,7 @@ class _ReminderRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        border: showBorder ? const Border(bottom: BorderSide(color: AppColors.hairline)) : null,
+        border: showBorder ? Border(bottom: BorderSide(color: AppColors.hairline)) : null,
       ),
       child: Row(
         children: [
@@ -565,8 +577,8 @@ class _ReminderRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.ink900)),
-                Text(sub, style: const TextStyle(fontSize: 11, color: AppColors.ink400)),
+                Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.ink900)),
+                Text(sub, style: TextStyle(fontSize: 11, color: AppColors.ink400)),
               ],
             ),
           ),
@@ -607,7 +619,7 @@ class _FormField extends StatelessWidget {
       children: [
         RichText(
           text: TextSpan(
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.ink700),
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.ink700),
             children: [
               TextSpan(text: label),
               if (required) const TextSpan(text: ' *', style: TextStyle(color: AppColors.medRed)),
@@ -632,14 +644,14 @@ class _TextInput extends StatelessWidget {
     return TextFormField(
       initialValue: initial,
       maxLines: maxLines,
-      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.ink900),
+      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.ink900),
       decoration: InputDecoration(
         hintText: hint,
         filled: true,
         fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.border, width: 1.5)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.border, width: 1.5)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5)),
       ),
     );

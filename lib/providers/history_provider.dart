@@ -33,8 +33,30 @@ class HistoryProvider extends ChangeNotifier {
     List<List<CalendarCell>> rows = [];
     List<CalendarCell> currentRow = List.filled(startWeekday, const CalendarCell(0, DayStatus.empty), growable: true);
     
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
     for (int day = 1; day <= daysInMonth; day++) {
-      currentRow.add(CalendarCell(day, DayStatus.taken)); 
+      final cellDate = DateTime(_currentHistoryMonth.year, _currentHistoryMonth.month, day);
+      DayStatus status = DayStatus.future;
+      
+      if (!cellDate.isAfter(today)) {
+        final dayItems = _historyItems.where((h) => _historyDateMatchesDay(h.date, cellDate)).toList();
+        if (dayItems.isEmpty) {
+          status = DayStatus.future; // stays white
+        } else {
+          final takenCount = dayItems.where((h) => h.taken).length;
+          if (takenCount == dayItems.length) {
+            status = DayStatus.taken;
+          } else if (takenCount > 0) {
+            status = DayStatus.partial;
+          } else {
+            status = DayStatus.missed;
+          }
+        }
+      }
+      
+      currentRow.add(CalendarCell(day, status)); 
       if (currentRow.length == 7) {
         rows.add(currentRow);
         currentRow = [];
@@ -47,6 +69,15 @@ class HistoryProvider extends ChangeNotifier {
       rows.add(currentRow);
     }
     return rows;
+  }
+
+  int getMedicationAdherence(String medName) {
+    final medLogs = _historyItems
+        .where((h) => h.med.toLowerCase().contains(medName.toLowerCase()))
+        .toList();
+    if (medLogs.isEmpty) return 100;
+    final takenCount = medLogs.where((h) => h.taken).length;
+    return ((takenCount / medLogs.length) * 100).toInt();
   }
 
   final List<HistoryItem> _historyItems = [];

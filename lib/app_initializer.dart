@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'root_shell.dart';
 import 'theme/app_theme.dart';
+import 'theme/app_colors.dart';
 import 'models.dart';
 
 class MedAdhereApp extends StatefulWidget {
@@ -47,6 +48,7 @@ class _MedAdhereAppState extends State<MedAdhereApp> {
       final caregiversData = await db.query('caregivers');
       final togglesData = await db.query('profile_toggles');
       final historyData = await db.query('history_items', orderBy: 'id DESC');
+      final bpData = await db.query('bp_readings');
 
       // Check daily reset
       final prefs = await SharedPreferences.getInstance();
@@ -62,7 +64,7 @@ class _MedAdhereAppState extends State<MedAdhereApp> {
         await _medicationProvider.load(medsData, rulesData, todayData);
       }
 
-      await _vitalsProvider.load(vitalsData);
+      await _vitalsProvider.load(vitalsData, bpData);
       
       const profile = Profile(
         id: 1,
@@ -111,13 +113,23 @@ class _MedAdhereAppState extends State<MedAdhereApp> {
         ChangeNotifierProvider.value(value: _settingsProvider),
         ChangeNotifierProvider.value(value: _historyProvider),
       ],
-      child: MaterialApp(
-        title: 'MedAdhere',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.light,
-        darkTheme: AppTheme.dark,
-        themeMode: ThemeMode.system,
-        home: const RootShell(),
+      child: Consumer<SettingsProvider>(
+        builder: (context, settingsState, child) {
+          final darkModeToggle = settingsState.profileToggles.firstWhere(
+            (t) => t.label == 'Dark Mode',
+            orElse: () => const ToggleItem(label: 'Dark Mode', sub: '', on: false),
+          );
+          AppColors.isDark = darkModeToggle.on;
+          final themeMode = darkModeToggle.on ? ThemeMode.dark : ThemeMode.light;
+          return MaterialApp(
+            title: 'MedAdhere',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.light,
+            darkTheme: AppTheme.dark,
+            themeMode: themeMode,
+            home: const RootShell(),
+          );
+        },
       ),
     );
   }

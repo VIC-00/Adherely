@@ -12,7 +12,7 @@ const Map<DayStatus, Color> _statusColor = {
   DayStatus.taken: Color(0xFF22C55E),
   DayStatus.missed: Color(0xFFEF4444),
   DayStatus.partial: Color(0xFFF59E0B),
-  DayStatus.future: Color(0xFFE5E7EB),
+  DayStatus.future: Colors.transparent,
   DayStatus.empty: Colors.transparent,
 };
 
@@ -83,7 +83,7 @@ class HistoryScreen extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(historyState.currentHistoryMonthLabel, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink900)),
+                        Text(historyState.currentHistoryMonthLabel, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink900)),
                         Row(
                           children: [
                             GestureDetector(
@@ -104,7 +104,7 @@ class HistoryScreen extends StatelessWidget {
                       children: _days
                           .map((d) => Expanded(
                                 child: Center(
-                                  child: Text(d, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.ink400)),
+                                  child: Text(d, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.ink400)),
                                 ),
                               ))
                           .toList(),
@@ -112,7 +112,7 @@ class HistoryScreen extends StatelessWidget {
                     const SizedBox(height: 6),
                     for (final row in historyState.calRows)
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
+                        padding: EdgeInsets.only(bottom: 4),
                         child: Row(
                           children: row.map((cell) {
                             final now = DateTime.now();
@@ -120,14 +120,14 @@ class HistoryScreen extends StatelessWidget {
                             final color = _statusColor[cell.status]!;
                             return Expanded(
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 2),
+                                padding: EdgeInsets.symmetric(horizontal: 2),
                                 child: Container(
                                   height: 32,
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
                                     color: cell.status == DayStatus.empty ? Colors.transparent : color,
                                     borderRadius: BorderRadius.circular(8),
-                                    border: isToday ? Border.all(color: const Color(0xFF1D4ED8), width: 2) : null,
+                                    border: isToday ? Border.all(color: Color(0xFF1D4ED8), width: 2) : null,
                                   ),
                                   child: cell.day > 0
                                       ? Text(
@@ -137,7 +137,7 @@ class HistoryScreen extends StatelessWidget {
                                             fontWeight: isToday ? FontWeight.w800 : FontWeight.w600,
                                             color: (cell.status == DayStatus.taken || cell.status == DayStatus.missed || cell.status == DayStatus.partial)
                                                 ? Colors.white
-                                                : const Color(0xFF374151),
+                                                : Color(0xFF374151),
                                           ),
                                         )
                                       : null,
@@ -147,8 +147,8 @@ class HistoryScreen extends StatelessWidget {
                           }).toList(),
                         ),
                       ),
-                    const SizedBox(height: 8),
-                    const Row(
+                    SizedBox(height: 8),
+                    Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         _LegendDot(color: Color(0xFF22C55E), label: 'Taken'),
@@ -164,68 +164,82 @@ class HistoryScreen extends StatelessWidget {
 
               // Dose log
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: EdgeInsets.symmetric(horizontal: 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.only(bottom: 12),
                       child: Text('Dose Log', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink900)),
                     ),
-                    for (final item in historyState.historyItems)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 1))],
-                            border: Border(left: BorderSide(color: item.taken ? AppColors.medGreen : AppColors.medRed, width: 3)),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 32,
-                                height: 32,
-                                decoration: BoxDecoration(
-                                  color: item.taken ? AppColors.medGreenLight : AppColors.medRedLight,
-                                  shape: BoxShape.circle,
+                    if (historyState.historyItems.isEmpty)
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(vertical: 24),
+                        decoration: BoxDecoration(
+                          color: AppColors.cardBg,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.border, width: 1.5),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text('No logged doses yet.', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.ink400)),
+                      )
+                    else
+                      for (final item in historyState.historyItems)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: AppColors.cardBg,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 1))],
+                              border: Border(left: BorderSide(color: item.taken ? AppColors.medGreen : AppColors.medRed, width: 3)),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: item.taken ? AppColors.medGreenLight : AppColors.medRedLight,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    item.taken ? Icons.check_rounded : Icons.close_rounded,
+                                    size: 14,
+                                    color: item.taken ? AppColors.medGreen : AppColors.medRed,
+                                  ),
                                 ),
-                                child: Icon(
-                                  item.taken ? Icons.check_rounded : Icons.close_rounded,
-                                  size: 14,
-                                  color: item.taken ? AppColors.medGreen : AppColors.medRed,
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(item.med,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.ink900)),
+                                      const SizedBox(height: 1),
+                                      Text(item.date, style: TextStyle(fontSize: 11, color: AppColors.ink500)),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
-                                    Text(item.med,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.ink900)),
+                                    Text(item.time,
+                                        style: TextStyle(
+                                            fontSize: 12, fontWeight: FontWeight.w700,
+                                            color: item.taken ? const Color(0xFF15803D) : const Color(0xFFB91C1C))),
                                     const SizedBox(height: 1),
-                                    Text(item.date, style: const TextStyle(fontSize: 11, color: AppColors.ink500)),
+                                    Text(item.note, style: TextStyle(fontSize: 10, color: AppColors.ink400)),
                                   ],
                                 ),
-                              ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(item.time,
-                                      style: TextStyle(
-                                          fontSize: 12, fontWeight: FontWeight.w700,
-                                          color: item.taken ? const Color(0xFF15803D) : const Color(0xFFB91C1C))),
-                                  const SizedBox(height: 1),
-                                  Text(item.note, style: const TextStyle(fontSize: 10, color: AppColors.ink400)),
-                                ],
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      ),
                   ],
                 ),
               ),
@@ -278,7 +292,7 @@ class _LegendDot extends StatelessWidget {
       children: [
         Container(width: 10, height: 10, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))),
         const SizedBox(width: 4),
-        Text(label, style: const TextStyle(fontSize: 10, color: AppColors.ink500, fontWeight: FontWeight.w500)),
+        Text(label, style: TextStyle(fontSize: 10, color: AppColors.ink500, fontWeight: FontWeight.w500)),
       ],
     );
   }

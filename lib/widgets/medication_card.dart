@@ -106,7 +106,7 @@ class _UpcomingCard extends StatelessWidget {
     final radius = compact ? 14.0 : 18.0;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.cardBg,
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(color: const Color(0x333B82F6), width: 1.5),
         boxShadow: [
@@ -417,7 +417,7 @@ class _TakenCard extends StatelessWidget {
       opacity: 0.88,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.cardBg,
           borderRadius: BorderRadius.circular(radius),
           border: Border.all(color: AppColors.medGreenBorder, width: 2),
           boxShadow: [
@@ -596,7 +596,7 @@ class _MissedCard extends StatelessWidget {
     final radius = compact ? 14.0 : 18.0;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.cardBg,
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(color: AppColors.medRedBorder, width: 2),
         boxShadow: [

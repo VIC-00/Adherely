@@ -26,15 +26,17 @@ class BottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xF7FFFFFF),
-        border: Border(top: BorderSide(color: Color(0x0F000000))),
+      decoration: BoxDecoration(
+        color: AppColors.cardBg,
+        border: Border(top: BorderSide(color: AppColors.border)),
       ),
       padding: const EdgeInsets.fromLTRB(0, 10, 0, 20),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: _navItems.map((item) {
           final isActive = item.id == active;
+          final activeColor = AppColors.isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB);
+          final activeBg = AppColors.isDark ? const Color(0xFF1E3A8A) : AppColors.medBlueLight;
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => onTap?.call(item.id),
@@ -45,14 +47,14 @@ class BottomNav extends StatelessWidget {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: isActive ? AppColors.medBlueLight : Colors.transparent,
+                    color: isActive ? activeBg : Colors.transparent,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   alignment: Alignment.center,
                   child: Icon(
                     item.icon,
                     size: 18,
-                    color: isActive ? const Color(0xFF2563EB) : AppColors.ink400,
+                    color: isActive ? activeColor : AppColors.ink400,
                   ),
                 ),
                 const SizedBox(height: 3),
@@ -61,7 +63,7 @@ class BottomNav extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                    color: isActive ? const Color(0xFF2563EB) : AppColors.ink400,
+                    color: isActive ? activeColor : AppColors.ink400,
                   ),
                 ),
               ],

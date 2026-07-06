@@ -100,7 +100,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("Today's Alert Schedule", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink900)),
+                    Text("Today's Alert Schedule", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink900)),
                     const SizedBox(height: 12),
                     Stack(
                       children: [
@@ -164,10 +164,31 @@ class _RemindersScreenState extends State<RemindersScreen> {
                                 const SizedBox(height: 10),
                                 TextField(
                                   controller: timeController,
+                                  readOnly: true,
                                   decoration: const InputDecoration(
                                     labelText: 'Time',
                                     hintText: 'e.g. 8:00 AM',
                                   ),
+                                  onTap: () async {
+                                    final TimeOfDay? picked = await showTimePicker(
+                                      context: context,
+                                      initialTime: TimeOfDay.now(),
+                                      builder: (context, child) {
+                                        return MediaQuery(
+                                          data: MediaQuery.of(context).copyWith(
+                                            textScaler: TextScaler.noScaling,
+                                          ),
+                                          child: child!,
+                                        );
+                                      },
+                                    );
+                                    if (picked != null) {
+                                      final hour = picked.hourOfPeriod == 0 ? 12 : picked.hourOfPeriod;
+                                      final minute = picked.minute.toString().padLeft(2, '0');
+                                      final period = picked.period == DayPeriod.am ? 'AM' : 'PM';
+                                      timeController.text = '$hour:$minute $period';
+                                    }
+                                  },
                                 ),
                               ],
                             ),
@@ -224,25 +245,25 @@ class _RemindersScreenState extends State<RemindersScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Global Settings', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink900)),
+                    Text('Global Settings', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink900)),
                     const SizedBox(height: 10),
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppColors.cardBg,
                         borderRadius: BorderRadius.circular(14),
                         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 1))],
                       ),
                       clipBehavior: Clip.antiAlias,
                       child: Column(
                         children: [
-                          for (int i = 0; i < settingsState.globalToggles.length; i++)
+                          for (int i = 0; i < settingsState.notificationToggles.length; i++)
                             GestureDetector(
-                              onTap: () => settingsState.toggleGlobal(i),
+                              onTap: () => settingsState.toggleNotificationToggle(i),
                               behavior: HitTestBehavior.opaque,
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
                                 decoration: BoxDecoration(
-                                  border: i < settingsState.globalToggles.length - 1 ? const Border(bottom: BorderSide(color: AppColors.hairline)) : null,
+                                  border: i < settingsState.notificationToggles.length - 1 ? Border(bottom: BorderSide(color: AppColors.hairline)) : null,
                                 ),
                                 child: Row(
                                   children: [
@@ -250,12 +271,12 @@ class _RemindersScreenState extends State<RemindersScreen> {
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Text(settingsState.globalToggles[i].label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.ink900)),
-                                          Text(settingsState.globalToggles[i].sub, style: const TextStyle(fontSize: 11, color: AppColors.ink400)),
+                                          Text(settingsState.notificationToggles[i].label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.ink900)),
+                                          Text(settingsState.notificationToggles[i].sub, style: TextStyle(fontSize: 11, color: AppColors.ink400)),
                                         ],
                                       ),
                                     ),
-                                    _StaticSwitch(on: settingsState.globalToggles[i].on, color: settingsState.globalToggles[i].color!),
+                                    _StaticSwitch(on: settingsState.notificationToggles[i].on, color: settingsState.notificationToggles[i].color!),
                                   ],
                                 ),
                               ),
@@ -383,9 +404,9 @@ class _RuleCard extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Text(rule.time, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink900)),
+                          Text(rule.time, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink900)),
                           const SizedBox(width: 4),
-                          const Text('·', style: TextStyle(fontSize: 11, color: AppColors.ink400)),
+                          Text('·', style: TextStyle(fontSize: 11, color: AppColors.ink400)),
                           const SizedBox(width: 4),
                           Text('${rule.med} ${rule.dose}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: rule.color)),
                         ],
@@ -413,7 +434,7 @@ class _RuleCard extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                             decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(5)),
-                            child: Text('−${rule.advance}min', style: const TextStyle(fontSize: 10, color: AppColors.ink500)),
+                            child: Text('−${rule.advance}min', style: TextStyle(fontSize: 10, color: AppColors.ink500)),
                           ),
                         ],
                       ),

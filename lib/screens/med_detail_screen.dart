@@ -125,8 +125,8 @@ class _MedDetailScreenState extends State<MedDetailScreen> {
 
                     // Tabs
                     Container(
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
+                      decoration: BoxDecoration(
+                        color: AppColors.cardBg,
                         border: Border(
                             bottom: BorderSide(color: AppColors.hairline)),
                       ),
@@ -185,8 +185,8 @@ class _MedDetailScreenState extends State<MedDetailScreen> {
             // Bottom CTA
             Container(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              decoration: const BoxDecoration(
-                  color: Colors.white,
+              decoration: BoxDecoration(
+                  color: AppColors.cardBg,
                   border: Border(top: BorderSide(color: AppColors.hairline))),
               child: SizedBox(
                 width: double.infinity,
@@ -265,7 +265,7 @@ class _InfoCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.cardBg,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
@@ -278,7 +278,7 @@ class _InfoCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title.toUpperCase(),
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: AppColors.ink500,
@@ -299,7 +299,7 @@ class _OverviewTab extends StatelessWidget {
     String definitionTitle = 'What is ${medication.name}?';
     Widget description = Text(
       medication.description ?? 'No description provided for ${medication.name}.',
-      style: const TextStyle(fontSize: 13, color: AppColors.ink700, height: 1.6),
+      style: TextStyle(fontSize: 13, color: AppColors.ink700, height: 1.6),
     );
 
     final medState = context.watch<MedicationProvider>();
@@ -363,7 +363,7 @@ class _OverviewTab extends StatelessWidget {
                   ),
                   const SizedBox(height: 5),
                   Text(d['day'] as String,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 9,
                           fontWeight: FontWeight.w600,
                           color: AppColors.ink400)),
@@ -393,7 +393,7 @@ class _OverviewTab extends StatelessWidget {
                         color: Colors.white)),
               ),
               const SizedBox(width: 10),
-              const Column(
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Dr. Minh Nguyen, MD',
@@ -471,7 +471,7 @@ class _ScheduleTab extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(timeStr,
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
                               color: AppColors.ink900)),
@@ -493,10 +493,10 @@ class _ScheduleTab extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8)),
             child: RichText(
               text: TextSpan(
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 11, color: AppColors.ink500, height: 1.4),
                 children: [
-                  const TextSpan(
+                  TextSpan(
                       text: 'Instructions: ',
                       style: TextStyle(
                           fontWeight: FontWeight.w700,
@@ -561,12 +561,12 @@ class _SideEffectsTab extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(s['effect'] as String,
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.ink900)),
                             Text('Severity: ${s['severity']}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontSize: 11, color: AppColors.ink400)),
                           ],
                         ),
@@ -657,7 +657,7 @@ class _RefillsTab extends StatelessWidget {
                       color: Color(0xFF2563EB),
                       letterSpacing: -1.2)),
               Text(medication.name == 'Gabapentin' ? 'capsules remaining' : 'pills remaining',
-                  style: const TextStyle(fontSize: 13, color: AppColors.ink500)),
+                  style: TextStyle(fontSize: 13, color: AppColors.ink500)),
               const SizedBox(height: 14),
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
@@ -672,10 +672,10 @@ class _RefillsTab extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('0 pills',
+                  Text('0 pills',
                       style: TextStyle(fontSize: 10, color: AppColors.ink400)),
                   Text('$totalPills pills',
-                      style: const TextStyle(fontSize: 10, color: AppColors.ink400)),
+                      style: TextStyle(fontSize: 10, color: AppColors.ink400)),
                 ],
               ),
               const SizedBox(height: 12),
@@ -751,7 +751,7 @@ class _KV extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(k,
-              style: const TextStyle(fontSize: 12, color: AppColors.ink500)),
+              style: TextStyle(fontSize: 12, color: AppColors.ink500)),
           Text(v,
               style: TextStyle(
                   fontSize: 12,

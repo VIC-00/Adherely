@@ -19,14 +19,14 @@ class HealthScreen extends StatelessWidget {
     final medState = context.watch<MedicationProvider>();
     final vitalsState = context.watch<VitalsProvider>();
 //     final settingsState = context.watch<SettingsProvider>();
-//     final historyState = context.watch<HistoryProvider>();
+    final historyState = context.watch<HistoryProvider>();
 
     // Dynamically generate med impacts from actual user medications
     final dynamicMedImpacts = medState.meds.map((med) {
       String impact = 'Adherence tracked';
       String icon = '💊';
       int weeks = 1;
-      int progress = medState.calculateAdherence().toInt();
+      int progress = historyState.getMedicationAdherence(med.name);
       
       if (med.name.toLowerCase().contains('lisinopril')) {
         impact = 'Blood pressure normalizing';
@@ -134,14 +134,14 @@ class HealthScreen extends StatelessWidget {
                           final dia = int.tryParse(diaController.text) ?? 80;
                           vitalsState.addBpReading(sys, dia);
                         } else if (selectedVital == 'Heart Rate') {
-//                           final hr = int.tryParse(singleValController.text) ?? 72;
-                          // vitalsState.addHrReading(hr);
+                          final hr = singleValController.text.trim();
+                          vitalsState.updateVital('Heart Rate', hr.isNotEmpty ? hr : '72');
                         } else if (selectedVital == 'Blood Sugar') {
-//                           final bs = int.tryParse(singleValController.text) ?? 95;
-                          // vitalsState.addBsReading(bs);
+                          final bs = singleValController.text.trim();
+                          vitalsState.updateVital('Blood Sugar', bs.isNotEmpty ? bs : '98');
                         } else if (selectedVital == 'Weight') {
-//                           final w = double.tryParse(singleValController.text) ?? 165.0;
-                          // vitalsState.addWeightReading(w);
+                          final w = singleValController.text.trim();
+                          vitalsState.updateVital('Weight', w.isNotEmpty ? w : '168.4');
                         }
                         Navigator.of(context).pop();
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -227,7 +227,7 @@ class HealthScreen extends StatelessWidget {
                 margin: const EdgeInsets.symmetric(horizontal: 16),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.cardBg,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 2))],
                 ),
@@ -237,7 +237,7 @@ class HealthScreen extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Column(
+                        Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text('Blood Pressure Trend', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink900)),
@@ -312,7 +312,7 @@ class HealthScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Medication Impact', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink900)),
+                    Text('Medication Impact', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink900)),
                     const SizedBox(height: 10),
                     for (final m in dynamicMedImpacts)
                       Padding(
@@ -320,7 +320,7 @@ class HealthScreen extends StatelessWidget {
                         child: Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: AppColors.cardBg,
                             borderRadius: BorderRadius.circular(14),
                             boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 1))],
                           ),
@@ -335,12 +335,12 @@ class HealthScreen extends StatelessWidget {
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text(m.med, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.ink900)),
-                                        Text(m.impact, style: const TextStyle(fontSize: 11, color: AppColors.ink500)),
+                                        Text(m.med, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.ink900)),
+                                        Text(m.impact, style: TextStyle(fontSize: 11, color: AppColors.ink500)),
                                       ],
                                     ),
                                   ),
-                                  Text('${m.weeks}w', style: const TextStyle(fontSize: 10, color: AppColors.ink400, fontWeight: FontWeight.w600)),
+                                  Text('${m.weeks}w', style: TextStyle(fontSize: 10, color: AppColors.ink400, fontWeight: FontWeight.w600)),
                                 ],
                               ),
                               const SizedBox(height: 8),
@@ -357,7 +357,7 @@ class HealthScreen extends StatelessWidget {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  const Text('Effectiveness', style: TextStyle(fontSize: 10, color: AppColors.ink400)),
+                                  Text('Effectiveness', style: TextStyle(fontSize: 10, color: AppColors.ink400)),
                                   Text('${m.progress}%', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.medTeal)),
                                 ],
                               ),
@@ -384,9 +384,12 @@ class _VitalCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: v.bg,
+        color: AppColors.isDark ? AppColors.cardBg : v.bg,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: v.border),
+        border: Border.all(
+          color: AppColors.isDark ? v.color.withValues(alpha: 0.3) : v.border,
+          width: AppColors.isDark ? 1.5 : 1.0,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -394,11 +397,11 @@ class _VitalCard extends StatelessWidget {
         children: [
           Text(v.icon, style: const TextStyle(fontSize: 18)),
           const SizedBox(height: 4),
-          Text(v.value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.ink900, letterSpacing: -0.4)),
-          Text(v.unit, style: const TextStyle(fontSize: 10, color: AppColors.ink500, fontWeight: FontWeight.w500)),
+          Text(v.value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.ink900, letterSpacing: -0.4)),
+          Text(v.unit, style: TextStyle(fontSize: 10, color: AppColors.ink500, fontWeight: FontWeight.w500)),
           const SizedBox(height: 4),
           Text(v.trend, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: v.color)),
-          Text(v.label, style: const TextStyle(fontSize: 10, color: AppColors.ink400)),
+          Text(v.label, style: TextStyle(fontSize: 10, color: AppColors.ink400)),
         ],
       ),
     );
@@ -423,7 +426,7 @@ class _LegendSquare extends StatelessWidget {
       children: [
         Container(width: 8, height: 8, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
         const SizedBox(width: 4),
-        Text(label, style: const TextStyle(fontSize: 10, color: AppColors.ink500)),
+        Text(label, style: TextStyle(fontSize: 10, color: AppColors.ink500)),
       ],
     );
   }

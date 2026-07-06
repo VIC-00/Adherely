@@ -102,6 +102,59 @@ void _showDeleteMedDialog(BuildContext context, SettingsProvider settingsState, 
   );
 }
 
+void _showEditCaregiverDialog(BuildContext context, SettingsProvider settingsState, Caregiver caregiver) {
+  final nameController = TextEditingController(text: caregiver.name);
+  final relationController = TextEditingController(text: caregiver.relation);
+  final phoneController = TextEditingController(text: caregiver.phone);
+  bool activeVal = caregiver.active;
+
+  showDialog(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setDialogState) => AlertDialog(
+        title: const Text('Edit Caregiver'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Name')),
+            TextField(controller: relationController, decoration: const InputDecoration(labelText: 'Relationship')),
+            TextField(controller: phoneController, decoration: const InputDecoration(labelText: 'Phone Number')),
+            CheckboxListTile(
+              title: const Text('SMS Alerts Active'),
+              value: activeVal,
+              onChanged: (v) => setDialogState(() => activeVal = v ?? activeVal),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              final name = nameController.text.trim();
+              final relation = relationController.text.trim();
+              final phone = phoneController.text.trim();
+              if (name.isNotEmpty) {
+                settingsState.editCaregiver(
+                  caregiver.id!,
+                  Caregiver(
+                    id: caregiver.id,
+                    name: name,
+                    relation: relation.isNotEmpty ? relation : 'Caregiver',
+                    phone: phone.isNotEmpty ? phone : 'Unknown',
+                    active: activeVal,
+                  ),
+                );
+                Navigator.of(context).pop();
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
   @override
@@ -192,7 +245,7 @@ class ProfileScreen extends StatelessWidget {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: AppColors.cardBg,
                                 borderRadius: BorderRadius.circular(12),
                                 boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 1))],
                               ),
@@ -208,10 +261,10 @@ class ProfileScreen extends StatelessWidget {
                                   Expanded(
                                     child: RichText(
                                       text: TextSpan(
-                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink900),
+                                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink900),
                                         children: [
                                           TextSpan(text: '${m.name} '),
-                                          TextSpan(text: m.dose, style: const TextStyle(fontWeight: FontWeight.w500, color: AppColors.ink500)),
+                                          TextSpan(text: m.dose, style: TextStyle(fontWeight: FontWeight.w500, color: AppColors.ink500)),
                                         ],
                                       ),
                                     ),
@@ -221,12 +274,12 @@ class ProfileScreen extends StatelessWidget {
                                     children: [
                                       Text('${m.refillDays}d left',
                                           style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: m.refillDays <= 7 ? AppColors.medRed : AppColors.medGreen)),
-                                      const Text('refill', style: TextStyle(fontSize: 9, color: AppColors.ink400)),
+                                      Text('refill', style: TextStyle(fontSize: 9, color: AppColors.ink400)),
                                     ],
                                   ),
                                   const SizedBox(width: 10),
                                   IconButton(
-                                    icon: const Icon(Icons.edit_rounded, size: 18, color: AppColors.ink500),
+                                    icon: Icon(Icons.edit_rounded, size: 18, color: AppColors.ink500),
                                     padding: EdgeInsets.zero,
                                     constraints: const BoxConstraints(),
                                     onPressed: () => _showEditMedDialog(context, settingsState, m),
@@ -304,7 +357,7 @@ class ProfileScreen extends StatelessWidget {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: AppColors.cardBg,
                                 borderRadius: BorderRadius.circular(12),
                                 boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 1))],
                               ),
@@ -327,8 +380,8 @@ class ProfileScreen extends StatelessWidget {
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text(c.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink900)),
-                                        Text('${c.relation} · ${c.phone}', style: const TextStyle(fontSize: 11, color: AppColors.ink400)),
+                                        Text(c.name, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink900)),
+                                        Text('${c.relation} · ${c.phone}', style: TextStyle(fontSize: 11, color: AppColors.ink400)),
                                       ],
                                     ),
                                   ),
@@ -338,6 +391,12 @@ class ProfileScreen extends StatelessWidget {
                                       decoration: BoxDecoration(color: AppColors.medGreenLight, borderRadius: BorderRadius.circular(6)),
                                       child: const Text('SMS Active', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF15803D))),
                                     ),
+                                  IconButton(
+                                    icon: Icon(Icons.edit_rounded, size: 20, color: AppColors.ink500),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    onPressed: () => _showEditCaregiverDialog(context, settingsState, c),
+                                  ),
                                   const SizedBox(width: 8),
                                   IconButton(
                                     icon: const Icon(Icons.delete_outline, size: 20, color: AppColors.medRed),
@@ -380,12 +439,12 @@ class ProfileScreen extends StatelessWidget {
                   children: [
                     for (int i = 0; i < settingsState.profileToggles.length; i++)
                       GestureDetector(
-                        onTap: () => settingsState.toggleGlobal(i),
+                        onTap: () => settingsState.toggleProfileToggle(i),
                         behavior: HitTestBehavior.opaque,
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
-                            border: i < settingsState.profileToggles.length - 1 ? const Border(bottom: BorderSide(color: AppColors.hairline)) : null,
+                            border: i < settingsState.profileToggles.length - 1 ? Border(bottom: BorderSide(color: AppColors.hairline)) : null,
                           ),
                           child: Row(
                             children: [
@@ -393,8 +452,8 @@ class ProfileScreen extends StatelessWidget {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(settingsState.profileToggles[i].label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.ink900)),
-                                    Text(settingsState.profileToggles[i].sub, style: const TextStyle(fontSize: 11, color: AppColors.ink400)),
+                                    Text(settingsState.profileToggles[i].label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.ink900)),
+                                    Text(settingsState.profileToggles[i].sub, style: TextStyle(fontSize: 11, color: AppColors.ink400)),
                                   ],
                                 ),
                               ),
@@ -495,7 +554,7 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    const Text('MedAdhere v2.4.0 · HIPAA Compliant', style: TextStyle(fontSize: 11, color: AppColors.ink400)),
+                    Text('MedAdhere v2.4.0 · HIPAA Compliant', style: TextStyle(fontSize: 11, color: AppColors.ink400)),
                   ],
                 ),
               ),
@@ -524,7 +583,7 @@ class _Section extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink900)),
+              Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink900)),
               if (action.isNotEmpty)
                 GestureDetector(
                   onTap: onAction,

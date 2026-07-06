@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../providers/index.dart';
 import '../theme/app_colors.dart';
 import '../widgets/medication_card.dart';
@@ -49,14 +50,14 @@ class DashboardScreen extends StatelessWidget {
                         children: [
                           Text(
                             historyState.formatDateLabel(DateTime.now()),
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 13,
                                 color: AppColors.ink500,
                                 fontWeight: FontWeight.w500),
                           ),
                           RichText(
                             text: TextSpan(
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.w800,
                                 color: AppColors.ink900,
@@ -276,7 +277,7 @@ class DashboardScreen extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text("Today's Medications",
+                    Text("Today's Medications",
                         style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
@@ -309,12 +310,28 @@ class DashboardScreen extends StatelessWidget {
                         refillDays: med.refillDays,
                         onTakeNow: () {
                           medState.logMedication(med.id!, MedCardVariant.taken);
+                          final timeStr = DateFormat('h:mm a').format(DateTime.now());
+                          historyState.logHistory(HistoryItem(
+                            med: '${med.name} ${med.dose}',
+                            date: 'Today',
+                            time: timeStr,
+                            taken: true,
+                            note: 'On time',
+                          ));
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('${med.name} marked as taken!')),
                           );
                         },
                         onLogTaken: () {
                           medState.logMedication(med.id!, MedCardVariant.taken);
+                          final timeStr = DateFormat('h:mm a').format(DateTime.now());
+                          historyState.logHistory(HistoryItem(
+                            med: '${med.name} ${med.dose}',
+                            date: 'Today',
+                            time: timeStr,
+                            taken: true,
+                            note: 'Logged late',
+                          ));
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('${med.name} marked as taken!')),
                           );
@@ -358,8 +375,14 @@ class _StatChip extends StatelessWidget {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration:
-            BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)),
+        decoration: BoxDecoration(
+          color: AppColors.isDark ? AppColors.cardBg : bg,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: AppColors.isDark ? color.withValues(alpha: 0.3) : Colors.transparent,
+            width: AppColors.isDark ? 1.5 : 0,
+          ),
+        ),
         child: Column(
           children: [
             Text(val,

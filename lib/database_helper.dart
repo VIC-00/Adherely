@@ -20,28 +20,23 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
   }
 
   Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 2) {
-      await db.execute('DROP TABLE IF EXISTS medications');
-      await db.execute('DROP TABLE IF EXISTS today_meds');
-      await db.execute('DROP TABLE IF EXISTS reminder_rules');
-      await db.execute('DROP TABLE IF EXISTS caregivers');
-      await db.execute('DROP TABLE IF EXISTS vitals');
-      await db.execute('DROP TABLE IF EXISTS history_items');
-      await db.execute('DROP TABLE IF EXISTS profile_toggles');
-      await _createDB(db, newVersion);
-    }
-    if (oldVersion < 3) {
-      await db.execute('ALTER TABLE medications ADD COLUMN description TEXT;');
-      await db.execute('ALTER TABLE medications ADD COLUMN drugClass TEXT;');
-      await db.execute('ALTER TABLE medications ADD COLUMN sideEffects TEXT;');
-    }
+    await db.execute('DROP TABLE IF EXISTS medications');
+    await db.execute('DROP TABLE IF EXISTS today_meds');
+    await db.execute('DROP TABLE IF EXISTS reminder_rules');
+    await db.execute('DROP TABLE IF EXISTS caregivers');
+    await db.execute('DROP TABLE IF EXISTS vitals');
+    await db.execute('DROP TABLE IF EXISTS history_items');
+    await db.execute('DROP TABLE IF EXISTS profile_toggles');
+    await db.execute('DROP TABLE IF EXISTS profile');
+    await db.execute('DROP TABLE IF EXISTS bp_readings');
+    await _createDB(db, newVersion);
   }
 
   Future _createDB(Database db, int version) async {
@@ -198,6 +193,10 @@ class DatabaseHelper {
       ['Blood Pressure', '118/75', 'mmHg', '↓ improving', 0xFF22C55E, 0xFFF0FDF4, 0xFFBBF7D0, '❤️']);
     await db.rawInsert('INSERT INTO vitals (label, value, unit, trend, color, bg, border, icon) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
       ['Heart Rate', '72', 'bpm', '↓ stable', 0xFF3B82F6, 0xFFEFF6FF, 0xFF93C5FD, '⚡']);
+    await db.rawInsert('INSERT INTO vitals (label, value, unit, trend, color, bg, border, icon) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      ['Blood Sugar', '98', 'mg/dL', '→ stable', 0xFF14B8A6, 0xFFF0FDFA, 0xFFCCFBF1, '🩸']);
+    await db.rawInsert('INSERT INTO vitals (label, value, unit, trend, color, bg, border, icon) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      ['Weight', '168.4', 'lbs', '↓ -1.2 lbs', 0xFF10B981, 0xFFD1FAE5, 0xFFA7F3D0, '⚖️']);
 
     // Seed BP Readings
     await db.rawInsert('INSERT INTO bp_readings (id, date, sys, dia) VALUES (?, ?, ?, ?)', [1, 'Oct 24, 8:00 AM', 120, 80]);
@@ -205,13 +204,15 @@ class DatabaseHelper {
     await db.rawInsert('INSERT INTO bp_readings (id, date, sys, dia) VALUES (?, ?, ?, ?)', [3, 'Oct 22, 7:50 AM', 125, 84]);
     await db.rawInsert('INSERT INTO bp_readings (id, date, sys, dia) VALUES (?, ?, ?, ?)', [4, 'Oct 21, 8:10 AM', 128, 86]);
 
-    // Seed Profile Toggles
-    await db.rawInsert('INSERT INTO profile_toggles (label, sub, value, color) VALUES (?, ?, ?, ?)',
-      ['Biometric Login', 'Use FaceID to open app', 1, 0xFF3B82F6]);
+    // Seed Profile & Reminders Toggles
     await db.rawInsert('INSERT INTO profile_toggles (label, sub, value, color) VALUES (?, ?, ?, ?)',
       ['Dark Mode', 'Matches system settings', 0, 0xFF6B7280]);
     await db.rawInsert('INSERT INTO profile_toggles (label, sub, value, color) VALUES (?, ?, ?, ?)',
-      ['Offline Mode', 'Store data locally', 1, 0xFF10B981]);
+      ['Push Notifications', 'Daily reminders and refills alerts', 1, 0xFF10B981]);
+    await db.rawInsert('INSERT INTO profile_toggles (label, sub, value, color) VALUES (?, ?, ?, ?)',
+      ['Voice Reminders', 'Audible spoken alerts for schedules', 1, 0xFFF59E0B]);
+    await db.rawInsert('INSERT INTO profile_toggles (label, sub, value, color) VALUES (?, ?, ?, ?)',
+      ['Caregiver SMS Alerts', 'Alert network if doses are missed', 0, 0xFF8B5CF6]);
   }
 
   // Clear for testing

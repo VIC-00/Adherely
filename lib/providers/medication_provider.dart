@@ -122,8 +122,6 @@ class MedicationProvider extends ChangeNotifier {
         color: m.color,
         active: true,
       );
-      _rules.add(rule);
-      
       if (_dbEnabled) {
         try {
           final db = await DatabaseHelper.instance.database;
@@ -146,10 +144,34 @@ class MedicationProvider extends ChangeNotifier {
             color: rule.color,
             active: rule.active,
           );
+          _rules.add(insertedRule);
           _notificationService.scheduleReminderNotification(insertedRule);
         } catch(e) {
           debugPrint("Failed saving rule: $e");
+          final fallbackRule = ReminderRule(
+            id: DateTime.now().millisecondsSinceEpoch + times.indexOf(t),
+            med: rule.med,
+            dose: rule.dose,
+            time: rule.time,
+            types: rule.types,
+            advance: rule.advance,
+            color: rule.color,
+            active: rule.active,
+          );
+          _rules.add(fallbackRule);
         }
+      } else {
+        final localRule = ReminderRule(
+          id: DateTime.now().millisecondsSinceEpoch + times.indexOf(t),
+          med: rule.med,
+          dose: rule.dose,
+          time: rule.time,
+          types: rule.types,
+          advance: rule.advance,
+          color: rule.color,
+          active: rule.active,
+        );
+        _rules.add(localRule);
       }
     }
 
@@ -277,38 +299,98 @@ class MedicationProvider extends ChangeNotifier {
   }
 
   Future<void> addRule(ReminderRule rule) async {
-    _rules.add(rule);
-    notifyListeners();
-    if (_dbEnabled) {
-      try {
-        final db = await DatabaseHelper.instance.database;
-        final insertedId = await db.insert('reminder_rules', {
-          'med': rule.med,
-          'dose': rule.dose,
-          'time': rule.time,
-          'types': rule.types.map((e) => e.toString().split('.').last).join(','),
-          'advance': rule.advance,
-          'color': rule.color.toARGB32(),
-          'active': rule.active ? 1 : 0,
-        });
-        
-        final insertedRule = ReminderRule(
-          id: insertedId,
-          med: rule.med,
-          dose: rule.dose,
-          time: rule.time,
-          types: rule.types,
-          advance: rule.advance,
-          color: rule.color,
-          active: rule.active,
-        );
-        _notificationService.scheduleReminderNotification(insertedRule);
-      } catch(e) {}
+    final exists = _meds.any((m) => m.name.toLowerCase() == rule.med.toLowerCase());
+    if (!exists) {
+      final newMedId = DateTime.now().millisecondsSinceEpoch;
+      final med = Medication(
+        id: newMedId,
+        name: rule.med,
+        dose: rule.dose,
+        freq: 'Once daily · ${rule.time}',
+        color: rule.color,
+        refillDays: 30,
+      );
+      _meds.add(med);
+      _todayMeds[newMedId] = MedCardVariant.upcoming;
+
+      if (_dbEnabled) {
+        try {
+          final db = await DatabaseHelper.instance.database;
+          final insertedMedId = await db.insert('medications', {
+            'name': med.name,
+            'dose': med.dose,
+            'freq': med.freq,
+            'color': med.color.toARGB32(),
+            'refillDays': med.refillDays,
+          });
+          await db.insert('today_meds', {
+            'med_id': insertedMedId,
+            'status': 'upcoming',
+          });
+          
+          final insertedRuleId = await db.insert('reminder_rules', {
+            'med': rule.med,
+            'dose': rule.dose,
+            'time': rule.time,
+            'types': rule.types.map((e) => e.toString().split('.').last).join(','),
+            'advance': rule.advance,
+            'color': rule.color.toARGB32(),
+            'active': rule.active ? 1 : 0,
+          });
+          
+          _rules.add(ReminderRule(
+            id: insertedRuleId,
+            med: rule.med,
+            dose: rule.dose,
+            time: rule.time,
+            types: rule.types,
+            advance: rule.advance,
+            color: rule.color,
+            active: rule.active,
+          ));
+        } catch(e) {}
+      } else {
+        _rules.add(rule);
+      }
+      notifyListeners();
+    } else {
+      _rules.add(rule);
+      notifyListeners();
+      if (_dbEnabled) {
+        try {
+          final db = await DatabaseHelper.instance.database;
+          final insertedId = await db.insert('reminder_rules', {
+            'med': rule.med,
+            'dose': rule.dose,
+            'time': rule.time,
+            'types': rule.types.map((e) => e.toString().split('.').last).join(','),
+            'advance': rule.advance,
+            'color': rule.color.toARGB32(),
+            'active': rule.active ? 1 : 0,
+          });
+          
+          final idx = _rules.indexOf(rule);
+          if (idx != -1) {
+            _rules[idx] = ReminderRule(
+              id: insertedId,
+              med: rule.med,
+              dose: rule.dose,
+              time: rule.time,
+              types: rule.types,
+              advance: rule.advance,
+              color: rule.color,
+              active: rule.active,
+            );
+            _notificationService.scheduleReminderNotification(_rules[idx]);
+          }
+        } catch(e) {}
+      }
     }
   }
 
-  Future<void> toggleRule(int idx) async {
-    if (idx < 0 || idx >= _rules.length) return;
+  Future<void> toggleRule(int ruleId) async {
+    final idx = _rules.indexWhere((r) => r.id == ruleId);
+    if (idx == -1) return;
     final r = _rules[idx];
     _rules[idx] = ReminderRule(
       id: r.id,
@@ -325,7 +407,7 @@ class MedicationProvider extends ChangeNotifier {
     if (_dbEnabled) {
       try {
         final db = await DatabaseHelper.instance.database;
-        await db.update('reminder_rules', {'active': !r.active ? 1 : 0}, where: 'id = ?', whereArgs: [r.id]);
+        await db.update('reminder_rules', {'active': !r.active ? 1 : 0}, where: 'id = ?', whereArgs: [ruleId]);
       } catch(e) {}
     }
 

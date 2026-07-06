@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'models.dart';
@@ -39,11 +40,14 @@ class LocalNotificationService implements INotificationService {
     tz.initializeTimeZones();
     // Detect the user's local timezone
     try {
-      // Try to find a matching timezone; fall back to UTC offset-based approach
-      tz.setLocalLocation(tz.getLocation(Platform.localeName.contains('/') ? Platform.localeName : 'UTC'));
+      final String timeZoneName = (await FlutterTimezone.getLocalTimezone()).identifier;
+      tz.setLocalLocation(tz.getLocation(timeZoneName));
     } catch (_) {
-      // Fallback: use a reasonable default
-      tz.setLocalLocation(tz.getLocation('UTC'));
+      try {
+        tz.setLocalLocation(tz.getLocation(Platform.localeName.contains('/') ? Platform.localeName : 'UTC'));
+      } catch (_) {
+        tz.setLocalLocation(tz.getLocation('UTC'));
+      }
     }
 
     const AndroidInitializationSettings initializationSettingsAndroid =
@@ -96,7 +100,7 @@ class LocalNotificationService implements INotificationService {
 
       // Calculate time considering the advance minutes
       final now = tz.TZDateTime.now(tz.local);
-      var scheduledTime = tz.TZDateTime(
+      final actualDoseTime = tz.TZDateTime(
         tz.local,
         now.year,
         now.month,
@@ -104,7 +108,9 @@ class LocalNotificationService implements INotificationService {
         hour,
         minute,
         0,
-      ).subtract(Duration(minutes: rule.advance));
+      );
+
+      var scheduledTime = actualDoseTime;
 
       if (scheduledTime.isBefore(now)) {
         scheduledTime = scheduledTime.add(const Duration(days: 1));
@@ -126,22 +132,42 @@ class LocalNotificationService implements INotificationService {
       const NotificationDetails platformChannelSpecifics =
           NotificationDetails(android: androidPlatformChannelSpecifics);
 
-      await _flutterLocalNotificationsPlugin.zonedSchedule(
-        notificationId,
-        'Medication Reminder',
-        'Time to take ${rule.med} ${rule.dose}',
-        scheduledTime,
-        platformChannelSpecifics,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: DateTimeComponents.time,
-        payload: rule.id?.toString(),
-      );
-      
-      debugPrint('Scheduled notification for ${rule.med} at $scheduledTime');
+      try {
+        await _flutterLocalNotificationsPlugin.zonedSchedule(
+          notificationId,
+          'Medication Reminder',
+          'Time to take ${rule.med} ${rule.dose}',
+          scheduledTime,
+          platformChannelSpecifics,
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          matchDateTimeComponents: DateTimeComponents.time,
+          payload: rule.id?.toString(),
+        );
+        debugPrint('Scheduled exact notification for ${rule.med} at $scheduledTime');
+      } catch (e) {
+        debugPrint('Exact alarm scheduling failed, attempting inexact alarm: $e');
+        try {
+          await _flutterLocalNotificationsPlugin.zonedSchedule(
+            notificationId,
+            'Medication Reminder',
+            'Time to take ${rule.med} ${rule.dose}',
+            scheduledTime,
+            platformChannelSpecifics,
+            androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+            uiLocalNotificationDateInterpretation:
+                UILocalNotificationDateInterpretation.absoluteTime,
+            matchDateTimeComponents: DateTimeComponents.time,
+            payload: rule.id?.toString(),
+          );
+          debugPrint('Scheduled inexact notification for ${rule.med} at $scheduledTime');
+        } catch (innerErr) {
+          debugPrint('Inexact alarm scheduling failed: $innerErr');
+        }
+      }
     } catch (e) {
-      debugPrint('Failed to schedule notification: $e');
+      debugPrint('Failed to schedule reminder notification: $e');
     }
   }
 
