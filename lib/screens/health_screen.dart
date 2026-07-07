@@ -16,6 +16,7 @@ class HealthScreen extends StatelessWidget {
   const HealthScreen({super.key});
   @override
   Widget build(BuildContext context) {
+    AppColors.isDark = Theme.of(context).brightness == Brightness.dark;
     final medState = context.watch<MedicationProvider>();
     final vitalsState = context.watch<VitalsProvider>();
 //     final settingsState = context.watch<SettingsProvider>();
@@ -246,8 +247,14 @@ class HealthScreen extends StatelessWidget {
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(color: AppColors.medBlueLight, borderRadius: BorderRadius.circular(8)),
-                          child: const Text('↓ Improving', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF2563EB))),
+                          decoration: BoxDecoration(
+                              color: AppColors.isDark ? const Color(0xFF1E3A8A) : AppColors.medBlueLight,
+                              borderRadius: BorderRadius.circular(8)),
+                          child: Text('↓ Improving',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB))),
                         ),
                       ],
                     ),
@@ -283,7 +290,9 @@ class HealthScreen extends StatelessWidget {
                                       vitalsState.bpReadings[i].date.replaceAll('Jun ', '').replaceAll('Jul ', ''),
                                       style: TextStyle(
                                         fontSize: 9,
-                                        color: i == vitalsState.bpReadings.length - 1 ? const Color(0xFF2563EB) : AppColors.ink400,
+                                        color: i == vitalsState.bpReadings.length - 1
+                                            ? (AppColors.isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB))
+                                            : AppColors.ink400,
                                         fontWeight: i == vitalsState.bpReadings.length - 1 ? FontWeight.w700 : FontWeight.w500,
                                       ),
                                     ),
@@ -349,7 +358,7 @@ class HealthScreen extends StatelessWidget {
                                 child: LinearProgressIndicator(
                                   value: m.progress / 100,
                                   minHeight: 5,
-                                  backgroundColor: const Color(0xFFF3F4F6),
+                                  backgroundColor: AppColors.isDark ? const Color(0xFF374151) : const Color(0xFFF3F4F6),
                                   valueColor: const AlwaysStoppedAnimation(AppColors.medTeal),
                                 ),
                               ),

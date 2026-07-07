@@ -12,6 +12,7 @@ class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key, this.onOpenReminders});
   @override
   Widget build(BuildContext context) {
+    AppColors.isDark = Theme.of(context).brightness == Brightness.dark;
     final medState = context.watch<MedicationProvider>();
 //     final vitalsState = context.watch<VitalsProvider>();
 //     final settingsState = context.watch<SettingsProvider>();
@@ -25,11 +26,13 @@ class DashboardScreen extends StatelessWidget {
         meds.where((m) => todayMeds[m.id!] == MedCardVariant.missed).length;
 
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFFEFF6FF), Color(0xFFF8FAFC)],
+          colors: AppColors.isDark
+              ? [const Color(0xFF111827), const Color(0xFF1F2937)]
+              : [const Color(0xFFEFF6FF), const Color(0xFFF8FAFC)],
         ),
       ),
       child: SafeArea(
@@ -66,9 +69,9 @@ class DashboardScreen extends StatelessWidget {
                               ),
                               children: [
                                 TextSpan(text: '${(DateTime.now().hour < 12 ? 'Good morning' : DateTime.now().hour < 17 ? 'Good afternoon' : 'Good evening')},\n'),
-                                const TextSpan(
+                                TextSpan(
                                     text: 'Sarah!',
-                                    style: TextStyle(color: Color(0xFF2563EB))),
+                                    style: TextStyle(color: AppColors.isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB))),
                               ],
                             ),
                           ),
@@ -151,7 +154,7 @@ class DashboardScreen extends StatelessWidget {
                     boxShadow: [
                       BoxShadow(
                           color:
-                              const Color(0xFF2563EB).withValues(alpha: 0.35),
+                              const Color(0xFF2563EB).withValues(alpha: AppColors.isDark ? 0.15 : 0.35),
                           blurRadius: 14,
                           offset: const Offset(0, 4)),
                     ],
@@ -218,7 +221,7 @@ class DashboardScreen extends StatelessWidget {
                       child: Container(
                         height: 6,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFDBEAFE),
+                          color: AppColors.isDark ? const Color(0xFF1F2937) : const Color(0xFFDBEAFE),
                           borderRadius: BorderRadius.circular(3),
                         ),
                         child: FractionallySizedBox(
@@ -238,10 +241,10 @@ class DashboardScreen extends StatelessWidget {
                     ),
                     const SizedBox(width: 10),
                     Text('${medState.calculateAdherence()}% this week',
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF2563EB))),
+                            color: AppColors.isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB))),
                   ],
                 ),
               ),
@@ -283,10 +286,10 @@ class DashboardScreen extends StatelessWidget {
                             fontWeight: FontWeight.w700,
                             color: AppColors.ink900)),
                     Text('$taken of $total done',
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.medBlue)),
+                            color: AppColors.isDark ? const Color(0xFF60A5FA) : AppColors.medBlue)),
                   ],
                 ),
               ),

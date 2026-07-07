@@ -22,6 +22,7 @@ class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
   @override
   Widget build(BuildContext context) {
+    AppColors.isDark = Theme.of(context).brightness == Brightness.dark;
     final medState = context.watch<MedicationProvider>();
 //     final vitalsState = context.watch<VitalsProvider>();
 //     final settingsState = context.watch<SettingsProvider>();
@@ -74,7 +75,7 @@ class HistoryScreen extends StatelessWidget {
                 margin: const EdgeInsets.all(16),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.cardBg,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, 2))],
                 ),
@@ -112,7 +113,7 @@ class HistoryScreen extends StatelessWidget {
                     const SizedBox(height: 6),
                     for (final row in historyState.calRows)
                       Padding(
-                        padding: EdgeInsets.only(bottom: 4),
+                        padding: const EdgeInsets.only(bottom: 4),
                         child: Row(
                           children: row.map((cell) {
                             final now = DateTime.now();
@@ -120,14 +121,14 @@ class HistoryScreen extends StatelessWidget {
                             final color = _statusColor[cell.status]!;
                             return Expanded(
                               child: Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 2),
+                                padding: const EdgeInsets.symmetric(horizontal: 2),
                                 child: Container(
                                   height: 32,
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
                                     color: cell.status == DayStatus.empty ? Colors.transparent : color,
                                     borderRadius: BorderRadius.circular(8),
-                                    border: isToday ? Border.all(color: Color(0xFF1D4ED8), width: 2) : null,
+                                    border: isToday ? Border.all(color: AppColors.isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8), width: 2) : null,
                                   ),
                                   child: cell.day > 0
                                       ? Text(
@@ -137,7 +138,7 @@ class HistoryScreen extends StatelessWidget {
                                             fontWeight: isToday ? FontWeight.w800 : FontWeight.w600,
                                             color: (cell.status == DayStatus.taken || cell.status == DayStatus.missed || cell.status == DayStatus.partial)
                                                 ? Colors.white
-                                                : Color(0xFF374151),
+                                                : AppColors.ink700,
                                           ),
                                         )
                                       : null,
@@ -147,8 +148,8 @@ class HistoryScreen extends StatelessWidget {
                           }).toList(),
                         ),
                       ),
-                    SizedBox(height: 8),
-                    Row(
+                    const SizedBox(height: 8),
+                    const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         _LegendDot(color: Color(0xFF22C55E), label: 'Taken'),
@@ -164,12 +165,12 @@ class HistoryScreen extends StatelessWidget {
 
               // Dose log
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Padding(
-                      padding: EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.only(bottom: 12),
                       child: Text('Dose Log', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink900)),
                     ),
                     if (historyState.historyItems.isEmpty)
@@ -203,7 +204,9 @@ class HistoryScreen extends StatelessWidget {
                                   width: 32,
                                   height: 32,
                                   decoration: BoxDecoration(
-                                    color: item.taken ? AppColors.medGreenLight : AppColors.medRedLight,
+                                    color: item.taken
+                                        ? (AppColors.isDark ? const Color(0xFF14532D).withValues(alpha: 0.3) : AppColors.medGreenLight)
+                                        : (AppColors.isDark ? const Color(0xFF7F1D1D).withValues(alpha: 0.3) : AppColors.medRedLight),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(
@@ -231,7 +234,9 @@ class HistoryScreen extends StatelessWidget {
                                     Text(item.time,
                                         style: TextStyle(
                                             fontSize: 12, fontWeight: FontWeight.w700,
-                                            color: item.taken ? const Color(0xFF15803D) : const Color(0xFFB91C1C))),
+                                            color: item.taken
+                                                ? (AppColors.isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D))
+                                                : (AppColors.isDark ? const Color(0xFFFCA5A5) : const Color(0xFFB91C1C)))),
                                     const SizedBox(height: 1),
                                     Text(item.note, style: TextStyle(fontSize: 10, color: AppColors.ink400)),
                                   ],
@@ -275,7 +280,9 @@ class _ChevronBtn extends StatelessWidget {
     return Container(
       width: 28,
       height: 28,
-      decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(
+          color: AppColors.isDark ? const Color(0xFF374151) : const Color(0xFFF3F4F6),
+          borderRadius: BorderRadius.circular(8)),
       child: Icon(icon, size: 16, color: AppColors.ink500),
     );
   }

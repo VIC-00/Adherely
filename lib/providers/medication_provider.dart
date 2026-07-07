@@ -118,7 +118,7 @@ class MedicationProvider extends ChangeNotifier {
         dose: m.dose,
         time: t,
         types: types ?? const [AlertType.push],
-        advance: advanceMinutes ?? 10,
+        advance: advanceMinutes ?? 0,
         color: m.color,
         active: true,
       );

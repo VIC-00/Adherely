@@ -159,6 +159,7 @@ class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
   @override
   Widget build(BuildContext context) {
+    AppColors.isDark = Theme.of(context).brightness == Brightness.dark;
     final medState = context.watch<MedicationProvider>();
 //     final vitalsState = context.watch<VitalsProvider>();
     final settingsState = context.watch<SettingsProvider>();
@@ -368,7 +369,7 @@ class ProfileScreen extends StatelessWidget {
                                     height: 36,
                                     decoration: BoxDecoration(
                                       gradient: c.active ? const LinearGradient(colors: [Color(0xFF8B5CF6), Color(0xFF6D28D9)]) : null,
-                                      color: c.active ? null : const Color(0xFFE5E7EB),
+                                      color: c.active ? null : (AppColors.isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB)),
                                       shape: BoxShape.circle,
                                     ),
                                     alignment: Alignment.center,
@@ -388,8 +389,14 @@ class ProfileScreen extends StatelessWidget {
                                   if (c.active)
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                      decoration: BoxDecoration(color: AppColors.medGreenLight, borderRadius: BorderRadius.circular(6)),
-                                      child: const Text('SMS Active', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF15803D))),
+                                      decoration: BoxDecoration(
+                                          color: AppColors.isDark ? const Color(0xFF062F17) : AppColors.medGreenLight,
+                                          borderRadius: BorderRadius.circular(6)),
+                                      child: Text('SMS Active',
+                                          style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w700,
+                                              color: AppColors.isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D))),
                                     ),
                                   IconButton(
                                     icon: Icon(Icons.edit_rounded, size: 20, color: AppColors.ink500),
@@ -506,12 +513,12 @@ class ProfileScreen extends StatelessWidget {
                           );
                         },
                         style: OutlinedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: const Color(0xFFDC2626),
-                          side: const BorderSide(color: Color(0xFFFECACA), width: 1.5),
-                          padding: const EdgeInsets.symmetric(vertical: 13),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
+                                          backgroundColor: AppColors.isDark ? AppColors.cardBg : Colors.white,
+                                          foregroundColor: const Color(0xFFDC2626),
+                                          side: BorderSide(color: AppColors.isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFECACA), width: 1.5),
+                                          padding: const EdgeInsets.symmetric(vertical: 13),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        ),
                         child: const Text('Reset App Data', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
                       ),
                     ),
@@ -544,12 +551,12 @@ class ProfileScreen extends StatelessWidget {
                           );
                         },
                         style: OutlinedButton.styleFrom(
-                          backgroundColor: AppColors.medRedLight,
-                          foregroundColor: const Color(0xFFDC2626),
-                          side: const BorderSide(color: Color(0xFFFECACA)),
-                          padding: const EdgeInsets.symmetric(vertical: 13),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
+                                          backgroundColor: AppColors.isDark ? const Color(0xFF450A0A) : AppColors.medRedLight,
+                                          foregroundColor: const Color(0xFFDC2626),
+                                          side: BorderSide(color: AppColors.isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFECACA)),
+                                          padding: const EdgeInsets.symmetric(vertical: 13),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        ),
                         child: const Text('Sign Out', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
                       ),
                     ),
@@ -608,7 +615,9 @@ class _MiniSwitch extends StatelessWidget {
     return Container(
       width: 40,
       height: 24,
-      decoration: BoxDecoration(color: on ? color : const Color(0xFFD1D5DB), borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+          color: on ? color : (AppColors.isDark ? const Color(0xFF374151) : const Color(0xFFD1D5DB)),
+          borderRadius: BorderRadius.circular(12)),
       child: AnimatedAlign(
         duration: const Duration(milliseconds: 200),
         alignment: on ? Alignment.centerRight : Alignment.centerLeft,

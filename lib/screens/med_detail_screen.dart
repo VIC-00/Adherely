@@ -22,6 +22,7 @@ class _MedDetailScreenState extends State<MedDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    AppColors.isDark = Theme.of(context).brightness == Brightness.dark;
     final medState = context.watch<MedicationProvider>();
 //     final vitalsState = context.watch<VitalsProvider>();
 //     final settingsState = context.watch<SettingsProvider>();
@@ -352,14 +353,17 @@ class _OverviewTab extends StatelessWidget {
                     width: 28,
                     height: 28,
                     decoration: BoxDecoration(
-                      color:
-                          taken ? AppColors.medGreen : const Color(0xFFFEE2E2),
+                      color: taken
+                          ? AppColors.medGreen
+                          : (AppColors.isDark ? const Color(0xFF450A0A) : const Color(0xFFFEE2E2)),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
                         taken ? Icons.check_rounded : Icons.close_rounded,
                         size: 14,
-                        color: taken ? Colors.white : AppColors.medRed),
+                        color: taken
+                            ? Colors.white
+                            : (AppColors.isDark ? const Color(0xFFFCA5A5) : AppColors.medRed)),
                   ),
                   const SizedBox(height: 5),
                   Text(d['day'] as String,
@@ -435,7 +439,7 @@ class _ScheduleTab extends StatelessWidget {
           h.taken);
       final takenTime = todayItems.isNotEmpty ? todayItems.first.time : timeStr;
       statusText = 'Taken today at $takenTime';
-      statusColor = const Color(0xFF15803D);
+      statusColor = AppColors.isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D);
     } else if (variant == MedCardVariant.missed) {
       statusText = 'Missed today';
       statusColor = AppColors.medRed;
@@ -451,9 +455,14 @@ class _ScheduleTab extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: variant == MedCardVariant.taken ? AppColors.medGreenLight : AppColors.screenBg,
+              color: variant == MedCardVariant.taken
+                  ? (AppColors.isDark ? const Color(0xFF062F17) : AppColors.medGreenLight)
+                  : AppColors.screenBg,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: variant == MedCardVariant.taken ? AppColors.medGreenBorder : AppColors.border),
+              border: Border.all(
+                  color: variant == MedCardVariant.taken
+                      ? (AppColors.isDark ? const Color(0xFF15803D) : AppColors.medGreenBorder)
+                      : AppColors.border),
             ),
             child: Row(
               children: [
@@ -576,13 +585,13 @@ class _SideEffectsTab extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 7, vertical: 2),
                           decoration: BoxDecoration(
-                              color: const Color(0xFFFEF3C7),
+                              color: AppColors.isDark ? const Color(0xFF2C2415) : const Color(0xFFFEF3C7),
                               borderRadius: BorderRadius.circular(5)),
-                          child: const Text('Noted',
+                          child: Text('Noted',
                               style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFFF59E0B))),
+                                  color: AppColors.isDark ? const Color(0xFFFBBF24) : const Color(0xFFF59E0B))),
                         ),
                     ],
                   ),
@@ -596,23 +605,25 @@ class _SideEffectsTab extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: AppColors.medRedLight,
+            color: AppColors.isDark ? const Color(0xFF450A0A) : AppColors.medRedLight,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFFECACA)),
+            border: Border.all(color: AppColors.isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFECACA)),
           ),
-          child: const Column(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('⚠️ Seek immediate care if:',
                   style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFFDC2626))),
-              SizedBox(height: 4),
+                      color: AppColors.isDark ? const Color(0xFFFCA5A5) : const Color(0xFFDC2626))),
+              const SizedBox(height: 4),
               Text(
                   'Severe swelling of face/throat, difficulty breathing, or sudden drop in blood pressure.',
                   style: TextStyle(
-                      fontSize: 12, color: Color(0xFF7F1D1D), height: 1.5)),
+                      fontSize: 12,
+                      color: AppColors.isDark ? const Color(0xFFFECACA) : const Color(0xFF7F1D1D),
+                      height: 1.5)),
             ],
           ),
         ),
@@ -651,10 +662,10 @@ class _RefillsTab extends StatelessWidget {
             children: [
               const SizedBox(height: 10),
               Text('$pillsRemaining',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 48,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF2563EB),
+                      color: AppColors.isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
                       letterSpacing: -1.2)),
               Text(medication.name == 'Gabapentin' ? 'capsules remaining' : 'pills remaining',
                   style: TextStyle(fontSize: 13, color: AppColors.ink500)),
@@ -664,8 +675,8 @@ class _RefillsTab extends StatelessWidget {
                 child: LinearProgressIndicator(
                   value: progressVal,
                   minHeight: 8,
-                  backgroundColor: const Color(0xFFDBEAFE),
-                  valueColor: const AlwaysStoppedAnimation(Color(0xFF2563EB)),
+                  backgroundColor: AppColors.isDark ? const Color(0xFF1E3A8A) : const Color(0xFFDBEAFE),
+                  valueColor: AlwaysStoppedAnimation(AppColors.isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB)),
                 ),
               ),
               const SizedBox(height: 5),
@@ -683,7 +694,9 @@ class _RefillsTab extends StatelessWidget {
               _KV(
                   k: 'Refill due',
                   v: _refillDueDate(medication.refillDays),
-                  vColor: medication.refillDays <= 7 ? AppColors.medRed : const Color(0xFFF59E0B)),
+                  vColor: medication.refillDays <= 7
+                      ? AppColors.medRed
+                      : (AppColors.isDark ? const Color(0xFFFBBF24) : const Color(0xFFF59E0B))),
               const _KV(k: 'Pharmacy', v: 'CVS Pharmacy · 0.4 mi'),
             ],
           ),
@@ -722,12 +735,12 @@ class _RefillsTab extends StatelessWidget {
               );
             },
             style: OutlinedButton.styleFrom(
-              backgroundColor: AppColors.medBlueLight,
-              foregroundColor: const Color(0xFF2563EB),
-              side: const BorderSide(color: Color(0xFFBFDBFE), width: 1.5),
+              backgroundColor: AppColors.isDark ? const Color(0xFF1E3A8A) : AppColors.medBlueLight,
+              foregroundColor: AppColors.isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
+              side: BorderSide(
+                  color: AppColors.isDark ? const Color(0xFF1D4ED8) : const Color(0xFFBFDBFE), width: 1.5),
               padding: const EdgeInsets.symmetric(vertical: 13),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             child: const Text('Request Refill Now',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),

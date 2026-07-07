@@ -42,10 +42,13 @@ class LocalNotificationService implements INotificationService {
     try {
       final String timeZoneName = (await FlutterTimezone.getLocalTimezone()).identifier;
       tz.setLocalLocation(tz.getLocation(timeZoneName));
-    } catch (_) {
+      debugPrint('Notification timezone initialized successfully: $timeZoneName');
+    } catch (e) {
+      debugPrint('First timezone attempt failed: $e');
       try {
         tz.setLocalLocation(tz.getLocation(Platform.localeName.contains('/') ? Platform.localeName : 'UTC'));
-      } catch (_) {
+      } catch (inner) {
+        debugPrint('Second timezone attempt failed: $inner');
         tz.setLocalLocation(tz.getLocation('UTC'));
       }
     }
@@ -99,7 +102,9 @@ class LocalNotificationService implements INotificationService {
       }
 
       // Calculate time considering the advance minutes
+      final sysNow = DateTime.now();
       final now = tz.TZDateTime.now(tz.local);
+      debugPrint('System time check: $sysNow, Timezone time check: $now');
       final actualDoseTime = tz.TZDateTime(
         tz.local,
         now.year,
@@ -110,14 +115,14 @@ class LocalNotificationService implements INotificationService {
         0,
       );
 
-      var scheduledTime = actualDoseTime;
+      var scheduledTime = actualDoseTime.subtract(Duration(minutes: rule.advance));
 
       if (scheduledTime.isBefore(now)) {
         scheduledTime = scheduledTime.add(const Duration(days: 1));
       }
 
-      // Create a unique integer ID based on the rule ID (hashcode)
-      final int notificationId = rule.id.hashCode;
+      // Create a unique 32-bit integer ID based on the rule ID to prevent overflow in Java
+      final int notificationId = rule.id != null ? (rule.id! % 2147483647) : (DateTime.now().millisecondsSinceEpoch % 2147483647);
 
       const AndroidNotificationDetails androidPlatformChannelSpecifics =
           AndroidNotificationDetails(
@@ -174,7 +179,7 @@ class LocalNotificationService implements INotificationService {
   @override
   Future<void> cancelReminder(int ruleId) async {
     if (!_initialized) return;
-    await _flutterLocalNotificationsPlugin.cancel(ruleId);
+    await _flutterLocalNotificationsPlugin.cancel(ruleId % 2147483647);
     debugPrint('Cancelled notification for rule ID $ruleId');
   }
 

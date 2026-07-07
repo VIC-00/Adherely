@@ -25,12 +25,20 @@ class BottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    AppColors.isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
         color: AppColors.cardBg,
-        border: Border(top: BorderSide(color: AppColors.border)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: AppColors.isDark ? 0.15 : 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, -4),
+          ),
+        ],
+        border: Border(top: BorderSide(color: AppColors.hairline)),
       ),
-      padding: const EdgeInsets.fromLTRB(0, 10, 0, 20),
+      padding: const EdgeInsets.fromLTRB(0, 8, 0, 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: _navItems.map((item) {
@@ -44,26 +52,26 @@ class BottomNav extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 32,
+                  width: 56,
                   height: 32,
                   decoration: BoxDecoration(
                     color: isActive ? activeBg : Colors.transparent,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   alignment: Alignment.center,
                   child: Icon(
                     item.icon,
-                    size: 18,
+                    size: 20,
                     color: isActive ? activeColor : AppColors.ink400,
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 4),
                 Text(
                   item.label,
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                    color: isActive ? activeColor : AppColors.ink400,
+                    color: isActive ? activeColor : AppColors.ink500,
                   ),
                 ),
               ],

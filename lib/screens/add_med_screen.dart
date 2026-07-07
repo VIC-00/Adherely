@@ -48,6 +48,7 @@ class _AddMedScreenState extends State<AddMedScreen> {
 
   @override
   Widget build(BuildContext context) {
+    AppColors.isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: AppColors.screenBg,
       body: SafeArea(
@@ -94,7 +95,9 @@ class _AddMedScreenState extends State<AddMedScreen> {
                           height: 4,
                           margin: EdgeInsets.only(right: i < 2 ? 4 : 0),
                           decoration: BoxDecoration(
-                            color: s <= _step ? const Color(0xFF2563EB) : const Color(0xFFE5E7EB),
+                            color: s <= _step
+                                ? const Color(0xFF2563EB)
+                                : (AppColors.isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB)),
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
@@ -182,7 +185,7 @@ class _AddMedScreenState extends State<AddMedScreen> {
                               refillDays: supply,
                             ),
                             types: alertTypes,
-                            advanceMinutes: 15,
+                            advanceMinutes: 0,
                           );
 
                           Navigator.of(context).maybePop();
@@ -220,7 +223,7 @@ class _AddMedScreenState extends State<AddMedScreen> {
             decoration: InputDecoration(
               hintText: 'e.g. Lisinopril',
               filled: true,
-              fillColor: Colors.white,
+              fillColor: AppColors.isDark ? AppColors.cardBg : Colors.white,
               contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
               enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
@@ -241,7 +244,7 @@ class _AddMedScreenState extends State<AddMedScreen> {
                   decoration: InputDecoration(
                     hintText: 'e.g. 10mg',
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: AppColors.isDark ? AppColors.cardBg : Colors.white,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
                     enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
@@ -256,11 +259,11 @@ class _AddMedScreenState extends State<AddMedScreen> {
                 label: 'Form',
                 child: DropdownButtonFormField<String>(
                   initialValue: _form,
-                  dropdownColor: Colors.white,
+                  dropdownColor: AppColors.isDark ? AppColors.cardBg : Colors.white,
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.ink900),
                   decoration: InputDecoration(
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: AppColors.isDark ? AppColors.cardBg : Colors.white,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 4),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
                     enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
@@ -294,7 +297,9 @@ class _AddMedScreenState extends State<AddMedScreen> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: selected ? color : AppColors.border, width: 2),
-                    color: selected ? color.withValues(alpha: 0.08) : Colors.white,
+                    color: selected
+                        ? color.withValues(alpha: AppColors.isDark ? 0.15 : 0.08)
+                        : (AppColors.isDark ? AppColors.cardBg : Colors.white),
                   ),
                   alignment: Alignment.center,
                   child: Column(
@@ -337,15 +342,30 @@ class _AddMedScreenState extends State<AddMedScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
                     decoration: BoxDecoration(
-                      color: selected ? AppColors.medBlueLight : Colors.white,
+                      color: selected
+                          ? (AppColors.isDark ? const Color(0xFF1E3A8A) : AppColors.medBlueLight)
+                          : (AppColors.isDark ? AppColors.cardBg : Colors.white),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: selected ? const Color(0xFF2563EB) : AppColors.border, width: 1.5),
+                      border: Border.all(
+                          color: selected
+                              ? (AppColors.isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB))
+                              : AppColors.border,
+                          width: 1.5),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(f, style: TextStyle(fontSize: 13, fontWeight: selected ? FontWeight.w700 : FontWeight.w500, color: selected ? const Color(0xFF2563EB) : AppColors.ink700)),
-                        if (selected) const Icon(Icons.check_rounded, size: 14, color: Color(0xFF2563EB)),
+                        Text(f,
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                                color: selected
+                                    ? (AppColors.isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB))
+                                    : AppColors.ink700)),
+                        if (selected)
+                          Icon(Icons.check_rounded,
+                              size: 14,
+                              color: AppColors.isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB)),
                       ],
                     ),
                   ),
@@ -393,11 +413,23 @@ class _AddMedScreenState extends State<AddMedScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                   decoration: BoxDecoration(
-                    color: selected ? AppColors.medBlueLight : Colors.white,
+                    color: selected
+                        ? (AppColors.isDark ? const Color(0xFF1E3A8A) : AppColors.medBlueLight)
+                        : (AppColors.isDark ? AppColors.cardBg : Colors.white),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: selected ? const Color(0xFF2563EB) : AppColors.border, width: 1.5),
+                    border: Border.all(
+                        color: selected
+                            ? (AppColors.isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB))
+                            : AppColors.border,
+                        width: 1.5),
                   ),
-                  child: Text(displayText, style: TextStyle(fontSize: 12, fontWeight: selected ? FontWeight.w700 : FontWeight.w500, color: selected ? const Color(0xFF2563EB) : AppColors.ink700)),
+                  child: Text(displayText,
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                          color: selected
+                              ? (AppColors.isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB))
+                              : AppColors.ink700)),
                 ),
               );
             }).toList(),
@@ -421,7 +453,7 @@ class _AddMedScreenState extends State<AddMedScreen> {
                       decoration: InputDecoration(
                         hintText: 'e.g. 30',
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: AppColors.isDark ? AppColors.cardBg : Colors.white,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
                         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
@@ -445,7 +477,7 @@ class _AddMedScreenState extends State<AddMedScreen> {
                       decoration: InputDecoration(
                         hintText: 'e.g. 7',
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: AppColors.isDark ? AppColors.cardBg : Colors.white,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
                         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
@@ -470,14 +502,19 @@ class _AddMedScreenState extends State<AddMedScreen> {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: AppColors.medBlueLight,
+            color: AppColors.isDark ? const Color(0xFF1E3A8A) : AppColors.medBlueLight,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFBFDBFE)),
+            border: Border.all(color: AppColors.isDark ? const Color(0xFF1D4ED8) : const Color(0xFFBFDBFE)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('MEDICATION SUMMARY', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF2563EB), letterSpacing: 0.8)),
+              Text('MEDICATION SUMMARY',
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
+                      letterSpacing: 0.8)),
               const SizedBox(height: 8),
               RichText(
                 text: TextSpan(
@@ -495,7 +532,7 @@ class _AddMedScreenState extends State<AddMedScreen> {
         const SizedBox(height: 14),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.isDark ? AppColors.cardBg : Colors.white,
             borderRadius: BorderRadius.circular(14),
             boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 1))],
           ),
@@ -526,13 +563,14 @@ class _AddMedScreenState extends State<AddMedScreen> {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: const Color(0xFFFFF7ED),
+            color: AppColors.isDark ? const Color(0xFF2C1F15) : const Color(0xFFFFF7ED),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.medOrange.withValues(alpha: 0.2)),
+            border: Border.all(color: AppColors.medOrange.withValues(alpha: AppColors.isDark ? 0.3 : 0.2)),
           ),
           child: RichText(
             text: TextSpan(
-              style: const TextStyle(fontSize: 12, color: Color(0xFF7C2D12)),
+              style: TextStyle(
+                  fontSize: 12, color: AppColors.isDark ? const Color(0xFFFDBA74) : const Color(0xFF7C2D12)),
               children: [
                 const TextSpan(text: 'Voice reminder', style: TextStyle(fontWeight: FontWeight.w700)),
                 const TextSpan(text: ' will play: '),
@@ -587,7 +625,9 @@ class _ReminderRow extends StatelessWidget {
             child: Container(
               width: 40,
               height: 24,
-              decoration: BoxDecoration(color: value ? color : const Color(0xFFD1D5DB), borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(
+                  color: value ? color : (AppColors.isDark ? const Color(0xFF374151) : const Color(0xFFD1D5DB)),
+                  borderRadius: BorderRadius.circular(12)),
               child: AnimatedAlign(
                 duration: const Duration(milliseconds: 200),
                 alignment: value ? Alignment.centerRight : Alignment.centerLeft,
@@ -648,7 +688,7 @@ class _TextInput extends StatelessWidget {
       decoration: InputDecoration(
         hintText: hint,
         filled: true,
-        fillColor: Colors.white,
+        fillColor: AppColors.isDark ? AppColors.cardBg : Colors.white,
         contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),

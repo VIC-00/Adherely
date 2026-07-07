@@ -37,6 +37,7 @@ class _MedicationCardState extends State<MedicationCard> {
 
   @override
   Widget build(BuildContext context) {
+    AppColors.isDark = Theme.of(context).brightness == Brightness.dark;
     final child = switch (widget.variant) {
       MedCardVariant.upcoming => _UpcomingCard(
           compact: widget.compact,
@@ -264,9 +265,9 @@ class _UpcomingCard extends StatelessWidget {
                   ),
                   margin: EdgeInsets.only(bottom: compact ? 12 : 16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFF7ED),
+                    color: AppColors.isDark ? const Color(0xFF2C1F15) : const Color(0xFFFFF7ED),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.medOrange.withValues(alpha: 0.2)),
+                    border: Border.all(color: AppColors.medOrange.withValues(alpha: AppColors.isDark ? 0.3 : 0.2)),
                   ),
                   child: Row(
                     children: [
@@ -287,9 +288,11 @@ class _UpcomingCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 1),
-                          const Text(
+                          Text(
                             'Active · 7:55 AM',
-                            style: TextStyle(fontSize: 9, color: Color(0xFF78716C)),
+                            style: TextStyle(
+                                fontSize: 9,
+                                color: AppColors.isDark ? const Color(0xFF9CA3AF) : const Color(0xFF78716C)),
                           ),
                         ],
                       ),
@@ -302,9 +305,10 @@ class _UpcomingCard extends StatelessWidget {
                     margin: EdgeInsets.only(bottom: compact ? 10 : 12),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFF7ED),
+                      color: AppColors.isDark ? const Color(0xFF2C2415) : const Color(0xFFFFF7ED),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFFBBF24).withValues(alpha: 0.5)),
+                      border: Border.all(
+                          color: const Color(0xFFFBBF24).withValues(alpha: AppColors.isDark ? 0.3 : 0.5)),
                     ),
                     child: Row(
                       children: [
@@ -315,10 +319,10 @@ class _UpcomingCard extends StatelessWidget {
                             refillDays == 0
                                 ? 'Out of supply! Refill immediately.'
                                 : 'Refill Soon — only $refillDays day${refillDays == 1 ? '' : 's'} left',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF92400E),
+                              color: AppColors.isDark ? const Color(0xFFFBBF24) : const Color(0xFF92400E),
                             ),
                           ),
                         ),
@@ -350,7 +354,7 @@ class _UpcomingCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 11,
                     color: (refillDays != null && refillDays! <= 7)
-                        ? const Color(0xFFF59E0B)
+                        ? (AppColors.isDark ? const Color(0xFFFBBF24) : const Color(0xFFF59E0B))
                         : AppColors.ink400,
                     fontWeight: (refillDays != null && refillDays! <= 7)
                         ? FontWeight.w600
@@ -498,7 +502,7 @@ class _TakenCard extends StatelessWidget {
                 horizontal: compact ? 14 : 20,
                 vertical: compact ? 10 : 14,
               ),
-              color: AppColors.medGreenLight,
+              color: AppColors.isDark ? const Color(0xFF062F17) : AppColors.medGreenLight,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -511,7 +515,7 @@ class _TakenCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: compact ? 12 : 13,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF15803D),
+                          color: AppColors.isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D),
                         ),
                       ),
                       const Spacer(),
@@ -519,15 +523,15 @@ class _TakenCard extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFEF3C7),
+                            color: AppColors.isDark ? const Color(0xFF2C2415) : const Color(0xFFFEF3C7),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             '⚠️ $refillDays d left',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF92400E),
+                              color: AppColors.isDark ? const Color(0xFFFBBF24) : const Color(0xFF92400E),
                             ),
                           ),
                         )
@@ -542,7 +546,7 @@ class _TakenCard extends StatelessWidget {
                   Container(
                     height: 4,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFBBF7D0),
+                      color: AppColors.isDark ? const Color(0xFF14532D) : const Color(0xFFBBF7D0),
                       borderRadius: BorderRadius.circular(2),
                     ),
                     child: FractionallySizedBox(
@@ -703,7 +707,7 @@ class _MissedCard extends StatelessWidget {
               horizontal: compact ? 14 : 20,
               vertical: compact ? 12 : 14,
             ),
-            color: AppColors.medRedLight,
+            color: AppColors.isDark ? const Color(0xFF450A0A) : AppColors.medRedLight,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -717,7 +721,7 @@ class _MissedCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: compact ? 11 : 12,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFFB91C1C),
+                          color: AppColors.isDark ? const Color(0xFFFCA5A5) : const Color(0xFFB91C1C),
                         ),
                       ),
                     ),
@@ -725,15 +729,15 @@ class _MissedCard extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFEF3C7),
+                          color: AppColors.isDark ? const Color(0xFF2C2415) : const Color(0xFFFEF3C7),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           '⚠️ $refillDays d left',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF92400E),
+                            color: AppColors.isDark ? const Color(0xFFFBBF24) : const Color(0xFF92400E),
                           ),
                         ),
                       ),
@@ -762,9 +766,12 @@ class _MissedCard extends StatelessWidget {
                       child: OutlinedButton(
                         onPressed: onReschedule,
                         style: OutlinedButton.styleFrom(
-                          backgroundColor: rescheduled ? const Color(0xFF374151) : Colors.white,
-                          foregroundColor: rescheduled ? const Color(0xFF9CA3AF) : const Color(0xFF374151),
-                          side: BorderSide(color: rescheduled ? const Color(0xFF6B7280) : AppColors.border, width: 1.5),
+                          backgroundColor: rescheduled
+                              ? const Color(0xFF374151)
+                              : (AppColors.isDark ? AppColors.cardBg : Colors.white),
+                          foregroundColor: rescheduled ? const Color(0xFF9CA3AF) : AppColors.ink900,
+                          side: BorderSide(
+                              color: rescheduled ? const Color(0xFF6B7280) : AppColors.border, width: 1.5),
                           padding: EdgeInsets.symmetric(vertical: compact ? 10 : 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),

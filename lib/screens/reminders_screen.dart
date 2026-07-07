@@ -23,6 +23,7 @@ class RemindersScreen extends StatefulWidget {
 class _RemindersScreenState extends State<RemindersScreen> {
   @override
   Widget build(BuildContext context) {
+    AppColors.isDark = Theme.of(context).brightness == Brightness.dark;
     final medState = context.watch<MedicationProvider>();
 //     final vitalsState = context.watch<VitalsProvider>();
     final settingsState = context.watch<SettingsProvider>();
@@ -108,7 +109,9 @@ class _RemindersScreenState extends State<RemindersScreen> {
                           left: 6,
                           top: 8,
                           bottom: 8,
-                          child: Container(width: 2, color: const Color(0xFFE5E7EB)),
+                          child: Container(
+                              width: 2,
+                              color: AppColors.isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB)),
                         ),
                         Padding(
                           padding: const EdgeInsets.only(left: 20),
@@ -210,7 +213,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
                                     dose: dose.isNotEmpty ? dose : '1 pill',
                                     time: time.isNotEmpty ? time : '8:00 AM',
                                     types: [AlertType.push],
-                                    advance: 10,
+                                    advance: 0,
                                     color: AppColors.medBlue,
                                     active: true,
                                   ));
@@ -226,12 +229,15 @@ class _RemindersScreenState extends State<RemindersScreen> {
                         ),
                       );
                     },
-                    icon: const Icon(Icons.add_rounded, size: 16, color: Color(0xFF2563EB)),
+                    icon: Icon(Icons.add_rounded,
+                        size: 16,
+                        color: AppColors.isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB)),
                     label: const Text('Add Custom Reminder', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
                     style: OutlinedButton.styleFrom(
-                      backgroundColor: AppColors.medBlueLight,
-                      foregroundColor: const Color(0xFF2563EB),
-                      side: const BorderSide(color: Color(0xFFBFDBFE), width: 1.5, style: BorderStyle.solid),
+                      backgroundColor: AppColors.isDark ? const Color(0xFF1E3A8A) : AppColors.medBlueLight,
+                      foregroundColor: AppColors.isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
+                      side: BorderSide(
+                          color: AppColors.isDark ? const Color(0xFF1D4ED8) : const Color(0xFFBFDBFE), width: 1.5),
                       padding: const EdgeInsets.symmetric(vertical: 13),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -293,9 +299,9 @@ class _RemindersScreenState extends State<RemindersScreen> {
                 margin: const EdgeInsets.fromLTRB(16, 0, 16, 28),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF5F3FF),
+                  color: AppColors.isDark ? const Color(0xFF2E1065).withValues(alpha: 0.2) : const Color(0xFFF5F3FF),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFDDD6FE)),
+                  border: Border.all(color: AppColors.isDark ? const Color(0xFF4C1D95) : const Color(0xFFDDD6FE)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -305,7 +311,11 @@ class _RemindersScreenState extends State<RemindersScreen> {
                         Container(
                           width: 36,
                           height: 36,
-                          decoration: BoxDecoration(color: const Color(0xFFEDE9FE), borderRadius: BorderRadius.circular(10)),
+                          decoration: BoxDecoration(
+                              color: AppColors.isDark
+                                  ? const Color(0xFF4C1D95).withValues(alpha: 0.3)
+                                  : const Color(0xFFEDE9FE),
+                              borderRadius: BorderRadius.circular(10)),
                           alignment: Alignment.center,
                           child: const Text('💬', style: TextStyle(fontSize: 18)),
                         ),
@@ -314,12 +324,16 @@ class _RemindersScreenState extends State<RemindersScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Caregiver SMS Alerts', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF4C1D95))),
+                              Text('Caregiver SMS Alerts',
+                                  style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.isDark ? const Color(0xFFA78BFA) : const Color(0xFF4C1D95))),
                               Text(
                                 settingsState.caregivers.where((c) => c.active).isNotEmpty 
                                   ? '${settingsState.caregivers.where((c) => c.active).first.relation} (${settingsState.caregivers.where((c) => c.active).first.phone})'
                                   : 'No active caregiver configured', 
-                                style: const TextStyle(fontSize: 11, color: Color(0xFF7C3AED)),
+                                style: TextStyle(fontSize: 11, color: AppColors.isDark ? const Color(0xFFC084FC) : const Color(0xFF7C3AED)),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ],
@@ -327,10 +341,15 @@ class _RemindersScreenState extends State<RemindersScreen> {
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(color: const Color(0xFFDDD6FE), borderRadius: BorderRadius.circular(6)),
+                          decoration: BoxDecoration(
+                              color: AppColors.isDark ? const Color(0xFF4C1D95) : const Color(0xFFDDD6FE),
+                              borderRadius: BorderRadius.circular(6)),
                           child: Text(
                             medState.rules.any((r) => r.active && r.types.contains(AlertType.sms)) ? 'Active' : 'Inactive', 
-                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF4C1D95)),
+                            style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.isDark ? Colors.white : const Color(0xFF4C1D95)),
                           ),
                         ),
                       ],
@@ -340,14 +359,21 @@ class _RemindersScreenState extends State<RemindersScreen> {
                       medState.rules.any((r) => r.active && r.types.contains(AlertType.sms))
                         ? 'Active for ${medState.rules.where((r) => r.active && r.types.contains(AlertType.sms)).map((r) => r.med).join(", ")}'
                         : 'Enable now →',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF6D28D9)),
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.isDark ? const Color(0xFFA78BFA) : const Color(0xFF6D28D9)),
                     ),
                     const SizedBox(height: 8),
-                    const Row(
+                    Row(
                       children: [
-                        _SmallDot(color: Color(0xFFF59E0B)),
-                        SizedBox(width: 5),
-                        Text('Requires caregiver consent', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF92400E))),
+                        const _SmallDot(color: Color(0xFFF59E0B)),
+                        const SizedBox(width: 5),
+                        Text('Requires caregiver consent',
+                            style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.isDark ? const Color(0xFFFBBF24) : const Color(0xFF92400E))),
                       ],
                     ),
                   ],
@@ -378,9 +404,9 @@ class _RuleCard extends StatelessWidget {
             width: 14,
             height: 14,
             decoration: BoxDecoration(
-              color: rule.active ? rule.color : const Color(0xFFD1D5DB),
+              color: rule.active ? rule.color : (AppColors.isDark ? const Color(0xFF374151) : const Color(0xFFD1D5DB)),
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2),
+              border: Border.all(color: AppColors.isDark ? AppColors.canvasBg : Colors.white, width: 2),
               boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 0, spreadRadius: 2)],
             ),
           ),
@@ -390,10 +416,15 @@ class _RuleCard extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.cardBg,
               borderRadius: BorderRadius.circular(14),
               boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 1))],
-              border: Border(left: BorderSide(color: rule.active ? rule.color : const Color(0xFFE5E7EB), width: 3)),
+              border: Border(
+                  left: BorderSide(
+                      color: rule.active
+                          ? rule.color
+                          : (AppColors.isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB)),
+                      width: 3)),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -420,7 +451,9 @@ class _RuleCard extends StatelessWidget {
                             final info = _alertIcons[t]!;
                             return Container(
                               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                              decoration: BoxDecoration(color: info.color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(5)),
+                              decoration: BoxDecoration(
+                                  color: info.color.withValues(alpha: AppColors.isDark ? 0.16 : 0.08),
+                                  borderRadius: BorderRadius.circular(5)),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
@@ -433,7 +466,9 @@ class _RuleCard extends StatelessWidget {
                           }),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                            decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(5)),
+                            decoration: BoxDecoration(
+                                color: AppColors.isDark ? const Color(0xFF374151) : const Color(0xFFF3F4F6),
+                                borderRadius: BorderRadius.circular(5)),
                             child: Text('−${rule.advance}min', style: TextStyle(fontSize: 10, color: AppColors.ink500)),
                           ),
                         ],
@@ -447,7 +482,11 @@ class _RuleCard extends StatelessWidget {
                     width: 36,
                     height: 22,
                     margin: const EdgeInsets.only(top: 2),
-                    decoration: BoxDecoration(color: rule.active ? rule.color : const Color(0xFFD1D5DB), borderRadius: BorderRadius.circular(11)),
+                    decoration: BoxDecoration(
+                        color: rule.active
+                            ? rule.color
+                            : (AppColors.isDark ? const Color(0xFF374151) : const Color(0xFFD1D5DB)),
+                        borderRadius: BorderRadius.circular(11)),
                     child: AnimatedAlign(
                       duration: const Duration(milliseconds: 200),
                       alignment: rule.active ? Alignment.centerRight : Alignment.centerLeft,
@@ -478,7 +517,9 @@ class _StaticSwitch extends StatelessWidget {
     return Container(
       width: 40,
       height: 24,
-      decoration: BoxDecoration(color: on ? color : const Color(0xFFD1D5DB), borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+          color: on ? color : (AppColors.isDark ? const Color(0xFF374151) : const Color(0xFFD1D5DB)),
+          borderRadius: BorderRadius.circular(12)),
       child: Align(
         alignment: on ? Alignment.centerRight : Alignment.centerLeft,
         child: Container(
