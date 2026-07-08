@@ -18,12 +18,11 @@ class DashboardScreen extends StatelessWidget {
 //     final settingsState = context.watch<SettingsProvider>();
     final historyState = context.watch<HistoryProvider>();
     final meds = medState.meds;
-    final todayMeds = medState.todayMeds;
     final total = meds.length;
     final taken =
-        meds.where((m) => todayMeds[m.id!] == MedCardVariant.taken).length;
+        meds.where((m) => medState.getTodayMedStatus(m) == MedCardVariant.taken).length;
     final missed =
-        meds.where((m) => todayMeds[m.id!] == MedCardVariant.missed).length;
+        meds.where((m) => medState.getTodayMedStatus(m) == MedCardVariant.missed).length;
 
     return Container(
       decoration: BoxDecoration(
@@ -173,7 +172,7 @@ class DashboardScreen extends StatelessWidget {
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: 1,
                                   color: Colors.white.withValues(alpha: 0.75))),
-                          Text('${historyState.calculateStreak(medState.todayMeds)} Days',
+                          Text('${historyState.calculateStreak(medState.dynamicTodayMeds)} Days',
                               style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w800,
@@ -198,7 +197,7 @@ class DashboardScreen extends StatelessWidget {
                                     fontSize: 11,
                                     color: Colors.white.withValues(alpha: 0.65),
                                     fontWeight: FontWeight.w500)),
-                            Text('${historyState.getPersonalBestStreak(historyState.calculateStreak(medState.todayMeds))} days',
+                            Text('${historyState.getPersonalBestStreak(historyState.calculateStreak(medState.dynamicTodayMeds))} days',
                                 style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
@@ -298,8 +297,7 @@ class DashboardScreen extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
                 child: Column(
                   children: meds.map((med) {
-                    final variant =
-                        todayMeds[med.id!] ?? MedCardVariant.upcoming;
+                    final variant = medState.getTodayMedStatus(med);
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 10),
                       child: MedicationCard(
@@ -311,6 +309,7 @@ class DashboardScreen extends StatelessWidget {
                             ? med.freq.split('·').last.trim()
                             : med.freq,
                         refillDays: med.refillDays,
+                        color: med.color,
                         onTakeNow: () {
                           medState.logMedication(med.id!, MedCardVariant.taken);
                           final timeStr = DateFormat('h:mm a').format(DateTime.now());
@@ -339,11 +338,42 @@ class DashboardScreen extends StatelessWidget {
                             SnackBar(content: Text('${med.name} marked as taken!')),
                           );
                         },
-                        onReschedule: () {
-                          medState.logMedication(med.id!, MedCardVariant.upcoming);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('${med.name} rescheduled!')),
+                        onReschedule: () async {
+                          final oldTime = med.freq.contains('·')
+                              ? med.freq.split('·').last.trim().split(',').first.trim()
+                              : med.freq;
+                          final TimeOfDay? picked = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.now(),
+                            builder: (context, child) {
+                              final mediaQuery = MediaQuery.of(context);
+                              return MediaQuery(
+                                data: mediaQuery.copyWith(
+                                  size: Size(mediaQuery.size.width, mediaQuery.size.height < 600.0 ? 800.0 : mediaQuery.size.height),
+                                  viewInsets: mediaQuery.viewInsets.copyWith(bottom: 0),
+                                  textScaler: TextScaler.noScaling,
+                                ),
+                                child: OverflowBox(
+                                  minHeight: 340.0,
+                                  maxHeight: 800.0,
+                                  child: child!,
+                                ),
+                              );
+                            },
                           );
+                          if (picked != null) {
+                            final hour = picked.hourOfPeriod == 0 ? 12 : picked.hourOfPeriod;
+                            final minute = picked.minute.toString().padLeft(2, '0');
+                            final period = picked.period == DayPeriod.am ? 'AM' : 'PM';
+                            final newTime = '$hour:$minute $period';
+                            
+                            await medState.rescheduleRule(med.id!, oldTime, newTime);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('${med.name} rescheduled to $newTime!')),
+                              );
+                            }
+                          }
                         },
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(

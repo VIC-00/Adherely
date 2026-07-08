@@ -6,6 +6,7 @@ import 'screens/health_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/reminders_screen.dart';
+import 'screens/add_med_screen.dart';
 import 'widgets/bottom_nav.dart';
 import 'widgets/alarm_overlay_dialog.dart';
 import 'notification_service.dart';
@@ -91,6 +92,18 @@ class _RootShellState extends State<RootShell> {
         active: _tab,
         onTap: (t) => setState(() => _tab = t),
       ),
+      floatingActionButton: _tab == NavTab.home
+          ? FloatingActionButton(
+              heroTag: 'root_add_med_fab',
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const AddMedScreen()),
+                );
+              },
+              backgroundColor: const Color(0xFF2563EB),
+              child: const Icon(Icons.add_rounded, color: Colors.white),
+            )
+          : null,
     );
   }
 }

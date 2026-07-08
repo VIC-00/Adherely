@@ -12,6 +12,7 @@ class MedicationCard extends StatefulWidget {
   final String dose;
   final String time;
   final int? refillDays;
+  final Color? color;
 
   const MedicationCard({
     super.key,
@@ -25,6 +26,7 @@ class MedicationCard extends StatefulWidget {
     this.dose = '10mg · Oral tablet',
     this.time = '8:00 AM',
     this.refillDays,
+    this.color,
   });
 
   @override
@@ -46,6 +48,7 @@ class _MedicationCardState extends State<MedicationCard> {
           time: widget.time,
           refillDays: widget.refillDays,
           onTakeNow: widget.onTakeNow,
+          color: widget.color,
         ),
       MedCardVariant.taken => _TakenCard(
           compact: widget.compact,
@@ -92,6 +95,7 @@ class _UpcomingCard extends StatelessWidget {
   final String time;
   final int? refillDays;
   final VoidCallback? onTakeNow;
+  final Color? color;
 
   const _UpcomingCard({
     required this.compact,
@@ -100,19 +104,22 @@ class _UpcomingCard extends StatelessWidget {
     required this.time,
     this.refillDays,
     this.onTakeNow,
+    this.color,
   });
 
   @override
   Widget build(BuildContext context) {
     final radius = compact ? 14.0 : 18.0;
+    final themeColor = color ?? const Color(0xFF2563EB);
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.cardBg,
         borderRadius: BorderRadius.circular(radius),
-        border: Border.all(color: const Color(0x333B82F6), width: 1.5),
+        border: Border.all(color: themeColor.withValues(alpha: 0.25), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: AppColors.medBlue.withValues(alpha: 0.18),
+            color: themeColor.withValues(alpha: 0.15),
             blurRadius: 24,
             offset: const Offset(0, 4),
           ),
@@ -132,12 +139,16 @@ class _UpcomingCard extends StatelessWidget {
               horizontal: compact ? 14 : 20,
               vertical: compact ? 12 : 16,
             ),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xFF2563EB), Color(0xFF3B82F6), Color(0xFF60A5FA)],
-                stops: [0, 0.6, 1],
+                colors: [
+                  themeColor,
+                  themeColor.withValues(alpha: 0.85),
+                  themeColor.withValues(alpha: 0.7),
+                ],
+                stops: const [0, 0.65, 1],
               ),
             ),
             child: Row(
@@ -441,7 +452,7 @@ class _TakenCard extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFF6B7280), Color(0xFF9CA3AF)],
+                  colors: [Color(0xFF047857), Color(0xFF10B981)],
                 ),
               ),
               child: Row(
@@ -621,7 +632,7 @@ class _MissedCard extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xFFDC2626), Color(0xFFEF4444)],
+                colors: [Color(0xFFBE123C), Color(0xFFF43F5E)],
               ),
             ),
             child: Row(

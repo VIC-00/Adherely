@@ -41,7 +41,7 @@ class HistoryProvider extends ChangeNotifier {
       DayStatus status = DayStatus.future;
       
       if (!cellDate.isAfter(today)) {
-        final dayItems = _historyItems.where((h) => _historyDateMatchesDay(h.date, cellDate)).toList();
+        final dayItems = _historyItems.where((h) => historyDateMatchesDay(h.date, cellDate)).toList();
         if (dayItems.isEmpty) {
           status = DayStatus.future; // stays white
         } else {
@@ -159,10 +159,10 @@ class HistoryProvider extends ChangeNotifier {
 
   List<HistoryItem> getDosesForDay(int day) {
     final checkDate = DateTime(_currentHistoryMonth.year, _currentHistoryMonth.month, day);
-    return _historyItems.where((h) => _historyDateMatchesDay(h.date, checkDate)).toList();
+    return _historyItems.where((h) => historyDateMatchesDay(h.date, checkDate)).toList();
   }
 
-  bool _historyDateMatchesDay(String historyDateStr, DateTime day) {
+  bool historyDateMatchesDay(String historyDateStr, DateTime day) {
     if (historyDateStr == 'Today' || historyDateStr.startsWith('Today,')) {
       final now = DateTime.now();
       return day.year == now.year && day.month == now.month && day.day == now.day;
@@ -201,7 +201,7 @@ class HistoryProvider extends ChangeNotifier {
           continue;
         }
       } else {
-        final dayItems = _historyItems.where((h) => _historyDateMatchesDay(h.date, checkDate)).toList();
+        final dayItems = _historyItems.where((h) => historyDateMatchesDay(h.date, checkDate)).toList();
         if (dayItems.isEmpty) {
           if (i <= 30) {
             current++;

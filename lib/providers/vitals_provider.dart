@@ -29,7 +29,9 @@ class VitalsProvider extends ChangeNotifier {
     
     _bpReadings.clear();
     if (bpData.isNotEmpty) {
-      _bpReadings.addAll(bpData.map((b) => BPReading(
+      final start = bpData.length > 7 ? bpData.length - 7 : 0;
+      final last7 = bpData.sublist(start);
+      _bpReadings.addAll(last7.map((b) => BPReading(
         date: b['date'] as String,
         sys: b['sys'] as int,
         dia: b['dia'] as int,

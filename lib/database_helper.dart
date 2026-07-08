@@ -160,12 +160,21 @@ class DatabaseHelper {
       [1, 'Sarah Mitchell', 'Oct 14, 1965', 'PT-894-22X', 'Hypertension · Type 2 Diabetes']);
 
     // Seed Medications
-    await db.rawInsert('INSERT INTO medications (id, name, dose, freq, color, refillDays) VALUES (?, ?, ?, ?, ?, ?)',
-      [1, 'Lisinopril', '10mg', 'Once daily · 8 AM', 0xFF3B82F6, 12]);
-    await db.rawInsert('INSERT INTO medications (id, name, dose, freq, color, refillDays) VALUES (?, ?, ?, ?, ?, ?)',
-      [2, 'Metformin', '500mg', 'Twice daily · 8 AM, 8 PM', 0xFF8B5CF6, 5]);
-    await db.rawInsert('INSERT INTO medications (id, name, dose, freq, color, refillDays) VALUES (?, ?, ?, ?, ?, ?)',
-      [3, 'Gabapentin', '300mg', 'Once daily · 2 PM', 0xFFF97316, 22]);
+    await db.rawInsert('INSERT INTO medications (id, name, dose, freq, color, refillDays, description, drugClass, sideEffects) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [1, 'Lisinopril', '10mg', 'Once daily · 8 AM', 0xFF3B82F6, 12,
+       'Used to treat high blood pressure and heart failure. It helps lower blood pressure, which helps prevent strokes, heart attacks, and kidney problems.',
+       'ACE Inhibitor',
+       'Dry cough, Dizziness, Headache, Tiredness, Nausea']);
+    await db.rawInsert('INSERT INTO medications (id, name, dose, freq, color, refillDays, description, drugClass, sideEffects) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [2, 'Metformin', '500mg', 'Twice daily · 8 AM, 8 PM', 0xFF8B5CF6, 5,
+       'Used with a proper diet and exercise program to control high blood sugar in patients with type 2 diabetes. Controlling high blood sugar helps prevent kidney damage, blindness, nerve problems, loss of limbs, and sexual function issues.',
+       'Biguanide (Antidiabetic)',
+       'Nausea, Vomiting, Stomach upset, Diarrhea, Metallic taste']);
+    await db.rawInsert('INSERT INTO medications (id, name, dose, freq, color, refillDays, description, drugClass, sideEffects) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [3, 'Gabapentin', '300mg', 'Once daily · 2 PM', 0xFFF97316, 22,
+       'Used with other medications to prevent and control seizures. It is also used to relieve neuropathic pain (nerve pain) following shingles (a painful rash due to herpes zoster infection) in adults.',
+       'Anticonvulsant / Neuropathic Agent',
+       'Drowsiness, Dizziness, Loss of coordination, Double vision, Tremor']);
 
     // Seed Today Meds Statuses
     await db.rawInsert('INSERT INTO today_meds (med_id, status) VALUES (?, ?)', [1, 'upcoming']);

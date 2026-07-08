@@ -177,11 +177,18 @@ class _RemindersScreenState extends State<RemindersScreen> {
                                       context: context,
                                       initialTime: TimeOfDay.now(),
                                       builder: (context, child) {
+                                        final mediaQuery = MediaQuery.of(context);
                                         return MediaQuery(
-                                          data: MediaQuery.of(context).copyWith(
+                                          data: mediaQuery.copyWith(
+                                            size: Size(mediaQuery.size.width, mediaQuery.size.height < 600.0 ? 800.0 : mediaQuery.size.height),
+                                            viewInsets: mediaQuery.viewInsets.copyWith(bottom: 0),
                                             textScaler: TextScaler.noScaling,
                                           ),
-                                          child: child!,
+                                          child: OverflowBox(
+                                            minHeight: 340.0,
+                                            maxHeight: 800.0,
+                                            child: child!,
+                                          ),
                                         );
                                       },
                                     );

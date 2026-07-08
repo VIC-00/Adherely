@@ -3,9 +3,9 @@ import '../models.dart';
 import 'package:provider/provider.dart';
 import '../providers/index.dart';
 import '../theme/app_colors.dart';
+import 'package:intl/intl.dart';
 
 const _frequencies = ['Once daily', 'Twice daily', 'Three times daily', 'Every other day', 'As needed'];
-const _times = ['6:00 AM', '7:00 AM', '8:00 AM', '9:00 AM', '12:00 PM', '2:00 PM', '6:00 PM', '8:00 PM', '10:00 PM', 'Custom...'];
 const _categories = [
   {'label': 'Blood Pressure', 'icon': '❤️', 'color': Color(0xFFEF4444)},
   {'label': 'Diabetes', 'icon': '🩸', 'color': Color(0xFFF97316)},
@@ -26,10 +26,51 @@ class AddMedScreen extends StatefulWidget {
 class _AddMedScreenState extends State<AddMedScreen> {
   int _step = 1;
   String _freq = 'Once daily';
-  String _time = '8:00 AM';
+  List<String> _selectedTimes = ['8:00 AM'];
   String _category = 'Blood Pressure';
   bool _reminder = true;
   bool _voiceAlert = true;
+
+  void _onFreqChanged(String f) {
+    setState(() {
+      _freq = f;
+      if (f == 'Once daily' || f == 'Every other day' || f == 'As needed') {
+        _selectedTimes = [_selectedTimes.first];
+      } else if (f == 'Twice daily') {
+        if (_selectedTimes.length < 2) {
+          _selectedTimes = [_selectedTimes.first, '8:00 PM'];
+        } else {
+          _selectedTimes = _selectedTimes.sublist(0, 2);
+        }
+      } else if (f == 'Three times daily') {
+        if (_selectedTimes.length < 3) {
+          if (_selectedTimes.length == 1) {
+            _selectedTimes = [_selectedTimes.first, '2:00 PM', '8:00 PM'];
+          } else {
+            _selectedTimes = [..._selectedTimes, '8:00 PM'];
+          }
+        } else {
+          _selectedTimes = _selectedTimes.sublist(0, 3);
+        }
+      }
+    });
+  }
+
+  TimeOfDay _parseTimeOfDay(String timeStr) {
+    try {
+      final clean = timeStr.trim();
+      final format = DateFormat('h:mm a');
+      final parsed = format.parse(clean);
+      return TimeOfDay(hour: parsed.hour, minute: parsed.minute);
+    } catch (_) {
+      try {
+        final parsed = DateFormat('HH:mm').parse(timeStr.trim());
+        return TimeOfDay(hour: parsed.hour, minute: parsed.minute);
+      } catch (_) {
+        return const TimeOfDay(hour: 8, minute: 0);
+      }
+    }
+  }
 
   final _nameController = TextEditingController();
   final _doseController = TextEditingController();
@@ -158,7 +199,7 @@ class _AddMedScreenState extends State<AddMedScreen> {
                         } else {
                           final name = _nameController.text.trim();
                           final dose = _doseController.text.trim();
-                          final freq = '$_freq · $_time';
+                          final freq = '$_freq · ${_selectedTimes.join(', ')}';
                           final supply = int.tryParse(_supplyController.text.trim()) ?? 30;
 
                           Color color = AppColors.medBlue;
@@ -337,7 +378,7 @@ class _AddMedScreenState extends State<AddMedScreen> {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 6),
                 child: GestureDetector(
-                  onTap: () => setState(() => _freq = f),
+                  onTap: () => _onFreqChanged(f),
                   child: Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
@@ -377,62 +418,72 @@ class _AddMedScreenState extends State<AddMedScreen> {
         const SizedBox(height: 16),
         _FormField(
           label: 'Dose Time(s)',
-          child: Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: _times.map((t) {
-              final selected = _time == t || (t == 'Custom...' && !_times.sublist(0, _times.length - 1).contains(_time));
-              final displayText = (t == 'Custom...' && selected) ? _time : t;
-              return GestureDetector(
-                onTap: () async {
-                  if (t == 'Custom...') {
-                    final TimeOfDay? picked = await showTimePicker(
-                      context: context,
-                      initialTime: TimeOfDay.now(),
-                      builder: (context, child) {
-                        return MediaQuery(
-                          data: MediaQuery.of(context).copyWith(
-                            textScaler: TextScaler.noScaling,
+          child: Column(
+            children: List.generate(_selectedTimes.length, (index) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Row(
+                  children: [
+                    Text(
+                      'Time ${index + 1}:',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.ink700),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () async {
+                           final TimeOfDay? picked = await showTimePicker(
+                             context: context,
+                             initialTime: _parseTimeOfDay(_selectedTimes[index]),
+                             builder: (context, child) {
+                               final mediaQuery = MediaQuery.of(context);
+                               return MediaQuery(
+                                 data: mediaQuery.copyWith(
+                                   size: Size(mediaQuery.size.width, mediaQuery.size.height < 600.0 ? 800.0 : mediaQuery.size.height),
+                                   viewInsets: mediaQuery.viewInsets.copyWith(bottom: 0),
+                                   textScaler: TextScaler.noScaling,
+                                 ),
+                                 child: OverflowBox(
+                                   minHeight: 340.0,
+                                   maxHeight: 800.0,
+                                   child: child!,
+                                 ),
+                               );
+                             },
+                           );
+                          if (picked != null) {
+                            setState(() {
+                              final hour = picked.hourOfPeriod == 0 ? 12 : picked.hourOfPeriod;
+                              final minute = picked.minute.toString().padLeft(2, '0');
+                              final period = picked.period == DayPeriod.am ? 'AM' : 'PM';
+                              _selectedTimes[index] = '$hour:$minute $period';
+                            });
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: AppColors.isDark ? AppColors.cardBg : Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppColors.border, width: 1.5),
                           ),
-                          child: child!,
-                        );
-                      },
-                    );
-                    if (picked != null) {
-                      setState(() {
-                        final hour = picked.hourOfPeriod == 0 ? 12 : picked.hourOfPeriod;
-                        final minute = picked.minute.toString().padLeft(2, '0');
-                        final period = picked.period == DayPeriod.am ? 'AM' : 'PM';
-                        _time = '$hour:$minute $period';
-                      });
-                    }
-                  } else {
-                    setState(() => _time = t);
-                  }
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                  decoration: BoxDecoration(
-                    color: selected
-                        ? (AppColors.isDark ? const Color(0xFF1E3A8A) : AppColors.medBlueLight)
-                        : (AppColors.isDark ? AppColors.cardBg : Colors.white),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: selected
-                            ? (AppColors.isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB))
-                            : AppColors.border,
-                        width: 1.5),
-                  ),
-                  child: Text(displayText,
-                      style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                          color: selected
-                              ? (AppColors.isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB))
-                              : AppColors.ink700)),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                _selectedTimes[index],
+                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.ink900),
+                              ),
+                              Icon(Icons.access_time_filled_rounded, size: 16, color: AppColors.medBlue),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               );
-            }).toList(),
+            }),
           ),
         ),
         const SizedBox(height: 16),
@@ -525,7 +576,7 @@ class _AddMedScreenState extends State<AddMedScreen> {
                   ],
                 ),
               ),
-              Text('$_freq · $_time', style: TextStyle(fontSize: 12, color: AppColors.ink500)),
+              Text('$_freq · ${_selectedTimes.join(', ')}', style: TextStyle(fontSize: 12, color: AppColors.ink500)),
             ],
           ),
         ),
@@ -575,7 +626,7 @@ class _AddMedScreenState extends State<AddMedScreen> {
                 const TextSpan(text: 'Voice reminder', style: TextStyle(fontWeight: FontWeight.w700)),
                 const TextSpan(text: ' will play: '),
                 TextSpan(text: '"Time to take your ${_nameController.text.trim().isNotEmpty ? _nameController.text.trim() : 'medication'} ${_doseController.text.trim().isNotEmpty ? _doseController.text.trim() : ''}"', style: const TextStyle(fontStyle: FontStyle.italic)),
-                TextSpan(text: ' at $_time.'),
+                TextSpan(text: ' at ${_selectedTimes.join(', ')}.'),
               ],
             ),
           ),

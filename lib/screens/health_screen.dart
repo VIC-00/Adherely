@@ -215,6 +215,7 @@ class HealthScreen extends StatelessWidget {
           );
         },
         backgroundColor: const Color(0xFF0F766E),
+        heroTag: 'health_log_vitals_fab',
         icon: const Icon(Icons.add_chart_rounded, color: Colors.white),
         label: const Text('Log Vitals', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
       ),

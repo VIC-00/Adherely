@@ -304,8 +304,6 @@ class _OverviewTab extends StatelessWidget {
     );
 
     final medState = context.watch<MedicationProvider>();
-//     final vitalsState = context.watch<VitalsProvider>();
-//     final settingsState = context.watch<SettingsProvider>();
     final historyState = context.watch<HistoryProvider>();
     final today = DateTime.now();
     final startOfWeek = today.subtract(Duration(days: today.weekday - 1));
@@ -321,9 +319,8 @@ class _OverviewTab extends StatelessWidget {
         taken = medState.todayMeds[medication.id!] == MedCardVariant.taken;
       } else {
         final dayItems = historyState.historyItems.where((h) {
-          return h.med.contains(medication.name) &&
-              (h.date.contains(DateFormat('MMM d').format(day)) ||
-               (index == today.weekday - 2 && h.date.contains('Yesterday')));
+          return h.med.toLowerCase().contains(medication.name.toLowerCase()) &&
+              historyState.historyDateMatchesDay(h.date, day);
         });
         taken = dayItems.isNotEmpty && dayItems.any((h) => h.taken);
       }
@@ -333,6 +330,33 @@ class _OverviewTab extends StatelessWidget {
         'taken': taken,
       };
     });
+
+    // Deterministic Prescriber details based on medication name
+    final docIndex = medication.name.length % 3;
+    final doctors = [
+      {
+        'name': 'Dr. Rachel Green, MD',
+        'specialty': 'Cardiology',
+        'initial': 'G',
+        'date': 'Oct 12, 2025',
+        'colors': [const Color(0xFF2563EB), const Color(0xFF1D4ED8)]
+      },
+      {
+        'name': 'Dr. John Smith, MD',
+        'specialty': 'Endocrinology',
+        'initial': 'S',
+        'date': 'Sep 15, 2025',
+        'colors': [const Color(0xFF8B5CF6), const Color(0xFF7C3AED)]
+      },
+      {
+        'name': 'Dr. Minh Nguyen, MD',
+        'specialty': 'Neurology / Primary Care',
+        'initial': 'N',
+        'date': 'Jun 10, 2024',
+        'colors': [const Color(0xFF0D9488), const Color(0xFF0F766E)]
+      },
+    ];
+    final doc = doctors[docIndex];
 
     return Column(
       children: [
@@ -384,14 +408,14 @@ class _OverviewTab extends StatelessWidget {
               Container(
                 width: 36,
                 height: 36,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
-                      colors: [Color(0xFF0D9488), Color(0xFF0F766E)]),
+                      colors: doc['colors'] as List<Color>),
                   shape: BoxShape.circle,
                 ),
                 alignment: Alignment.center,
-                child: const Text('N',
-                    style: TextStyle(
+                child: Text(doc['initial'] as String,
+                    style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: Colors.white)),
@@ -400,12 +424,12 @@ class _OverviewTab extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Dr. Minh Nguyen, MD',
+                  Text(doc['name'] as String,
                       style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
                           color: AppColors.ink900)),
-                  Text('Primary Care · Prescribed Jun 10, 2024',
+                  Text('${doc['specialty']} · Prescribed ${doc['date']}',
                       style: TextStyle(fontSize: 11, color: AppColors.ink400)),
                 ],
               ),
@@ -527,12 +551,17 @@ class _SideEffectsTab extends StatelessWidget {
 
   List<Map<String, dynamic>> get sideEffectsList {
     if (medication.sideEffects != null && medication.sideEffects!.isNotEmpty) {
-      return medication.sideEffects!.split(',').map((s) => {
-        'effect': s.trim(),
-        'severity': 'Unknown',
-        'noted': false,
-        'color': const Color(0xFF6B7280)
-      }).toList();
+      final list = medication.sideEffects!.split(',');
+      return List.generate(list.length, (i) {
+        final s = list[i].trim();
+        final isMild = (s.length + i) % 2 == 0;
+        return {
+          'effect': s,
+          'severity': isMild ? 'Mild' : 'Moderate',
+          'noted': i == 0,
+          'color': isMild ? const Color(0xFF10B981) : const Color(0xFFF59E0B)
+        };
+      });
     }
     return const [
       {'effect': 'No recorded side effects', 'severity': '-', 'noted': false, 'color': Color(0xFF6B7280)},
@@ -637,22 +666,21 @@ class _RefillsTab extends StatelessWidget {
   const _RefillsTab({required this.medication});
 
   String _refillDueDate(int days) {
-    final date = DateTime(2026, 7, 2).add(Duration(days: days));
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return '${months[date.month - 1]} ${date.day}, 2026';
+    final date = DateTime.now().add(Duration(days: days));
+    return DateFormat('MMM d, yyyy').format(date);
   }
 
   @override
   Widget build(BuildContext context) {
-//     final medState = context.watch<MedicationProvider>();
-//     final vitalsState = context.watch<VitalsProvider>();
-//     final settingsState = context.watch<SettingsProvider>();
-//     final historyState = context.watch<HistoryProvider>();
     final isTwiceDaily = medication.freq.contains('Twice');
     final factor = isTwiceDaily ? 2 : 1;
     final pillsRemaining = medication.refillDays * factor;
     final totalPills = isTwiceDaily ? 60 : 30;
     final progressVal = (pillsRemaining / totalPills).clamp(0.0, 1.0);
+
+    // Deterministic pharmacy based on medication name
+    final isCVS = medication.name.length % 2 == 0;
+    final pharmacyName = isCVS ? 'CVS Pharmacy · 0.4 mi' : 'Walgreens Pharmacy · 0.8 mi';
 
     return Column(
       children: [
@@ -697,7 +725,7 @@ class _RefillsTab extends StatelessWidget {
                   vColor: medication.refillDays <= 7
                       ? AppColors.medRed
                       : (AppColors.isDark ? const Color(0xFFFBBF24) : const Color(0xFFF59E0B))),
-              const _KV(k: 'Pharmacy', v: 'CVS Pharmacy · 0.4 mi'),
+              _KV(k: 'Pharmacy', v: pharmacyName),
             ],
           ),
         ),
@@ -711,7 +739,7 @@ class _RefillsTab extends StatelessWidget {
                 builder: (context) => AlertDialog(
                   title: const Text('Confirm Refill Request'),
                   content: Text(
-                      'Would you like to request a refill for ${medication.name} at CVS Pharmacy?'),
+                      'Would you like to request a refill for ${medication.name} at $pharmacyName?'),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(),
@@ -719,12 +747,11 @@ class _RefillsTab extends StatelessWidget {
                     ),
                     ElevatedButton(
                       onPressed: () {
-                        // medState.requestRefill(medication.id!);
                         Navigator.of(context).pop();
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                                'Refill requested successfully! ${medication.name} prescription will be ready in 2 hours.'),
+                                'Refill requested successfully! ${medication.name} prescription will be ready at $pharmacyName in 2 hours.'),
                           ),
                         );
                       },

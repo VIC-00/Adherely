@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../models.dart';
 import '../database_helper.dart';
 import '../notification_service.dart';
+import 'package:intl/intl.dart';
+import '../utils/medication_library.dart';
 
 class MedicationProvider extends ChangeNotifier {
   final INotificationService _notificationService;
@@ -15,6 +17,16 @@ class MedicationProvider extends ChangeNotifier {
 
   final Map<int, MedCardVariant> _todayMeds = {};
   Map<int, MedCardVariant> get todayMeds => Map.unmodifiable(_todayMeds);
+  
+  Map<int, MedCardVariant> get dynamicTodayMeds {
+    final Map<int, MedCardVariant> dynamicMeds = {};
+    for (final med in _meds) {
+      if (med.id != null) {
+        dynamicMeds[med.id!] = getTodayMedStatus(med);
+      }
+    }
+    return dynamicMeds;
+  }
 
   bool _dbEnabled = true;
 
@@ -92,6 +104,11 @@ class MedicationProvider extends ChangeNotifier {
   }
 
   Future<void> addMedication(Medication m, {List<AlertType>? types, int? advanceMinutes}) async {
+    final libraryDetails = MedicationLibrary.getDetails(m.name) ?? {
+      'drugClass': 'General Medication',
+      'description': 'Used to treat symptoms as directed by your healthcare provider. Please consult your physician or pharmacist for specific instructions and details about this medication.',
+      'sideEffects': 'Nausea, Drowsiness, Headache, Mild dizziness'
+    };
     final dbMedId = m.id ?? DateTime.now().millisecondsSinceEpoch;
     final medWithId = Medication(
       id: dbMedId,
@@ -100,9 +117,9 @@ class MedicationProvider extends ChangeNotifier {
       freq: m.freq,
       color: m.color,
       refillDays: m.refillDays,
-      description: m.description,
-      drugClass: m.drugClass,
-      sideEffects: m.sideEffects,
+      description: m.description ?? libraryDetails['description'],
+      drugClass: m.drugClass ?? libraryDetails['drugClass'],
+      sideEffects: m.sideEffects ?? libraryDetails['sideEffects'],
     );
     
     _meds.add(medWithId);
@@ -159,6 +176,7 @@ class MedicationProvider extends ChangeNotifier {
             active: rule.active,
           );
           _rules.add(fallbackRule);
+          _notificationService.scheduleReminderNotification(fallbackRule);
         }
       } else {
         final localRule = ReminderRule(
@@ -172,6 +190,7 @@ class MedicationProvider extends ChangeNotifier {
           active: rule.active,
         );
         _rules.add(localRule);
+        _notificationService.scheduleReminderNotification(localRule);
       }
     }
 
@@ -181,14 +200,14 @@ class MedicationProvider extends ChangeNotifier {
     try {
       final db = await DatabaseHelper.instance.database;
       final insertedId = await db.insert('medications', {
-        'name': m.name,
-        'dose': m.dose,
-        'freq': m.freq,
-        'color': m.color.toARGB32(),
-        'refillDays': m.refillDays,
-        'description': m.description,
-        'drugClass': m.drugClass,
-        'sideEffects': m.sideEffects,
+        'name': medWithId.name,
+        'dose': medWithId.dose,
+        'freq': medWithId.freq,
+        'color': medWithId.color.toARGB32(),
+        'refillDays': medWithId.refillDays,
+        'description': medWithId.description,
+        'drugClass': medWithId.drugClass,
+        'sideEffects': medWithId.sideEffects,
       });
       await db.insert('today_meds', {
         'med_id': insertedId,
@@ -313,6 +332,8 @@ class MedicationProvider extends ChangeNotifier {
       _meds.add(med);
       _todayMeds[newMedId] = MedCardVariant.upcoming;
 
+      ReminderRule finalRule = rule;
+
       if (_dbEnabled) {
         try {
           final db = await DatabaseHelper.instance.database;
@@ -338,7 +359,7 @@ class MedicationProvider extends ChangeNotifier {
             'active': rule.active ? 1 : 0,
           });
           
-          _rules.add(ReminderRule(
+          finalRule = ReminderRule(
             id: insertedRuleId,
             med: rule.med,
             dose: rule.dose,
@@ -347,15 +368,39 @@ class MedicationProvider extends ChangeNotifier {
             advance: rule.advance,
             color: rule.color,
             active: rule.active,
-          ));
-        } catch(e) {}
+          );
+        } catch(e) {
+          debugPrint("Failed saving rule: $e");
+          finalRule = ReminderRule(
+            id: DateTime.now().millisecondsSinceEpoch,
+            med: rule.med,
+            dose: rule.dose,
+            time: rule.time,
+            types: rule.types,
+            advance: rule.advance,
+            color: rule.color,
+            active: rule.active,
+          );
+        }
       } else {
-        _rules.add(rule);
+        finalRule = ReminderRule(
+          id: DateTime.now().millisecondsSinceEpoch,
+          med: rule.med,
+          dose: rule.dose,
+          time: rule.time,
+          types: rule.types,
+          advance: rule.advance,
+          color: rule.color,
+          active: rule.active,
+        );
+      }
+      _rules.add(finalRule);
+      if (finalRule.active) {
+        _notificationService.scheduleReminderNotification(finalRule);
       }
       notifyListeners();
     } else {
-      _rules.add(rule);
-      notifyListeners();
+      ReminderRule finalRule = rule;
       if (_dbEnabled) {
         try {
           final db = await DatabaseHelper.instance.database;
@@ -369,22 +414,46 @@ class MedicationProvider extends ChangeNotifier {
             'active': rule.active ? 1 : 0,
           });
           
-          final idx = _rules.indexOf(rule);
-          if (idx != -1) {
-            _rules[idx] = ReminderRule(
-              id: insertedId,
-              med: rule.med,
-              dose: rule.dose,
-              time: rule.time,
-              types: rule.types,
-              advance: rule.advance,
-              color: rule.color,
-              active: rule.active,
-            );
-            _notificationService.scheduleReminderNotification(_rules[idx]);
-          }
-        } catch(e) {}
+          finalRule = ReminderRule(
+            id: insertedId,
+            med: rule.med,
+            dose: rule.dose,
+            time: rule.time,
+            types: rule.types,
+            advance: rule.advance,
+            color: rule.color,
+            active: rule.active,
+          );
+        } catch(e) {
+          debugPrint("Failed saving rule: $e");
+          finalRule = ReminderRule(
+            id: DateTime.now().millisecondsSinceEpoch,
+            med: rule.med,
+            dose: rule.dose,
+            time: rule.time,
+            types: rule.types,
+            advance: rule.advance,
+            color: rule.color,
+            active: rule.active,
+          );
+        }
+      } else {
+        finalRule = ReminderRule(
+          id: DateTime.now().millisecondsSinceEpoch,
+          med: rule.med,
+          dose: rule.dose,
+          time: rule.time,
+          types: rule.types,
+          advance: rule.advance,
+          color: rule.color,
+          active: rule.active,
+        );
       }
+      _rules.add(finalRule);
+      if (finalRule.active) {
+        _notificationService.scheduleReminderNotification(finalRule);
+      }
+      notifyListeners();
     }
   }
 
@@ -429,5 +498,141 @@ class MedicationProvider extends ChangeNotifier {
   int get activeMedCount {
     final activeMeds = _rules.where((r) => r.active).map((r) => r.med).toSet();
     return activeMeds.length;
+  }
+
+  MedCardVariant getTodayMedStatus(Medication med) {
+    if (med.id == null) return MedCardVariant.upcoming;
+    final rawStatus = _todayMeds[med.id!];
+    if (rawStatus == null) return MedCardVariant.upcoming;
+    if (rawStatus == MedCardVariant.upcoming) {
+      final timeStr = med.freq.contains('·')
+          ? med.freq.split('·').last.trim()
+          : med.freq;
+      if (_hasTimePassed(timeStr)) {
+        return MedCardVariant.missed;
+      }
+    }
+    return rawStatus;
+  }
+
+  bool _hasTimePassed(String timeStr) {
+    try {
+      final cleanTime = timeStr.trim();
+      final format = DateFormat('h:mm a');
+      final parsedTime = format.parse(cleanTime);
+      final now = DateTime.now();
+      final scheduledDateTime = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        parsedTime.hour,
+        parsedTime.minute,
+      );
+      return now.isAfter(scheduledDateTime);
+    } catch (_) {
+      try {
+        final parsedTime = DateFormat('HH:mm').parse(timeStr.trim());
+        final now = DateTime.now();
+        final scheduledDateTime = DateTime(
+          now.year,
+          now.month,
+          now.day,
+          parsedTime.hour,
+          parsedTime.minute,
+        );
+        return now.isAfter(scheduledDateTime);
+      } catch (_) {
+        return false;
+      }
+    }
+  }
+
+  Future<void> rescheduleRule(int medId, String oldTime, String newTime) async {
+    // 1. Find the rule for this med and oldTime
+    final med = _meds.firstWhere((m) => m.id == medId);
+    final ruleIdx = _rules.indexWhere((r) => r.med == med.name && r.time == oldTime);
+    if (ruleIdx != -1) {
+      final oldRule = _rules[ruleIdx];
+      // Cancel old alarm
+      await _notificationService.cancelReminder(oldRule.id!);
+      
+      // Update rule in memory
+      final updatedRule = ReminderRule(
+        id: oldRule.id,
+        med: oldRule.med,
+        dose: oldRule.dose,
+        time: newTime,
+        types: oldRule.types,
+        advance: oldRule.advance,
+        color: oldRule.color,
+        active: oldRule.active,
+      );
+      _rules[ruleIdx] = updatedRule;
+      
+      // Schedule new alarm
+      await _notificationService.scheduleReminderNotification(updatedRule);
+      
+      if (_dbEnabled) {
+        final db = await DatabaseHelper.instance.database;
+        await db.update(
+          'reminder_rules',
+          {'time': newTime},
+          where: 'id = ?',
+          whereArgs: [oldRule.id],
+        );
+      }
+    }
+    
+    // 2. Update the medication freq string in memory & DB
+    final medIdx = _meds.indexWhere((m) => m.id == medId);
+    if (medIdx != -1) {
+      final med = _meds[medIdx];
+      final baseFreq = med.freq.split('·').first.trim();
+      final timePart = med.freq.split('·').last.trim();
+      final times = timePart.split(',').map((e) => e.trim()).toList();
+      final timeIdx = times.indexOf(oldTime);
+      if (timeIdx != -1) {
+        times[timeIdx] = newTime;
+      } else {
+        if (times.isNotEmpty) times[0] = newTime;
+      }
+      final newFreq = '$baseFreq · ${times.join(', ')}';
+      
+      _meds[medIdx] = Medication(
+        id: med.id,
+        name: med.name,
+        dose: med.dose,
+        freq: newFreq,
+        color: med.color,
+        refillDays: med.refillDays,
+        description: med.description,
+        drugClass: med.drugClass,
+        sideEffects: med.sideEffects,
+      );
+      
+      if (_dbEnabled) {
+        final db = await DatabaseHelper.instance.database;
+        await db.update(
+          'medications',
+          {'freq': newFreq},
+          where: 'id = ?',
+          whereArgs: [medId],
+        );
+      }
+    }
+    
+    // 3. Mark the state back to upcoming
+    _todayMeds[medId] = MedCardVariant.upcoming;
+    if (_dbEnabled) {
+      final db = await DatabaseHelper.instance.database;
+      await db.update(
+        'today_meds',
+        {'status': 'upcoming'},
+        where: 'med_id = ?',
+        whereArgs: [medId],
+      );
+    }
+    
+    notifyListeners();
   }
 }
