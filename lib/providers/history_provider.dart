@@ -157,6 +157,11 @@ class HistoryProvider extends ChangeNotifier {
     }
   }
 
+  List<HistoryItem> getDosesForDay(int day) {
+    final checkDate = DateTime(_currentHistoryMonth.year, _currentHistoryMonth.month, day);
+    return _historyItems.where((h) => _historyDateMatchesDay(h.date, checkDate)).toList();
+  }
+
   bool _historyDateMatchesDay(String historyDateStr, DateTime day) {
     if (historyDateStr == 'Today' || historyDateStr.startsWith('Today,')) {
       final now = DateTime.now();
@@ -166,6 +171,10 @@ class HistoryProvider extends ChangeNotifier {
       return day.year == yesterday.year && day.month == yesterday.month && day.day == yesterday.day;
     } else {
       try {
+        final parsedDate = DateTime.tryParse(historyDateStr);
+        if (parsedDate != null) {
+          return day.year == parsedDate.year && day.month == parsedDate.month && day.day == parsedDate.day;
+        }
         final d = DateFormat('MMM d').parse(historyDateStr);
         final year = DateTime.now().year;
         return day.month == d.month && day.day == d.day && day.year == year;

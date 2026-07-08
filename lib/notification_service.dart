@@ -1,10 +1,14 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+import 'package:sqflite/sqflite.dart';
 import 'models.dart';
+import 'database_helper.dart';
 
 abstract class INotificationService {
   Future<void> initialize();
@@ -23,10 +27,12 @@ class LocalNotificationService implements INotificationService {
 
   bool _initialized = false;
 
+  static final StreamController<String?> selectNotificationStream = StreamController<String?>.broadcast();
+
   @override
   Future<void> requestPermissions() async {
     if (Platform.isAndroid) {
-      _flutterLocalNotificationsPlugin
+      await _flutterLocalNotificationsPlugin
           .resolvePlatformSpecificImplementation<
               AndroidFlutterLocalNotificationsPlugin>()
           ?.requestNotificationsPermission();
@@ -72,7 +78,9 @@ class LocalNotificationService implements INotificationService {
       initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) async {
         debugPrint('Notification tapped: ${response.payload}');
+        selectNotificationStream.add(response.payload);
       },
+      onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
     );
 
     await requestPermissions();
@@ -124,7 +132,21 @@ class LocalNotificationService implements INotificationService {
       // Create a unique 32-bit integer ID based on the rule ID to prevent overflow in Java
       final int notificationId = rule.id != null ? (rule.id! % 2147483647) : (DateTime.now().millisecondsSinceEpoch % 2147483647);
 
-      const AndroidNotificationDetails androidPlatformChannelSpecifics =
+      // Read settings from DB
+      bool loopAlarm = true;
+      try {
+        final db = await DatabaseHelper.instance.database;
+        final List<Map<String, dynamic>> alarmModeSettings = await db.query(
+          'profile_toggles',
+          where: 'label = ?',
+          whereArgs: ['Continuous Alarm'],
+        );
+        if (alarmModeSettings.isNotEmpty) {
+          loopAlarm = (alarmModeSettings.first['value'] as int) == 1;
+        }
+      } catch (_) {}
+
+      final AndroidNotificationDetails androidPlatformChannelSpecifics =
           AndroidNotificationDetails(
         'med_reminders',
         'Medication Reminders',
@@ -132,10 +154,21 @@ class LocalNotificationService implements INotificationService {
         importance: Importance.max,
         priority: Priority.high,
         showWhen: true,
+        audioAttributesUsage: loopAlarm ? AudioAttributesUsage.alarm : AudioAttributesUsage.notification,
+        category: loopAlarm ? AndroidNotificationCategory.alarm : null,
+        ongoing: loopAlarm,
+        additionalFlags: loopAlarm ? Int32List.fromList(<int>[4]) : null,
+        sound: loopAlarm ? const UriAndroidNotificationSound("content://settings/system/alarm_alert") : null,
+        actions: const <AndroidNotificationAction>[
+          AndroidNotificationAction('take', 'Take', cancelNotification: true),
+          AndroidNotificationAction('snooze', 'Snooze', cancelNotification: true),
+        ],
       );
       
-      const NotificationDetails platformChannelSpecifics =
+      final NotificationDetails platformChannelSpecifics =
           NotificationDetails(android: androidPlatformChannelSpecifics);
+
+      final payloadStr = '${rule.id}|${rule.med}|${rule.dose}';
 
       try {
         await _flutterLocalNotificationsPlugin.zonedSchedule(
@@ -148,9 +181,9 @@ class LocalNotificationService implements INotificationService {
           uiLocalNotificationDateInterpretation:
               UILocalNotificationDateInterpretation.absoluteTime,
           matchDateTimeComponents: DateTimeComponents.time,
-          payload: rule.id?.toString(),
+          payload: payloadStr,
         );
-        debugPrint('Scheduled exact notification for ${rule.med} at $scheduledTime');
+        debugPrint('Scheduled exact notification for ${rule.med} at $scheduledTime with payload: $payloadStr');
       } catch (e) {
         debugPrint('Exact alarm scheduling failed, attempting inexact alarm: $e');
         try {
@@ -164,7 +197,7 @@ class LocalNotificationService implements INotificationService {
             uiLocalNotificationDateInterpretation:
                 UILocalNotificationDateInterpretation.absoluteTime,
             matchDateTimeComponents: DateTimeComponents.time,
-            payload: rule.id?.toString(),
+            payload: payloadStr,
           );
           debugPrint('Scheduled inexact notification for ${rule.med} at $scheduledTime');
         } catch (innerErr) {
@@ -180,12 +213,146 @@ class LocalNotificationService implements INotificationService {
   Future<void> cancelReminder(int ruleId) async {
     if (!_initialized) return;
     await _flutterLocalNotificationsPlugin.cancel(ruleId % 2147483647);
-    debugPrint('Cancelled notification for rule ID $ruleId');
+    await _flutterLocalNotificationsPlugin.cancel((ruleId + 5000) % 2147483647);
+    debugPrint('Cancelled notification and snooze for rule ID $ruleId');
   }
 
   Future<void> cancelAll() async {
     if (!_initialized) return;
     await _flutterLocalNotificationsPlugin.cancelAll();
     debugPrint('Cancelled all notifications');
+  }
+}
+
+@pragma('vm:entry-point')
+void notificationTapBackground(NotificationResponse notificationResponse) async {
+  WidgetsFlutterBinding.ensureInitialized();
+  debugPrint('Background notification action clicked: ${notificationResponse.actionId}');
+  final String? payload = notificationResponse.payload;
+  if (payload == null) return;
+
+  final parts = payload.split('|');
+  if (parts.length < 3) return;
+  final int? ruleId = int.tryParse(parts[0]);
+  final String med = parts[1];
+  final String dose = parts[2];
+
+  if (notificationResponse.actionId == 'take') {
+    await _handleTakeActionInBackground(med);
+  } else if (notificationResponse.actionId == 'snooze') {
+    if (ruleId != null) {
+      await _handleSnoozeActionInBackground(ruleId, med, dose);
+    }
+  }
+}
+
+Future<void> _handleTakeActionInBackground(String medName) async {
+  try {
+    final db = await DatabaseHelper.instance.database;
+
+    // 1. Find the medication ID in the database
+    final List<Map<String, dynamic>> medMaps = await db.query(
+      'medications',
+      where: 'name = ?',
+      whereArgs: [medName],
+    );
+    if (medMaps.isNotEmpty) {
+      final medId = medMaps.first['id'] as int;
+      // Update status in today_meds to 'taken'
+      await db.insert(
+        'today_meds',
+        {'med_id': medId, 'status': 'taken'},
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+
+    // 2. Insert record in history_items
+    final now = DateTime.now();
+    final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final timeStr = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    await db.insert('history_items', {
+      'med': medName,
+      'date': dateStr,
+      'time': timeStr,
+      'taken': 1,
+      'note': 'Logged from background action',
+    });
+    debugPrint('Background Take action completed for med: $medName');
+  } catch (e) {
+    debugPrint('Error handling background Take action: $e');
+  }
+}
+
+Future<void> _handleSnoozeActionInBackground(int ruleId, String med, String dose) async {
+  try {
+    final db = await DatabaseHelper.instance.database;
+    int snoozeMinutes = 5;
+    try {
+      final List<Map<String, dynamic>> snoozeSettings = await db.query(
+        'profile_toggles',
+        where: 'label = ?',
+        whereArgs: ['Snooze Duration'],
+      );
+      if (snoozeSettings.isNotEmpty) {
+        final subStr = snoozeSettings.first['sub'] as String;
+        snoozeMinutes = int.tryParse(subStr.split(' ').first) ?? 5;
+      }
+    } catch (_) {}
+
+    // Initialize timezones in this background isolate
+    tz.initializeTimeZones();
+    final String timeZoneName = (await FlutterTimezone.getLocalTimezone()).identifier;
+    tz.setLocalLocation(tz.getLocation(timeZoneName));
+
+    final now = tz.TZDateTime.now(tz.local);
+    final snoozeTime = now.add(Duration(minutes: snoozeMinutes));
+
+    final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+
+    bool loopAlarm = true;
+    try {
+      final List<Map<String, dynamic>> alarmModeSettings = await db.query(
+        'profile_toggles',
+        where: 'label = ?',
+        whereArgs: ['Continuous Alarm'],
+      );
+      if (alarmModeSettings.isNotEmpty) {
+        loopAlarm = (alarmModeSettings.first['value'] as int) == 1;
+      }
+    } catch (_) {}
+
+    final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'med_reminders',
+      'Medication Reminders',
+      channelDescription: 'Notifications for taking your medications',
+      importance: Importance.max,
+      priority: Priority.high,
+      showWhen: true,
+      audioAttributesUsage: loopAlarm ? AudioAttributesUsage.alarm : AudioAttributesUsage.notification,
+      category: loopAlarm ? AndroidNotificationCategory.alarm : null,
+      ongoing: loopAlarm,
+      additionalFlags: loopAlarm ? Int32List.fromList(<int>[4]) : null,
+      sound: loopAlarm ? const UriAndroidNotificationSound("content://settings/system/alarm_alert") : null,
+      actions: const <AndroidNotificationAction>[
+        AndroidNotificationAction('take', 'Take', cancelNotification: true),
+        AndroidNotificationAction('snooze', 'Snooze', cancelNotification: true),
+      ],
+    );
+
+    final notificationId = (ruleId + 5000) % 2147483647; // offset id for snoozed alarms to avoid overwriting
+
+    await flutterLocalNotificationsPlugin.zonedSchedule(
+      notificationId,
+      'Snoozed: Medication Reminder',
+      'Time to take $med $dose',
+      snoozeTime,
+      NotificationDetails(android: androidDetails),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      payload: '$ruleId|$med|$dose',
+    );
+    debugPrint('Background Snooze alarm scheduled for: $snoozeTime');
+  } catch (e) {
+    debugPrint('Error handling background Snooze action: $e');
   }
 }

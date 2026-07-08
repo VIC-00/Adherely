@@ -119,6 +119,8 @@ class MedImpact {
   final String icon;
   final int weeks;
   final int progress;
+  final Color? color;
+  final IconData? iconData;
 
   const MedImpact({
     required this.med,
@@ -126,6 +128,8 @@ class MedImpact {
     required this.icon,
     required this.weeks,
     required this.progress,
+    this.color,
+    this.iconData,
   });
 }
 

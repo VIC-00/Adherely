@@ -20,7 +20,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -213,6 +213,10 @@ class DatabaseHelper {
       ['Voice Reminders', 'Audible spoken alerts for schedules', 1, 0xFFF59E0B]);
     await db.rawInsert('INSERT INTO profile_toggles (label, sub, value, color) VALUES (?, ?, ?, ?)',
       ['Caregiver SMS Alerts', 'Alert network if doses are missed', 0, 0xFF8B5CF6]);
+    await db.rawInsert('INSERT INTO profile_toggles (label, sub, value, color) VALUES (?, ?, ?, ?)',
+      ['Continuous Alarm', 'Loop alarm ringtone until dismissed', 1, 0xFF3B82F6]);
+    await db.rawInsert('INSERT INTO profile_toggles (label, sub, value, color) VALUES (?, ?, ?, ?)',
+      ['Snooze Duration', '5 minutes', 5, 0xFFEF4444]);
   }
 
   // Clear for testing

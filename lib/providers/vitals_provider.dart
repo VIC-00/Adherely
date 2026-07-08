@@ -86,7 +86,7 @@ class VitalsProvider extends ChangeNotifier {
   }
 
   Future<void> addBpReading(int sys, int dia) async {
-    final dateStr = DateFormat('MMM d').format(DateTime.now());
+    final dateStr = DateFormat('MMM d, h:mm a').format(DateTime.now());
     final reading = BPReading(date: dateStr, sys: sys, dia: dia);
     _bpReadings.add(reading);
     if (_bpReadings.length > 7) {

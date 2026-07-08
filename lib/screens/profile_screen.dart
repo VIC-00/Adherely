@@ -5,11 +5,13 @@ import '../providers/index.dart';
 import '../theme/app_colors.dart';
 import 'add_med_screen.dart';
 import 'reminders_screen.dart';
+import '../database_helper.dart';
+import '../notification_service.dart';
 
-
-
-void _showEditMedDialog(BuildContext context, SettingsProvider settingsState, Medication med) {
-  final medState = context.read<MedicationProvider>(); //(BuildContext context, SettingsProvider settingsState, Medication med) {
+void _showEditMedDialog(
+    BuildContext context, SettingsProvider settingsState, Medication med) {
+  final medState = context.read<
+      MedicationProvider>(); //(BuildContext context, SettingsProvider settingsState, Medication med) {
   final nameController = TextEditingController(text: med.name);
   final doseController = TextEditingController(text: med.dose);
   final refillDaysController = TextEditingController(text: '${med.refillDays}');
@@ -34,7 +36,8 @@ void _showEditMedDialog(BuildContext context, SettingsProvider settingsState, Me
           TextField(
             controller: refillDaysController,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Refill Days Remaining'),
+            decoration:
+                const InputDecoration(labelText: 'Refill Days Remaining'),
           ),
         ],
       ),
@@ -47,7 +50,8 @@ void _showEditMedDialog(BuildContext context, SettingsProvider settingsState, Me
           onPressed: () {
             final name = nameController.text.trim();
             final dose = doseController.text.trim();
-            final refillDays = int.tryParse(refillDaysController.text) ?? med.refillDays;
+            final refillDays =
+                int.tryParse(refillDaysController.text) ?? med.refillDays;
 
             if (name.isNotEmpty && dose.isNotEmpty) {
               medState.editMedication(
@@ -63,7 +67,8 @@ void _showEditMedDialog(BuildContext context, SettingsProvider settingsState, Me
               );
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Medication updated successfully!')),
+                const SnackBar(
+                    content: Text('Medication updated successfully!')),
               );
             }
           },
@@ -74,13 +79,16 @@ void _showEditMedDialog(BuildContext context, SettingsProvider settingsState, Me
   );
 }
 
-void _showDeleteMedDialog(BuildContext context, SettingsProvider settingsState, Medication med) {
-  final medState = context.read<MedicationProvider>(); //(BuildContext context, SettingsProvider settingsState, Medication med) {
+void _showDeleteMedDialog(
+    BuildContext context, SettingsProvider settingsState, Medication med) {
+  final medState = context.read<
+      MedicationProvider>(); //(BuildContext context, SettingsProvider settingsState, Medication med) {
   showDialog(
     context: context,
     builder: (context) => AlertDialog(
       title: const Text('Delete Medication'),
-      content: Text('Are you sure you want to delete ${med.name}? All associated alert rules will also be removed.'),
+      content: Text(
+          'Are you sure you want to delete ${med.name}? All associated alert rules will also be removed.'),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
@@ -94,7 +102,8 @@ void _showDeleteMedDialog(BuildContext context, SettingsProvider settingsState, 
               SnackBar(content: Text('${med.name} deleted successfully.')),
             );
           },
-          style: ElevatedButton.styleFrom(backgroundColor: AppColors.medRed, foregroundColor: Colors.white),
+          style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.medRed, foregroundColor: Colors.white),
           child: const Text('Delete'),
         ),
       ],
@@ -102,7 +111,8 @@ void _showDeleteMedDialog(BuildContext context, SettingsProvider settingsState, 
   );
 }
 
-void _showEditCaregiverDialog(BuildContext context, SettingsProvider settingsState, Caregiver caregiver) {
+void _showEditCaregiverDialog(
+    BuildContext context, SettingsProvider settingsState, Caregiver caregiver) {
   final nameController = TextEditingController(text: caregiver.name);
   final relationController = TextEditingController(text: caregiver.relation);
   final phoneController = TextEditingController(text: caregiver.phone);
@@ -116,18 +126,27 @@ void _showEditCaregiverDialog(BuildContext context, SettingsProvider settingsSta
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Name')),
-            TextField(controller: relationController, decoration: const InputDecoration(labelText: 'Relationship')),
-            TextField(controller: phoneController, decoration: const InputDecoration(labelText: 'Phone Number')),
+            TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: 'Name')),
+            TextField(
+                controller: relationController,
+                decoration: const InputDecoration(labelText: 'Relationship')),
+            TextField(
+                controller: phoneController,
+                decoration: const InputDecoration(labelText: 'Phone Number')),
             CheckboxListTile(
               title: const Text('SMS Alerts Active'),
               value: activeVal,
-              onChanged: (v) => setDialogState(() => activeVal = v ?? activeVal),
+              onChanged: (v) =>
+                  setDialogState(() => activeVal = v ?? activeVal),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () {
               final name = nameController.text.trim();
@@ -165,7 +184,7 @@ class ProfileScreen extends StatelessWidget {
     final settingsState = context.watch<SettingsProvider>();
 //     final historyState = context.watch<HistoryProvider>();
     final profile = settingsState.profile;
-    
+
     if (profile == null) return const SizedBox.shrink();
 
     return Container(
@@ -185,7 +204,11 @@ class ProfileScreen extends StatelessWidget {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [Color(0xFF7C3AED), Color(0xFF8B5CF6), Color(0xFFA78BFA)],
+                    colors: [
+                      Color(0xFF7C3AED),
+                      Color(0xFF8B5CF6),
+                      Color(0xFFA78BFA)
+                    ],
                     stops: [0, 0.6, 1],
                   ),
                 ),
@@ -200,19 +223,41 @@ class ProfileScreen extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.2),
                             shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 3),
+                            border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.5),
+                                width: 3),
                           ),
                           alignment: Alignment.center,
-                          child: Text(profile.name.isNotEmpty ? profile.name[0].toUpperCase() : 'U', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.white)),
+                          child: Text(
+                              profile.name.isNotEmpty
+                                  ? profile.name[0].toUpperCase()
+                                  : 'U',
+                              style: const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white)),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(profile.name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.4)),
-                              Text('DOB: ${profile.dob}', style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.75))),
-                              Text('Patient ID: ${profile.patientId}', style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.75))),
+                              Text(profile.name,
+                                  style: const TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white,
+                                      letterSpacing: -0.4)),
+                              Text('DOB: ${profile.dob}',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.white
+                                          .withValues(alpha: 0.75))),
+                              Text('Patient ID: ${profile.patientId}',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.white
+                                          .withValues(alpha: 0.75))),
                             ],
                           ),
                         ),
@@ -220,12 +265,22 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     Row(
-                      children: profile.conditions.split('·').map((c) => Padding(
+                      children: profile.conditions
+                          .split('·')
+                          .map((c) => Padding(
                                 padding: const EdgeInsets.only(right: 8),
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-                                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(6)),
-                                  child: Text(c, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white)),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 9, vertical: 3),
+                                  decoration: BoxDecoration(
+                                      color:
+                                          Colors.white.withValues(alpha: 0.18),
+                                      borderRadius: BorderRadius.circular(6)),
+                                  child: Text(c,
+                                      style: const TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white)),
                                 ),
                               ))
                           .toList(),
@@ -238,34 +293,53 @@ class ProfileScreen extends StatelessWidget {
               _Section(
                 title: 'Active Medications',
                 action: '+ Add',
-                onAction: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AddMedScreen())),
+                onAction: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const AddMedScreen())),
                 child: Column(
                   children: medState.meds
                       .map((m) => Padding(
                             padding: const EdgeInsets.only(bottom: 8),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 12),
                               decoration: BoxDecoration(
                                 color: AppColors.cardBg,
                                 borderRadius: BorderRadius.circular(12),
-                                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 1))],
+                                boxShadow: [
+                                  BoxShadow(
+                                      color:
+                                          Colors.black.withValues(alpha: 0.05),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 1))
+                                ],
                               ),
                               child: Row(
                                 children: [
                                   Container(
                                     width: 36,
                                     height: 36,
-                                    decoration: BoxDecoration(color: m.color.withValues(alpha: 0.09), borderRadius: BorderRadius.circular(10)),
-                                    child: Icon(Icons.medication_liquid_rounded, size: 16, color: m.color),
+                                    decoration: BoxDecoration(
+                                        color: m.color.withValues(alpha: 0.09),
+                                        borderRadius:
+                                            BorderRadius.circular(10)),
+                                    child: Icon(Icons.medication_liquid_rounded,
+                                        size: 16, color: m.color),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: RichText(
                                       text: TextSpan(
-                                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink900),
+                                        style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppColors.ink900),
                                         children: [
                                           TextSpan(text: '${m.name} '),
-                                          TextSpan(text: m.dose, style: TextStyle(fontWeight: FontWeight.w500, color: AppColors.ink500)),
+                                          TextSpan(
+                                              text: m.dose,
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.w500,
+                                                  color: AppColors.ink500)),
                                         ],
                                       ),
                                     ),
@@ -274,23 +348,37 @@ class ProfileScreen extends StatelessWidget {
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
                                       Text('${m.refillDays}d left',
-                                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: m.refillDays <= 7 ? AppColors.medRed : AppColors.medGreen)),
-                                      Text('refill', style: TextStyle(fontSize: 9, color: AppColors.ink400)),
+                                          style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w700,
+                                              color: m.refillDays <= 7
+                                                  ? AppColors.medRed
+                                                  : AppColors.medGreen)),
+                                      Text('refill',
+                                          style: TextStyle(
+                                              fontSize: 9,
+                                              color: AppColors.ink400)),
                                     ],
                                   ),
                                   const SizedBox(width: 10),
                                   IconButton(
-                                    icon: Icon(Icons.edit_rounded, size: 18, color: AppColors.ink500),
+                                    icon: Icon(Icons.edit_rounded,
+                                        size: 18, color: AppColors.ink500),
                                     padding: EdgeInsets.zero,
                                     constraints: const BoxConstraints(),
-                                    onPressed: () => _showEditMedDialog(context, settingsState, m),
+                                    onPressed: () => _showEditMedDialog(
+                                        context, settingsState, m),
                                   ),
                                   const SizedBox(width: 8),
                                   IconButton(
-                                    icon: const Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.medRed),
+                                    icon: const Icon(
+                                        Icons.delete_outline_rounded,
+                                        size: 18,
+                                        color: AppColors.medRed),
                                     padding: EdgeInsets.zero,
                                     constraints: const BoxConstraints(),
-                                    onPressed: () => _showDeleteMedDialog(context, settingsState, m),
+                                    onPressed: () => _showDeleteMedDialog(
+                                        context, settingsState, m),
                                   ),
                                 ],
                               ),
@@ -317,18 +405,30 @@ class ProfileScreen extends StatelessWidget {
                         content: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Name')),
-                            TextField(controller: relationController, decoration: const InputDecoration(labelText: 'Relationship')),
-                            TextField(controller: phoneController, decoration: const InputDecoration(labelText: 'Phone Number')),
+                            TextField(
+                                controller: nameController,
+                                decoration:
+                                    const InputDecoration(labelText: 'Name')),
+                            TextField(
+                                controller: relationController,
+                                decoration: const InputDecoration(
+                                    labelText: 'Relationship')),
+                            TextField(
+                                controller: phoneController,
+                                decoration: const InputDecoration(
+                                    labelText: 'Phone Number')),
                             CheckboxListTile(
                               title: const Text('SMS Alerts Active'),
                               value: activeVal,
-                              onChanged: (v) => setDialogState(() => activeVal = v ?? activeVal),
+                              onChanged: (v) => setDialogState(
+                                  () => activeVal = v ?? activeVal),
                             ),
                           ],
                         ),
                         actions: [
-                          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+                          TextButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              child: const Text('Cancel')),
                           ElevatedButton(
                             onPressed: () {
                               final name = nameController.text.trim();
@@ -337,7 +437,9 @@ class ProfileScreen extends StatelessWidget {
                               if (name.isNotEmpty) {
                                 settingsState.addCaregiver(Caregiver(
                                   name: name,
-                                  relation: relation.isNotEmpty ? relation : 'Caregiver',
+                                  relation: relation.isNotEmpty
+                                      ? relation
+                                      : 'Caregiver',
                                   phone: phone.isNotEmpty ? phone : 'Unknown',
                                   active: activeVal,
                                 ));
@@ -356,11 +458,18 @@ class ProfileScreen extends StatelessWidget {
                       .map((c) => Padding(
                             padding: const EdgeInsets.only(bottom: 8),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 12),
                               decoration: BoxDecoration(
                                 color: AppColors.cardBg,
                                 borderRadius: BorderRadius.circular(12),
-                                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 1))],
+                                boxShadow: [
+                                  BoxShadow(
+                                      color:
+                                          Colors.black.withValues(alpha: 0.05),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 1))
+                                ],
                               ),
                               child: Row(
                                 children: [
@@ -368,45 +477,76 @@ class ProfileScreen extends StatelessWidget {
                                     width: 36,
                                     height: 36,
                                     decoration: BoxDecoration(
-                                      gradient: c.active ? const LinearGradient(colors: [Color(0xFF8B5CF6), Color(0xFF6D28D9)]) : null,
-                                      color: c.active ? null : (AppColors.isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB)),
+                                      gradient: c.active
+                                          ? const LinearGradient(colors: [
+                                              Color(0xFF8B5CF6),
+                                              Color(0xFF6D28D9)
+                                            ])
+                                          : null,
+                                      color: c.active
+                                          ? null
+                                          : (AppColors.isDark
+                                              ? const Color(0xFF374151)
+                                              : const Color(0xFFE5E7EB)),
                                       shape: BoxShape.circle,
                                     ),
                                     alignment: Alignment.center,
                                     child: Text(c.name[0],
-                                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: c.active ? Colors.white : AppColors.ink400)),
+                                        style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700,
+                                            color: c.active
+                                                ? Colors.white
+                                                : AppColors.ink400)),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        Text(c.name, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink900)),
-                                        Text('${c.relation} · ${c.phone}', style: TextStyle(fontSize: 11, color: AppColors.ink400)),
+                                        Text(c.name,
+                                            style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w700,
+                                                color: AppColors.ink900)),
+                                        Text('${c.relation} · ${c.phone}',
+                                            style: TextStyle(
+                                                fontSize: 11,
+                                                color: AppColors.ink400)),
                                       ],
                                     ),
                                   ),
                                   if (c.active)
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 3),
                                       decoration: BoxDecoration(
-                                          color: AppColors.isDark ? const Color(0xFF062F17) : AppColors.medGreenLight,
-                                          borderRadius: BorderRadius.circular(6)),
+                                          color: AppColors.isDark
+                                              ? const Color(0xFF062F17)
+                                              : AppColors.medGreenLight,
+                                          borderRadius:
+                                              BorderRadius.circular(6)),
                                       child: Text('SMS Active',
                                           style: TextStyle(
                                               fontSize: 10,
                                               fontWeight: FontWeight.w700,
-                                              color: AppColors.isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D))),
+                                              color: AppColors.isDark
+                                                  ? const Color(0xFF4ADE80)
+                                                  : const Color(0xFF15803D))),
                                     ),
                                   IconButton(
-                                    icon: Icon(Icons.edit_rounded, size: 20, color: AppColors.ink500),
+                                    icon: Icon(Icons.edit_rounded,
+                                        size: 20, color: AppColors.ink500),
                                     padding: EdgeInsets.zero,
                                     constraints: const BoxConstraints(),
-                                    onPressed: () => _showEditCaregiverDialog(context, settingsState, c),
+                                    onPressed: () => _showEditCaregiverDialog(
+                                        context, settingsState, c),
                                   ),
                                   const SizedBox(width: 8),
                                   IconButton(
-                                    icon: const Icon(Icons.delete_outline, size: 20, color: AppColors.medRed),
+                                    icon: const Icon(Icons.delete_outline,
+                                        size: 20, color: AppColors.medRed),
                                     padding: EdgeInsets.zero,
                                     constraints: const BoxConstraints(),
                                     onPressed: () {
@@ -414,12 +554,17 @@ class ProfileScreen extends StatelessWidget {
                                         context: context,
                                         builder: (context) => AlertDialog(
                                           title: const Text('Remove Caregiver'),
-                                          content: Text('Are you sure you want to remove ${c.name}?'),
+                                          content: Text(
+                                              'Are you sure you want to remove ${c.name}?'),
                                           actions: [
-                                            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+                                            TextButton(
+                                                onPressed: () =>
+                                                    Navigator.of(context).pop(),
+                                                child: const Text('Cancel')),
                                             ElevatedButton(
                                               onPressed: () {
-                                                settingsState.removeCaregiver(c.name);
+                                                settingsState
+                                                    .removeCaregiver(c.name);
                                                 Navigator.of(context).pop();
                                               },
                                               child: const Text('Remove'),
@@ -437,21 +582,26 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ),
 
-              // Notification settings
+              // General Settings
               _Section(
-                title: 'Notification Settings',
-                action: 'Manage',
-                onAction: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RemindersScreen())),
+                title: 'General Settings',
+                action: '',
                 child: Column(
                   children: [
-                    for (int i = 0; i < settingsState.profileToggles.length; i++)
+                    for (int i = 0;
+                        i < settingsState.profileToggles.length;
+                        i++)
                       GestureDetector(
                         onTap: () => settingsState.toggleProfileToggle(i),
                         behavior: HitTestBehavior.opaque,
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
-                            border: i < settingsState.profileToggles.length - 1 ? Border(bottom: BorderSide(color: AppColors.hairline)) : null,
+                            border: i < settingsState.profileToggles.length - 1
+                                ? Border(
+                                    bottom:
+                                        BorderSide(color: AppColors.hairline))
+                                : null,
                           ),
                           child: Row(
                             children: [
@@ -459,16 +609,136 @@ class ProfileScreen extends StatelessWidget {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(settingsState.profileToggles[i].label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.ink900)),
-                                    Text(settingsState.profileToggles[i].sub, style: TextStyle(fontSize: 11, color: AppColors.ink400)),
+                                    Text(settingsState.profileToggles[i].label,
+                                        style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.ink900)),
+                                    Text(settingsState.profileToggles[i].sub,
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            color: AppColors.ink400)),
                                   ],
                                 ),
                               ),
-                              _MiniSwitch(on: settingsState.profileToggles[i].on, color: settingsState.profileToggles[i].color ?? AppColors.medGreen),
+                              _MiniSwitch(
+                                  on: settingsState.profileToggles[i].on,
+                                  color:
+                                      settingsState.profileToggles[i].color ??
+                                          AppColors.medGreen),
                             ],
                           ),
                         ),
                       ),
+                  ],
+                ),
+              ),
+
+              // Alarm & Notification Preferences
+              _Section(
+                title: 'Alarm & Notification Settings',
+                action: 'Manage Rules',
+                onAction: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const RemindersScreen())),
+                child: Column(
+                  children: [
+                    for (int i = 0;
+                        i < settingsState.notificationToggles.length;
+                        i++)
+                      GestureDetector(
+                        onTap: () => settingsState.toggleNotificationToggle(i),
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            border: Border(
+                                bottom: BorderSide(color: AppColors.hairline)),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                        settingsState
+                                            .notificationToggles[i].label,
+                                        style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.ink900)),
+                                    Text(
+                                        settingsState
+                                            .notificationToggles[i].sub,
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            color: AppColors.ink400)),
+                                  ],
+                                ),
+                              ),
+                              _MiniSwitch(
+                                  on: settingsState.notificationToggles[i].on,
+                                  color: settingsState
+                                          .notificationToggles[i].color ??
+                                      AppColors.medGreen),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                    // Snooze Duration dropdown
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Snooze Duration',
+                                    style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.ink900)),
+                                Text('Time to wait before repeating alerts',
+                                    style: TextStyle(
+                                        fontSize: 11, color: AppColors.ink400)),
+                              ],
+                            ),
+                          ),
+                          DropdownButton<int>(
+                            value: settingsState.snoozeDuration,
+                            dropdownColor: AppColors.cardBg,
+                            underline: const SizedBox(),
+                            items: const [
+                              DropdownMenuItem(
+                                  value: 5,
+                                  child: Text('5 mins',
+                                      style: TextStyle(fontSize: 13))),
+                              DropdownMenuItem(
+                                  value: 10,
+                                  child: Text('10 mins',
+                                      style: TextStyle(fontSize: 13))),
+                              DropdownMenuItem(
+                                  value: 15,
+                                  child: Text('15 mins',
+                                      style: TextStyle(fontSize: 13))),
+                            ],
+                            onChanged: (val) {
+                              if (val != null) {
+                                settingsState.updateSnoozeDuration(val);
+                              }
+                            },
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.medBlue,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -485,8 +755,10 @@ class ProfileScreen extends StatelessWidget {
                           showDialog(
                             context: context,
                             builder: (context) => AlertDialog(
-                              title: const Text('Reset App Data', style: TextStyle(color: AppColors.medRed)),
-                              content: const Text('Are you sure you want to completely wipe all app data and reset to defaults? This action cannot be undone.'),
+                              title: const Text('Reset App Data',
+                                  style: TextStyle(color: AppColors.medRed)),
+                              content: const Text(
+                                  'Are you sure you want to completely wipe all app data and reset to defaults? This action cannot be undone.'),
                               actions: [
                                 TextButton(
                                   onPressed: () => Navigator.of(context).pop(),
@@ -494,11 +766,41 @@ class ProfileScreen extends StatelessWidget {
                                 ),
                                 ElevatedButton(
                                   onPressed: () async {
-                                    // await resetAppData();
+                                    final medProvider = context.read<MedicationProvider>();
+                                    final vitalsProvider = context.read<VitalsProvider>();
+                                    final settingsProvider = context.read<SettingsProvider>();
+                                    final historyProvider = context.read<HistoryProvider>();
+
+                                    // Cancel all existing scheduled alarms
+                                    await LocalNotificationService().cancelAll();
+
+                                    // Reset database and re-seed defaults
+                                    await DatabaseHelper.instance.resetToDefaults();
+
+                                    // Reload data into providers
+                                    final db = await DatabaseHelper.instance.database;
+                                    final medsData = await db.query('medications');
+                                    final rulesData = await db.query('reminder_rules');
+                                    final todayData = await db.query('today_meds');
+                                    final vitalsData = await db.query('vitals');
+                                    final caregiversData = await db.query('caregivers');
+                                    final togglesData = await db.query('profile_toggles');
+                                    final historyData = await db.query('history_items', orderBy: 'id DESC');
+                                    final bpData = await db.query('bp_readings');
+
+                                    await medProvider.load(medsData, rulesData, todayData);
+                                    await vitalsProvider.load(vitalsData, bpData);
+                                    await settingsProvider.load(settingsProvider.profile, caregiversData, togglesData);
+                                    await historyProvider.load(historyData);
+                                    await historyProvider.loadPersonalBest();
+
                                     if (context.mounted) {
                                       Navigator.of(context).pop();
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('App data reset successfully!')),
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                            content: Text(
+                                                'App data reset successfully!')),
                                       );
                                     }
                                   },
@@ -513,13 +815,22 @@ class ProfileScreen extends StatelessWidget {
                           );
                         },
                         style: OutlinedButton.styleFrom(
-                                          backgroundColor: AppColors.isDark ? AppColors.cardBg : Colors.white,
-                                          foregroundColor: const Color(0xFFDC2626),
-                                          side: BorderSide(color: AppColors.isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFECACA), width: 1.5),
-                                          padding: const EdgeInsets.symmetric(vertical: 13),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                        ),
-                        child: const Text('Reset App Data', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                          backgroundColor: AppColors.isDark
+                              ? AppColors.cardBg
+                              : Colors.white,
+                          foregroundColor: const Color(0xFFDC2626),
+                          side: BorderSide(
+                              color: AppColors.isDark
+                                  ? const Color(0xFF7F1D1D)
+                                  : const Color(0xFFFECACA),
+                              width: 1.5),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('Reset App Data',
+                            style: TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.w700)),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -531,7 +842,8 @@ class ProfileScreen extends StatelessWidget {
                             context: context,
                             builder: (context) => AlertDialog(
                               title: const Text('Sign Out'),
-                              content: const Text('Are you sure you want to sign out?'),
+                              content: const Text(
+                                  'Are you sure you want to sign out?'),
                               actions: [
                                 TextButton(
                                   onPressed: () => Navigator.of(context).pop(),
@@ -541,7 +853,9 @@ class ProfileScreen extends StatelessWidget {
                                   onPressed: () {
                                     Navigator.of(context).pop();
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Signed out successfully!')),
+                                      const SnackBar(
+                                          content:
+                                              Text('Signed out successfully!')),
                                     );
                                   },
                                   child: const Text('Sign Out'),
@@ -551,17 +865,27 @@ class ProfileScreen extends StatelessWidget {
                           );
                         },
                         style: OutlinedButton.styleFrom(
-                                          backgroundColor: AppColors.isDark ? const Color(0xFF450A0A) : AppColors.medRedLight,
-                                          foregroundColor: const Color(0xFFDC2626),
-                                          side: BorderSide(color: AppColors.isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFECACA)),
-                                          padding: const EdgeInsets.symmetric(vertical: 13),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                        ),
-                        child: const Text('Sign Out', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                          backgroundColor: AppColors.isDark
+                              ? const Color(0xFF450A0A)
+                              : AppColors.medRedLight,
+                          foregroundColor: const Color(0xFFDC2626),
+                          side: BorderSide(
+                              color: AppColors.isDark
+                                  ? const Color(0xFF7F1D1D)
+                                  : const Color(0xFFFECACA)),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('Sign Out',
+                            style: TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.w700)),
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Text('MedAdhere v2.4.0 · HIPAA Compliant', style: TextStyle(fontSize: 11, color: AppColors.ink400)),
+                    Text('MedAdhere v2.4.0 · HIPAA Compliant',
+                        style:
+                            TextStyle(fontSize: 11, color: AppColors.ink400)),
                   ],
                 ),
               ),
@@ -578,7 +902,11 @@ class _Section extends StatelessWidget {
   final String action;
   final VoidCallback? onAction;
   final Widget child;
-  const _Section({required this.title, required this.action, this.onAction, required this.child});
+  const _Section(
+      {required this.title,
+      required this.action,
+      this.onAction,
+      required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -590,11 +918,19 @@ class _Section extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink900)),
+              Text(title,
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.ink900)),
               if (action.isNotEmpty)
                 GestureDetector(
                   onTap: onAction,
-                  child: Text(action, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.medBlue)),
+                  child: Text(action,
+                      style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.medBlue)),
                 ),
             ],
           ),
@@ -616,7 +952,11 @@ class _MiniSwitch extends StatelessWidget {
       width: 40,
       height: 24,
       decoration: BoxDecoration(
-          color: on ? color : (AppColors.isDark ? const Color(0xFF374151) : const Color(0xFFD1D5DB)),
+          color: on
+              ? color
+              : (AppColors.isDark
+                  ? const Color(0xFF374151)
+                  : const Color(0xFFD1D5DB)),
           borderRadius: BorderRadius.circular(12)),
       child: AnimatedAlign(
         duration: const Duration(milliseconds: 200),
@@ -628,7 +968,10 @@ class _MiniSwitch extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             shape: BoxShape.circle,
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4)],
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2), blurRadius: 4)
+            ],
           ),
         ),
       ),

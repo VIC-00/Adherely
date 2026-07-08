@@ -19,28 +19,83 @@ class HealthScreen extends StatelessWidget {
     AppColors.isDark = Theme.of(context).brightness == Brightness.dark;
     final medState = context.watch<MedicationProvider>();
     final vitalsState = context.watch<VitalsProvider>();
-//     final settingsState = context.watch<SettingsProvider>();
     final historyState = context.watch<HistoryProvider>();
 
     // Dynamically generate med impacts from actual user medications
     final dynamicMedImpacts = medState.meds.map((med) {
       String impact = 'Adherence tracked';
       String icon = '💊';
+      IconData iconData = Icons.medication_rounded;
       int weeks = 1;
       int progress = historyState.getMedicationAdherence(med.name);
-      
-      if (med.name.toLowerCase().contains('lisinopril')) {
-        impact = 'Blood pressure normalizing';
-        icon = '📉';
-        weeks = 3;
-      } else if (med.name.toLowerCase().contains('metformin')) {
-        impact = 'Glucose levels stable';
-        icon = '📊';
+
+      final medNameLower = med.name.toLowerCase();
+
+      // 1. Blood Pressure medication (e.g. Lisinopril)
+      if (medNameLower.contains('lisinopril') || medNameLower.contains('losartan') || medNameLower.contains('metoprolol') || medNameLower.contains('amlodipine')) {
+        icon = '❤️';
+        iconData = Icons.monitor_heart_rounded;
+        weeks = 4;
+        
+        final bpReadings = vitalsState.bpReadings;
+        if (bpReadings.length >= 2) {
+          final oldestSys = bpReadings.first.sys;
+          final latestSys = bpReadings.last.sys;
+          final diff = oldestSys - latestSys;
+          if (diff > 0) {
+            final pct = ((diff / oldestSys) * 100).round();
+            impact = 'Systolic BP reduced by $pct% ($oldestSys → $latestSys mmHg)';
+          } else if (diff < 0) {
+            final pct = (((-diff) / oldestSys) * 100).round();
+            impact = 'Systolic BP increased by $pct% ($oldestSys → $latestSys mmHg)';
+          } else {
+            impact = 'Systolic BP stable at $latestSys mmHg';
+          }
+        } else if (bpReadings.length == 1) {
+          impact = 'Blood pressure logged at ${bpReadings.first.sys}/${bpReadings.first.dia} mmHg';
+        } else {
+          impact = 'Log BP readings to see medication impact';
+        }
+      } 
+      // 2. Blood Sugar medication (e.g. Metformin)
+      else if (medNameLower.contains('metformin') || medNameLower.contains('insulin') || medNameLower.contains('glipizide')) {
+        icon = '🩸';
+        iconData = Icons.bloodtype_rounded;
         weeks = 6;
-      } else if (med.name.toLowerCase().contains('gabapentin')) {
-        impact = 'Pain reduced';
+        
+        final sugarVital = vitalsState.vitals.firstWhere(
+          (v) => v.label == 'Blood Sugar',
+          orElse: () => const VitalStat(label: 'Blood Sugar', value: '--', unit: '', trend: '', color: Colors.teal, bg: Colors.white, border: Colors.white, icon: '🩸'),
+        );
+        if (sugarVital.value != '--') {
+          impact = 'Glucose levels stable at ${sugarVital.value} ${sugarVital.unit}';
+        } else {
+          impact = 'Glucose levels tracked';
+        }
+      }
+      // 3. Pain, Nerve or other medication (e.g. Gabapentin)
+      else if (medNameLower.contains('gabapentin') || medNameLower.contains('ibuprofen') || medNameLower.contains('acetaminophen')) {
         icon = '🧠';
+        iconData = Icons.healing_rounded;
         weeks = 2;
+        if (progress >= 85) {
+          impact = 'Pain managed · Excellent adherence ($progress%)';
+        } else if (progress > 50) {
+          impact = 'Pain partially managed · Adherence is $progress%';
+        } else {
+          impact = 'Missed doses impacting effectiveness ($progress% adherence)';
+        }
+      }
+      // 4. Fallback default medication
+      else {
+        icon = '💊';
+        iconData = Icons.healing_rounded;
+        weeks = 3;
+        if (progress >= 80) {
+          impact = 'Highly effective · Adherence is $progress%';
+        } else {
+          impact = 'Adherence is $progress% · Take regularly for full effect';
+        }
       }
 
       return MedImpact(
@@ -49,6 +104,8 @@ class HealthScreen extends StatelessWidget {
         icon: icon,
         weeks: weeks,
         progress: progress,
+        color: med.color,
+        iconData: iconData,
       );
     }).toList();
 
@@ -260,7 +317,7 @@ class HealthScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 14),
                     SizedBox(
-                      height: 80,
+                      height: 90,
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
@@ -286,15 +343,40 @@ class HealthScreen extends StatelessWidget {
                                       ),
                                     ),
                                     const SizedBox(height: 3),
-                                    Text(
-                                      vitalsState.bpReadings[i].date.replaceAll('Jun ', '').replaceAll('Jul ', ''),
-                                      style: TextStyle(
-                                        fontSize: 9,
-                                        color: i == vitalsState.bpReadings.length - 1
+                                    Builder(
+                                      builder: (context) {
+                                        final dateStr = vitalsState.bpReadings[i].date;
+                                        final parts = dateStr.split(', ');
+                                        final displayDate = parts.isNotEmpty ? parts[0] : dateStr;
+                                        final displayTime = parts.length > 1 ? parts[1] : '';
+                                        final isLast = i == vitalsState.bpReadings.length - 1;
+                                        final textColor = isLast
                                             ? (AppColors.isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB))
-                                            : AppColors.ink400,
-                                        fontWeight: i == vitalsState.bpReadings.length - 1 ? FontWeight.w700 : FontWeight.w500,
-                                      ),
+                                            : AppColors.ink400;
+
+                                        return Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              displayDate,
+                                              style: TextStyle(
+                                                fontSize: 8,
+                                                color: textColor,
+                                                fontWeight: isLast ? FontWeight.w700 : FontWeight.w500,
+                                              ),
+                                            ),
+                                            if (displayTime.isNotEmpty)
+                                              Text(
+                                                displayTime,
+                                                style: TextStyle(
+                                                  fontSize: 7,
+                                                  color: textColor.withValues(alpha: 0.8),
+                                                  fontWeight: FontWeight.w400,
+                                                ),
+                                              ),
+                                          ],
+                                        );
+                                      },
                                     ),
                                   ],
                                 ),
@@ -338,7 +420,20 @@ class HealthScreen extends StatelessWidget {
                             children: [
                               Row(
                                 children: [
-                                  Text(m.icon, style: const TextStyle(fontSize: 20)),
+                                  Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: (m.color ?? AppColors.medBlue).withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Icon(
+                                      m.iconData ?? Icons.healing_rounded,
+                                      size: 18,
+                                      color: m.color ?? AppColors.medBlue,
+                                    ),
+                                  ),
                                   const SizedBox(width: 10),
                                   Expanded(
                                     child: Column(
@@ -359,7 +454,7 @@ class HealthScreen extends StatelessWidget {
                                   value: m.progress / 100,
                                   minHeight: 5,
                                   backgroundColor: AppColors.isDark ? const Color(0xFF374151) : const Color(0xFFF3F4F6),
-                                  valueColor: const AlwaysStoppedAnimation(AppColors.medTeal),
+                                  valueColor: AlwaysStoppedAnimation(m.color ?? AppColors.medTeal),
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -367,7 +462,7 @@ class HealthScreen extends StatelessWidget {
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text('Effectiveness', style: TextStyle(fontSize: 10, color: AppColors.ink400)),
-                                  Text('${m.progress}%', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.medTeal)),
+                                  Text('${m.progress}%', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: m.color ?? AppColors.medTeal)),
                                 ],
                               ),
                             ],

@@ -17,6 +17,23 @@ class SettingsProvider extends ChangeNotifier {
   List<ToggleItem> get globalToggles => List.unmodifiable(_notificationToggles);
   
   bool _dbEnabled = true;
+  int _snoozeDuration = 5;
+  int get snoozeDuration => _snoozeDuration;
+
+  Future<void> updateSnoozeDuration(int minutes) async {
+    _snoozeDuration = minutes;
+    notifyListeners();
+    if (!_dbEnabled) return;
+    try {
+      final db = await DatabaseHelper.instance.database;
+      await db.update('profile_toggles', {
+        'sub': '$minutes minutes',
+        'value': minutes,
+      }, where: 'label = ?', whereArgs: ['Snooze Duration']);
+    } catch (e) {
+      debugPrint("DB Write Error: $e");
+    }
+  }
 
   Future<void> load(Profile? profile, List<Map<String, dynamic>> caregiversData, List<Map<String, dynamic>> togglesData) async {
     _profile = profile;
@@ -34,15 +51,23 @@ class SettingsProvider extends ChangeNotifier {
     _notificationToggles.clear();
     if (togglesData.isNotEmpty) {
       for (final t in togglesData) {
+        final label = t['label'] as String;
+        if (label == 'Snooze Duration') {
+          _snoozeDuration = t['value'] as int;
+          continue;
+        }
         final toggle = ToggleItem(
-          label: t['label'] as String,
+          label: label,
           sub: t['sub'] as String,
           on: t['value'] == 1,
           color: t['color'] != null ? Color(t['color'] as int) : null,
         );
         if (toggle.label == 'Dark Mode') {
           _profileToggles.add(toggle);
-        } else if (toggle.label == 'Push Notifications' || toggle.label == 'Voice Reminders' || toggle.label == 'Caregiver SMS Alerts') {
+        } else if (toggle.label == 'Push Notifications' || 
+                   toggle.label == 'Voice Reminders' || 
+                   toggle.label == 'Caregiver SMS Alerts' ||
+                   toggle.label == 'Continuous Alarm') {
           _notificationToggles.add(toggle);
         }
       }
@@ -77,7 +102,9 @@ class SettingsProvider extends ChangeNotifier {
       ToggleItem(label: 'Push Notifications', sub: 'Daily reminders and refills alerts', on: true, color: Color(0xFF10B981)),
       ToggleItem(label: 'Voice Reminders', sub: 'Audible spoken alerts for schedules', on: true, color: Color(0xFFF59E0B)),
       ToggleItem(label: 'Caregiver SMS Alerts', sub: 'Alert network if doses are missed', on: false, color: Color(0xFF8B5CF6)),
+      ToggleItem(label: 'Continuous Alarm', sub: 'Loop alarm ringtone until dismissed', on: true, color: Color(0xFF3B82F6)),
     ]);
+    _snoozeDuration = 5;
     notifyListeners();
   }
 
