@@ -10,6 +10,11 @@ import 'screens/add_med_screen.dart';
 import 'widgets/bottom_nav.dart';
 import 'widgets/alarm_overlay_dialog.dart';
 import 'notification_service.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'providers/index.dart';
+import 'models.dart';
+import 'database_helper.dart';
 
 class RootShell extends StatefulWidget {
   const RootShell({super.key});
@@ -27,7 +32,11 @@ class _RootShellState extends State<RootShell> {
     super.initState();
     _notificationSubscription = LocalNotificationService.selectNotificationStream.stream.listen((String? payload) {
       if (payload != null) {
-        _showAlarmOverlay(payload);
+        if (payload.startsWith('action|')) {
+          _handleNotificationAction(payload);
+        } else {
+          _showAlarmOverlay(payload);
+        }
       }
     });
     _checkAppLaunchPayload();
@@ -46,8 +55,72 @@ class _RootShellState extends State<RootShell> {
     final NotificationAppLaunchDetails? details = await flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
     if (details != null && details.didNotificationLaunchApp && details.notificationResponse != null) {
       final payload = details.notificationResponse!.payload;
+      final actionId = details.notificationResponse!.actionId;
       if (payload != null) {
-        _showAlarmOverlay(payload);
+        if (actionId != null) {
+          _handleNotificationAction('action|$actionId|$payload');
+        } else {
+          _showAlarmOverlay(payload);
+        }
+      }
+    }
+  }
+
+  void _handleNotificationAction(String actionPayload) async {
+    final parts = actionPayload.split('|');
+    if (parts.length < 5) return;
+    final action = parts[1]; // 'take' or 'snooze'
+    final String medName = parts[3];
+
+    if (!mounted) return;
+    final medState = context.read<MedicationProvider>();
+    final historyState = context.read<HistoryProvider>();
+
+    // Find medication by name
+    final medIndex = medState.meds.indexWhere((m) => m.name.toLowerCase() == medName.toLowerCase());
+    if (medIndex != -1) {
+      final med = medState.meds[medIndex];
+      if (action == 'take') {
+        medState.logMedication(med.id!, MedCardVariant.taken);
+        final timeStr = DateFormat('h:mm a').format(DateTime.now());
+        historyState.logHistory(HistoryItem(
+          med: '${med.name} ${med.dose}',
+          date: 'Today',
+          time: timeStr,
+          taken: true,
+          note: 'Logged from notification bar',
+        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${med.name} marked as taken!')),
+        );
+      } else if (action == 'snooze') {
+        // Retrieve snooze duration
+        int snoozeMinutes = 5;
+        try {
+          final db = await DatabaseHelper.instance.database;
+          final List<Map<String, dynamic>> snoozeSettings = await db.query(
+            'profile_toggles',
+            where: 'label = ?',
+            whereArgs: ['Snooze Duration'],
+          );
+          if (snoozeSettings.isNotEmpty) {
+            final subStr = snoozeSettings.first['sub'] as String;
+            snoozeMinutes = int.tryParse(subStr.split(' ').first) ?? 5;
+          }
+        } catch (_) {}
+
+        final snoozeTime = DateTime.now().add(Duration(minutes: snoozeMinutes));
+        final snoozeTimeStr = DateFormat('h:mm a').format(snoozeTime);
+        final oldTime = med.freq.contains('·')
+            ? med.freq.split('·').last.trim().split(',').first.trim()
+            : med.freq;
+
+        await medState.rescheduleRule(med.id!, oldTime, snoozeTimeStr);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('${med.name} snoozed for $snoozeMinutes mins (new time: $snoozeTimeStr)')),
+          );
+        }
       }
     }
   }

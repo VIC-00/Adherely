@@ -77,8 +77,12 @@ class LocalNotificationService implements INotificationService {
     await _flutterLocalNotificationsPlugin.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) async {
-        debugPrint('Notification tapped: ${response.payload}');
-        selectNotificationStream.add(response.payload);
+        debugPrint('Notification tapped: ${response.payload} (action: ${response.actionId})');
+        if (response.actionId != null) {
+          selectNotificationStream.add('action|${response.actionId}|${response.payload ?? ""}');
+        } else {
+          selectNotificationStream.add(response.payload);
+        }
       },
       onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
     );
@@ -160,8 +164,8 @@ class LocalNotificationService implements INotificationService {
         additionalFlags: loopAlarm ? Int32List.fromList(<int>[4]) : null,
         sound: loopAlarm ? const UriAndroidNotificationSound("content://settings/system/alarm_alert") : null,
         actions: const <AndroidNotificationAction>[
-          AndroidNotificationAction('take', 'Take', cancelNotification: true),
-          AndroidNotificationAction('snooze', 'Snooze', cancelNotification: true),
+          AndroidNotificationAction('take', 'Take', cancelNotification: true, showsUserInterface: true),
+          AndroidNotificationAction('snooze', 'Snooze', cancelNotification: true, showsUserInterface: true),
         ],
       );
       
