@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:flutter/foundation.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -27,16 +28,34 @@ class DatabaseHelper {
   }
 
   Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    await db.execute('DROP TABLE IF EXISTS medications');
-    await db.execute('DROP TABLE IF EXISTS today_meds');
-    await db.execute('DROP TABLE IF EXISTS reminder_rules');
-    await db.execute('DROP TABLE IF EXISTS caregivers');
-    await db.execute('DROP TABLE IF EXISTS vitals');
-    await db.execute('DROP TABLE IF EXISTS history_items');
-    await db.execute('DROP TABLE IF EXISTS profile_toggles');
-    await db.execute('DROP TABLE IF EXISTS profile');
-    await db.execute('DROP TABLE IF EXISTS bp_readings');
-    await _createDB(db, newVersion);
+    try {
+      if (oldVersion < 6) {
+        // Safe migration: rename old profile table, copy data to new profile table without patient_id
+        await db.execute('ALTER TABLE profile RENAME TO profile_old');
+        await db.execute('''
+          CREATE TABLE profile (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            dob TEXT NOT NULL,
+            conditions TEXT NOT NULL
+          )
+        ''');
+        await db.execute('INSERT INTO profile (id, name, dob, conditions) SELECT id, name, dob, conditions FROM profile_old');
+        await db.execute('DROP TABLE profile_old');
+      }
+    } catch (e) {
+      debugPrint("Migration error: $e");
+      await db.execute('DROP TABLE IF EXISTS medications');
+      await db.execute('DROP TABLE IF EXISTS today_meds');
+      await db.execute('DROP TABLE IF EXISTS reminder_rules');
+      await db.execute('DROP TABLE IF EXISTS caregivers');
+      await db.execute('DROP TABLE IF EXISTS vitals');
+      await db.execute('DROP TABLE IF EXISTS history_items');
+      await db.execute('DROP TABLE IF EXISTS profile_toggles');
+      await db.execute('DROP TABLE IF EXISTS profile');
+      await db.execute('DROP TABLE IF EXISTS bp_readings');
+      await _createDB(db, newVersion);
+    }
   }
 
   Future _createDB(Database db, int version) async {
@@ -131,7 +150,6 @@ class DatabaseHelper {
         id INTEGER PRIMARY KEY,
         name TEXT NOT NULL,
         dob TEXT NOT NULL,
-        patient_id TEXT NOT NULL,
         conditions TEXT NOT NULL
       )
     ''');
@@ -155,63 +173,15 @@ class DatabaseHelper {
   }
 
   Future<void> _seedData(DatabaseExecutor db) async {
-    // Seed Profile
-    await db.rawInsert('INSERT INTO profile (id, name, dob, patient_id, conditions) VALUES (?, ?, ?, ?, ?)',
-      [1, 'Sarah Mitchell', 'Oct 14, 1965', 'PT-894-22X', 'Hypertension · Type 2 Diabetes']);
-
-    // Seed Medications
-    await db.rawInsert('INSERT INTO medications (id, name, dose, freq, color, refillDays, description, drugClass, sideEffects) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [1, 'Lisinopril', '10mg', 'Once daily · 8 AM', 0xFF3B82F6, 12,
-       'Used to treat high blood pressure and heart failure. It helps lower blood pressure, which helps prevent strokes, heart attacks, and kidney problems.',
-       'ACE Inhibitor',
-       'Dry cough, Dizziness, Headache, Tiredness, Nausea']);
-    await db.rawInsert('INSERT INTO medications (id, name, dose, freq, color, refillDays, description, drugClass, sideEffects) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [2, 'Metformin', '500mg', 'Twice daily · 8 AM, 8 PM', 0xFF8B5CF6, 5,
-       'Used with a proper diet and exercise program to control high blood sugar in patients with type 2 diabetes. Controlling high blood sugar helps prevent kidney damage, blindness, nerve problems, loss of limbs, and sexual function issues.',
-       'Biguanide (Antidiabetic)',
-       'Nausea, Vomiting, Stomach upset, Diarrhea, Metallic taste']);
-    await db.rawInsert('INSERT INTO medications (id, name, dose, freq, color, refillDays, description, drugClass, sideEffects) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [3, 'Gabapentin', '300mg', 'Once daily · 2 PM', 0xFFF97316, 22,
-       'Used with other medications to prevent and control seizures. It is also used to relieve neuropathic pain (nerve pain) following shingles (a painful rash due to herpes zoster infection) in adults.',
-       'Anticonvulsant / Neuropathic Agent',
-       'Drowsiness, Dizziness, Loss of coordination, Double vision, Tremor']);
-
-    // Seed Today Meds Statuses
-    await db.rawInsert('INSERT INTO today_meds (med_id, status) VALUES (?, ?)', [1, 'upcoming']);
-    await db.rawInsert('INSERT INTO today_meds (med_id, status) VALUES (?, ?)', [2, 'taken']);
-    await db.rawInsert('INSERT INTO today_meds (med_id, status) VALUES (?, ?)', [3, 'missed']);
-
-    // Seed Reminder Rules
-    await db.rawInsert('INSERT INTO reminder_rules (id, med, dose, time, types, advance, color, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [1, 'Lisinopril', '10mg', '8:00 AM', 'push,voice', 15, 0xFF3B82F6, 1]);
-    await db.rawInsert('INSERT INTO reminder_rules (id, med, dose, time, types, advance, color, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [2, 'Metformin', '500mg', '8:00 AM', 'push', 15, 0xFF8B5CF6, 1]);
-    await db.rawInsert('INSERT INTO reminder_rules (id, med, dose, time, types, advance, color, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [3, 'Metformin', '500mg', '8:00 PM', 'push,voice', 15, 0xFF8B5CF6, 1]);
-    await db.rawInsert('INSERT INTO reminder_rules (id, med, dose, time, types, advance, color, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [4, 'Gabapentin', '300mg', '2:00 PM', 'push,voice', 0, 0xFFF97316, 0]);
-
-    // Seed Caregivers
-    await db.rawInsert('INSERT INTO caregivers (id, name, relation, phone, active) VALUES (?, ?, ?, ?, ?)',
-      [1, 'Robert Mitchell', 'Husband', '(555) 019-2834', 1]);
-    await db.rawInsert('INSERT INTO caregivers (id, name, relation, phone, active) VALUES (?, ?, ?, ?, ?)',
-      [2, 'Emily Mitchell', 'Daughter / Primary Caregiver', '(555) 019-5821', 0]);
-
-    // Seed Vitals
+    // Seed Vitals with blank values
     await db.rawInsert('INSERT INTO vitals (label, value, unit, trend, color, bg, border, icon) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      ['Blood Pressure', '118/75', 'mmHg', '↓ improving', 0xFF22C55E, 0xFFF0FDF4, 0xFFBBF7D0, '❤️']);
+      ['Blood Pressure', '--', 'mmHg', 'No readings', 0xFF22C55E, 0xFFF0FDF4, 0xFFBBF7D0, '❤️']);
     await db.rawInsert('INSERT INTO vitals (label, value, unit, trend, color, bg, border, icon) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      ['Heart Rate', '72', 'bpm', '↓ stable', 0xFF3B82F6, 0xFFEFF6FF, 0xFF93C5FD, '⚡']);
+      ['Heart Rate', '--', 'bpm', 'No readings', 0xFF3B82F6, 0xFFEFF6FF, 0xFF93C5FD, '⚡']);
     await db.rawInsert('INSERT INTO vitals (label, value, unit, trend, color, bg, border, icon) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      ['Blood Sugar', '98', 'mg/dL', '→ stable', 0xFF14B8A6, 0xFFF0FDFA, 0xFFCCFBF1, '🩸']);
+      ['Blood Sugar', '--', 'mg/dL', 'No readings', 0xFF14B8A6, 0xFFF0FDFA, 0xFFCCFBF1, '🩸']);
     await db.rawInsert('INSERT INTO vitals (label, value, unit, trend, color, bg, border, icon) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      ['Weight', '168.4', 'lbs', '↓ -1.2 lbs', 0xFF10B981, 0xFFD1FAE5, 0xFFA7F3D0, '⚖️']);
-
-    // Seed BP Readings
-    await db.rawInsert('INSERT INTO bp_readings (id, date, sys, dia) VALUES (?, ?, ?, ?)', [1, 'Oct 24, 8:00 AM', 120, 80]);
-    await db.rawInsert('INSERT INTO bp_readings (id, date, sys, dia) VALUES (?, ?, ?, ?)', [2, 'Oct 23, 8:15 AM', 122, 82]);
-    await db.rawInsert('INSERT INTO bp_readings (id, date, sys, dia) VALUES (?, ?, ?, ?)', [3, 'Oct 22, 7:50 AM', 125, 84]);
-    await db.rawInsert('INSERT INTO bp_readings (id, date, sys, dia) VALUES (?, ?, ?, ?)', [4, 'Oct 21, 8:10 AM', 128, 86]);
+      ['Weight', '--', 'lbs', 'No readings', 0xFF10B981, 0xFFD1FAE5, 0xFFA7F3D0, '⚖️']);
 
     // Seed Profile & Reminders Toggles
     await db.rawInsert('INSERT INTO profile_toggles (label, sub, value, color) VALUES (?, ?, ?, ?)',

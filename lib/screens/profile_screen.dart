@@ -136,7 +136,7 @@ void _showEditCaregiverDialog(
                 controller: phoneController,
                 decoration: const InputDecoration(labelText: 'Phone Number')),
             CheckboxListTile(
-              title: const Text('SMS Alerts Active'),
+              title: const Text('Primary Contact'),
               value: activeVal,
               onChanged: (v) =>
                   setDialogState(() => activeVal = v ?? activeVal),
@@ -418,7 +418,7 @@ class ProfileScreen extends StatelessWidget {
                                 decoration: const InputDecoration(
                                     labelText: 'Phone Number')),
                             CheckboxListTile(
-                              title: const Text('SMS Alerts Active'),
+                              title: const Text('Primary Contact'),
                               value: activeVal,
                               onChanged: (v) => setDialogState(
                                   () => activeVal = v ?? activeVal),
@@ -527,7 +527,7 @@ class ProfileScreen extends StatelessWidget {
                                               : AppColors.medGreenLight,
                                           borderRadius:
                                               BorderRadius.circular(6)),
-                                      child: Text('SMS Active',
+                                      child: Text('Primary Contact',
                                           style: TextStyle(
                                               fontSize: 10,
                                               fontWeight: FontWeight.w700,
@@ -834,56 +834,7 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Sign Out'),
-                              content: const Text(
-                                  'Are you sure you want to sign out?'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.of(context).pop(),
-                                  child: const Text('Cancel'),
-                                ),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    Navigator.of(context).pop();
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                          content:
-                                              Text('Signed out successfully!')),
-                                    );
-                                  },
-                                  child: const Text('Sign Out'),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: AppColors.isDark
-                              ? const Color(0xFF450A0A)
-                              : AppColors.medRedLight,
-                          foregroundColor: const Color(0xFFDC2626),
-                          side: BorderSide(
-                              color: AppColors.isDark
-                                  ? const Color(0xFF7F1D1D)
-                                  : const Color(0xFFFECACA)),
-                          padding: const EdgeInsets.symmetric(vertical: 13),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                        ),
-                        child: const Text('Sign Out',
-                            style: TextStyle(
-                                fontSize: 14, fontWeight: FontWeight.w700)),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text('MedAdhere v2.4.0 · HIPAA Compliant',
+                    Text('Adherely v1.0.0 · Offline-First',
                         style:
                             TextStyle(fontSize: 11, color: AppColors.ink400)),
                   ],

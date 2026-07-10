@@ -6,6 +6,7 @@ import 'notification_service.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'root_shell.dart';
+import 'screens/onboarding_screen.dart';
 import 'theme/app_theme.dart';
 import 'theme/app_colors.dart';
 import 'models.dart';
@@ -66,13 +67,18 @@ class _MedAdhereAppState extends State<MedAdhereApp> {
 
       await _vitalsProvider.load(vitalsData, bpData);
       
-      const profile = Profile(
-        id: 1,
-        name: 'Sarah Mitchell',
-        dob: 'Oct 14, 1965',
-        patientId: 'PT-894-22X',
-        conditions: 'Hypertension · Type 2 Diabetes',
-      );
+      final profileData = await db.query('profile');
+      Profile? profile;
+      if (profileData.isNotEmpty) {
+        final map = profileData.first;
+        profile = Profile(
+          id: map['id'] as int,
+          name: map['name'] as String,
+          dob: map['dob'] as String,
+          patientId: '',
+          conditions: map['conditions'] as String,
+        );
+      }
       await _settingsProvider.load(profile, caregiversData, togglesData);
       
       await _historyProvider.load(historyData);
@@ -127,7 +133,9 @@ class _MedAdhereAppState extends State<MedAdhereApp> {
             theme: AppTheme.light,
             darkTheme: AppTheme.dark,
             themeMode: themeMode,
-            home: const RootShell(),
+            home: settingsState.profile == null
+                ? const OnboardingScreen()
+                : const RootShell(),
           );
         },
       ),

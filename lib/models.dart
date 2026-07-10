@@ -132,8 +132,7 @@ class MedImpact {
     this.iconData,
   });
 }
-
-enum AlertType { push, voice, sms, email }
+enum AlertType { push, voice }
 
 class AlertInfo {
   final String icon;

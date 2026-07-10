@@ -43,26 +43,17 @@ class VitalsProvider extends ChangeNotifier {
   void setDbEnabled(bool enabled) {
     _dbEnabled = enabled;
   }
-  
+
   void setInMemoryDefaults() {
     _vitals.clear();
-    _vitals.addAll([
-      const VitalStat(label: 'Blood Pressure', value: '118/75', unit: 'mmHg', trend: '↓ improving', color: Color(0xFF10B981), bg: Color(0xFFD1FAE5), border: Color(0xFFA7F3D0), icon: '❤️'),
-      const VitalStat(label: 'Heart Rate', value: '72', unit: 'bpm', trend: '↓ stable', color: Color(0xFF3B82F6), bg: Color(0xFFDBEAFE), border: Color(0xFF93C5FD), icon: '⚡'),
-      const VitalStat(label: 'Blood Sugar', value: '98', unit: 'mg/dL', trend: '→ stable', color: Color(0xFF14B8A6), bg: Color(0xFFF0FDFA), border: Color(0xFFCCFBF1), icon: '🩸'),
-      const VitalStat(label: 'Weight', value: '168.4', unit: 'lbs', trend: '↓ -1.2 lbs', color: Color(0xFF10B981), bg: Color(0xFFD1FAE5), border: Color(0xFFA7F3D0), icon: '⚖️'),
+    _vitals.addAll(const [
+      VitalStat(label: 'Blood Pressure', value: '--', unit: 'mmHg', trend: 'No readings', color: Color(0xFF22C55E), bg: Color(0xFFF0FDF4), border: Color(0xFFBBF7D0), icon: '❤️'),
+      VitalStat(label: 'Heart Rate', value: '--', unit: 'bpm', trend: 'No readings', color: Color(0xFF3B82F6), bg: Color(0xFFEFF6FF), border: Color(0xFF93C5FD), icon: '⚡'),
+      VitalStat(label: 'Blood Sugar', value: '--', unit: 'mg/dL', trend: 'No readings', color: Color(0xFF14B8A6), bg: Color(0xFFF0FDFA), border: Color(0xFFCCFBF1), icon: '🩸'),
+      VitalStat(label: 'Weight', value: '--', unit: 'lbs', trend: 'No readings', color: Color(0xFF10B981), bg: Color(0xFFD1FAE5), border: Color(0xFFA7F3D0), icon: '⚖️'),
     ]);
     
     _bpReadings.clear();
-    _bpReadings.addAll([
-      const BPReading(date: 'Jun 28', sys: 132, dia: 86),
-      const BPReading(date: 'Jun 29', sys: 128, dia: 84),
-      const BPReading(date: 'Jun 30', sys: 130, dia: 85),
-      const BPReading(date: 'Jul 1', sys: 125, dia: 82),
-      const BPReading(date: 'Jul 2', sys: 122, dia: 80),
-      const BPReading(date: 'Jul 3', sys: 120, dia: 79),
-      const BPReading(date: 'Jul 4', sys: 118, dia: 75),
-    ]);
     notifyListeners();
   }
 

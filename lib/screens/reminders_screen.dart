@@ -7,8 +7,6 @@ import '../theme/app_colors.dart';
 const Map<AlertType, AlertInfo> _alertIcons = {
   AlertType.push: AlertInfo('🔔', 'Push', AppColors.medBlue),
   AlertType.voice: AlertInfo('🔊', 'Voice', AppColors.medOrange),
-  AlertType.sms: AlertInfo('💬', 'SMS', AppColors.medGreen),
-  AlertType.email: AlertInfo('📧', 'Email', AppColors.medPurple),
 };
 
 
@@ -69,7 +67,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
                     Text('${medState.activeRuleCount} active rules · ${medState.activeMedCount} medications', style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.75))),
                     const SizedBox(height: 14),
                     Row(
-                      children: [AlertType.push, AlertType.voice, AlertType.sms].map((t) {
+                      children: [AlertType.push, AlertType.voice].map((t) {
                         final info = _alertIcons[t]!;
                         final count = rules.where((r) => r.active && r.types.contains(t)).length;
                         return Expanded(
@@ -301,91 +299,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
                 ),
               ),
 
-              // Caregiver SMS panel
-              Container(
-                margin: const EdgeInsets.fromLTRB(16, 0, 16, 28),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                decoration: BoxDecoration(
-                  color: AppColors.isDark ? const Color(0xFF2E1065).withValues(alpha: 0.2) : const Color(0xFFF5F3FF),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.isDark ? const Color(0xFF4C1D95) : const Color(0xFFDDD6FE)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                              color: AppColors.isDark
-                                  ? const Color(0xFF4C1D95).withValues(alpha: 0.3)
-                                  : const Color(0xFFEDE9FE),
-                              borderRadius: BorderRadius.circular(10)),
-                          alignment: Alignment.center,
-                          child: const Text('💬', style: TextStyle(fontSize: 18)),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Caregiver SMS Alerts',
-                                  style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.isDark ? const Color(0xFFA78BFA) : const Color(0xFF4C1D95))),
-                              Text(
-                                settingsState.caregivers.where((c) => c.active).isNotEmpty 
-                                  ? '${settingsState.caregivers.where((c) => c.active).first.relation} (${settingsState.caregivers.where((c) => c.active).first.phone})'
-                                  : 'No active caregiver configured', 
-                                style: TextStyle(fontSize: 11, color: AppColors.isDark ? const Color(0xFFC084FC) : const Color(0xFF7C3AED)),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                              color: AppColors.isDark ? const Color(0xFF4C1D95) : const Color(0xFFDDD6FE),
-                              borderRadius: BorderRadius.circular(6)),
-                          child: Text(
-                            medState.rules.any((r) => r.active && r.types.contains(AlertType.sms)) ? 'Active' : 'Inactive', 
-                            style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.isDark ? Colors.white : const Color(0xFF4C1D95)),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      medState.rules.any((r) => r.active && r.types.contains(AlertType.sms))
-                        ? 'Active for ${medState.rules.where((r) => r.active && r.types.contains(AlertType.sms)).map((r) => r.med).join(", ")}'
-                        : 'Enable now →',
-                      style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.isDark ? const Color(0xFFA78BFA) : const Color(0xFF6D28D9)),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const _SmallDot(color: Color(0xFFF59E0B)),
-                        const SizedBox(width: 5),
-                        Text('Requires caregiver consent',
-                            style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.isDark ? const Color(0xFFFBBF24) : const Color(0xFF92400E))),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+              const SizedBox.shrink(),
             ],
           ),
         ),
@@ -540,9 +454,3 @@ class _StaticSwitch extends StatelessWidget {
   }
 }
 
-class _SmallDot extends StatelessWidget {
-  final Color color;
-  const _SmallDot({required this.color});
-  @override
-  Widget build(BuildContext context) => Container(width: 6, height: 6, decoration: BoxDecoration(color: color, shape: BoxShape.circle));
-}

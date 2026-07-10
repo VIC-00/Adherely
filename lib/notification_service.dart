@@ -42,9 +42,7 @@ class LocalNotificationService implements INotificationService {
   @override
   Future<void> initialize() async {
     if (_initialized) return;
-
     tz.initializeTimeZones();
-    // Detect the user's local timezone
     try {
       final String timeZoneName = (await FlutterTimezone.getLocalTimezone()).identifier;
       tz.setLocalLocation(tz.getLocation(timeZoneName));

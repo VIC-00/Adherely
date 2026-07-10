@@ -82,36 +82,46 @@ class MedicationProvider extends ChangeNotifier {
 
   void setInMemoryDefaults() {
     _meds.clear();
-    _meds.addAll(const [
-      Medication(name: 'Lisinopril', dose: '10mg', freq: 'Once daily · 8 AM', color: Color(0xFF3B82F6), refillDays: 12),
-      Medication(name: 'Metformin', dose: '500mg', freq: 'Twice daily · 8 AM, 8 PM', color: Color(0xFF8B5CF6), refillDays: 5),
-      Medication(name: 'Gabapentin', dose: '300mg', freq: 'Once daily · 2 PM', color: Color(0xFFF97316), refillDays: 22),
-    ]);
-    
     _todayMeds.clear();
-    _todayMeds[1] = MedCardVariant.upcoming;
-    _todayMeds[2] = MedCardVariant.taken;
-    _todayMeds[3] = MedCardVariant.missed;
-    
     _rules.clear();
-    _rules.addAll(const [
-      ReminderRule(id: 1, med: 'Lisinopril', dose: '10mg', time: '8:00 AM', types: [AlertType.push, AlertType.voice], advance: 15, color: Color(0xFF3B82F6), active: true),
-      ReminderRule(id: 2, med: 'Metformin', dose: '500mg', time: '8:00 AM', types: [AlertType.push], advance: 10, color: Color(0xFF8B5CF6), active: true),
-      ReminderRule(id: 3, med: 'Metformin', dose: '500mg', time: '8:00 PM', types: [AlertType.push, AlertType.voice], advance: 15, color: Color(0xFF8B5CF6), active: true),
-      ReminderRule(id: 4, med: 'Gabapentin', dose: '300mg', time: '2:00 PM', types: [AlertType.push, AlertType.sms], advance: 15, color: Color(0xFFF97316), active: false),
-    ]);
     notifyListeners();
   }
-
   Future<void> addMedication(Medication m, {List<AlertType>? types, int? advanceMinutes}) async {
     final libraryDetails = MedicationLibrary.getDetails(m.name) ?? {
       'drugClass': 'General Medication',
       'description': 'Used to treat symptoms as directed by your healthcare provider. Please consult your physician or pharmacist for specific instructions and details about this medication.',
       'sideEffects': 'Nausea, Drowsiness, Headache, Mild dizziness'
     };
-    final dbMedId = m.id ?? DateTime.now().millisecondsSinceEpoch;
+
+    int medId;
+    if (_dbEnabled) {
+      try {
+        final db = await DatabaseHelper.instance.database;
+        medId = await db.insert('medications', {
+          'name': m.name,
+          'dose': m.dose,
+          'freq': m.freq,
+          'color': m.color.toARGB32(),
+          'refillDays': m.refillDays,
+          'description': m.description ?? libraryDetails['description'],
+          'drugClass': m.drugClass ?? libraryDetails['drugClass'],
+          'sideEffects': m.sideEffects ?? libraryDetails['sideEffects'],
+        });
+
+        await db.insert('today_meds', {
+          'med_id': medId,
+          'status': MedCardVariant.upcoming.toString().split('.').last,
+        });
+      } catch (e) {
+        debugPrint("DB write error: $e");
+        medId = DateTime.now().millisecondsSinceEpoch;
+      }
+    } else {
+      medId = DateTime.now().millisecondsSinceEpoch;
+    }
+
     final medWithId = Medication(
-      id: dbMedId,
+      id: medId,
       name: m.name,
       dose: m.dose,
       freq: m.freq,
@@ -123,8 +133,7 @@ class MedicationProvider extends ChangeNotifier {
     );
     
     _meds.add(medWithId);
-    
-    _todayMeds[dbMedId] = MedCardVariant.upcoming;
+    _todayMeds[medId] = MedCardVariant.upcoming;
 
     final baseTime = m.freq.contains('·') ? m.freq.split('·').last.trim() : '8:00 AM';
     final times = baseTime.split(',').map((e) => e.trim()).toList();
@@ -195,27 +204,6 @@ class MedicationProvider extends ChangeNotifier {
     }
 
     notifyListeners();
-
-    if (!_dbEnabled) return;
-    try {
-      final db = await DatabaseHelper.instance.database;
-      final insertedId = await db.insert('medications', {
-        'name': medWithId.name,
-        'dose': medWithId.dose,
-        'freq': medWithId.freq,
-        'color': medWithId.color.toARGB32(),
-        'refillDays': medWithId.refillDays,
-        'description': medWithId.description,
-        'drugClass': medWithId.drugClass,
-        'sideEffects': medWithId.sideEffects,
-      });
-      await db.insert('today_meds', {
-        'med_id': insertedId,
-        'status': MedCardVariant.upcoming.toString().split('.').last,
-      });
-    } catch(e) {
-      debugPrint("DB write error: $e");
-    }
   }
 
   Future<void> removeMedication(int medId) async {

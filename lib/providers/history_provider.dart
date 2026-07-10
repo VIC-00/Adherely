@@ -101,16 +101,9 @@ class HistoryProvider extends ChangeNotifier {
   void setDbEnabled(bool enabled) {
     _dbEnabled = enabled;
   }
-  
+
   void setInMemoryDefaults() {
     _historyItems.clear();
-    _historyItems.addAll([
-      const HistoryItem(date: 'Today', med: 'Lisinopril 10mg', time: '7:58 AM', taken: true, note: '2 min early'),
-      const HistoryItem(date: 'Today', med: 'Gabapentin 300mg', time: '—', taken: false, note: 'Scheduled 2:00 PM'),
-      const HistoryItem(date: 'Yesterday', med: 'Lisinopril 10mg', time: '8:03 AM', taken: true, note: 'On time'),
-      const HistoryItem(date: 'Yesterday', med: 'Metformin 500mg', time: '8:05 AM', taken: true, note: 'With breakfast'),
-      const HistoryItem(date: 'Yesterday', med: 'Gabapentin 300mg', time: '1:58 PM', taken: true, note: '2 min early'),
-    ]);
     notifyListeners();
   }
 

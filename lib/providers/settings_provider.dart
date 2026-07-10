@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
 import '../models.dart';
 import '../database_helper.dart';
 
@@ -66,7 +67,6 @@ class SettingsProvider extends ChangeNotifier {
           _profileToggles.add(toggle);
         } else if (toggle.label == 'Push Notifications' || 
                    toggle.label == 'Voice Reminders' || 
-                   toggle.label == 'Caregiver SMS Alerts' ||
                    toggle.label == 'Continuous Alarm') {
           _notificationToggles.add(toggle);
         }
@@ -78,21 +78,10 @@ class SettingsProvider extends ChangeNotifier {
   void setDbEnabled(bool enabled) {
     _dbEnabled = enabled;
   }
-  
-  void setInMemoryDefaults() {
-    _profile = const Profile(
-      id: 1,
-      name: 'Sarah Mitchell',
-      dob: 'Oct 14, 1965',
-      patientId: 'PT-894-22X',
-      conditions: 'Hypertension · Type 2 Diabetes',
-    );
 
+  void setInMemoryDefaults() {
+    _profile = null;
     _caregivers.clear();
-    _caregivers.addAll([
-      const Caregiver(id: 1, name: 'Robert Mitchell', relation: 'Husband', phone: '(555) 019-2834', active: true),
-      const Caregiver(id: 2, name: 'Emily Mitchell', relation: 'Daughter / Primary Caregiver', phone: '(555) 019-5821', active: false),
-    ]);
 
     _profileToggles.clear();
     _profileToggles.add(const ToggleItem(label: 'Dark Mode', sub: 'Matches system settings', on: false, color: Color(0xFF6B7280)));
@@ -101,7 +90,6 @@ class SettingsProvider extends ChangeNotifier {
     _notificationToggles.addAll(const [
       ToggleItem(label: 'Push Notifications', sub: 'Daily reminders and refills alerts', on: true, color: Color(0xFF10B981)),
       ToggleItem(label: 'Voice Reminders', sub: 'Audible spoken alerts for schedules', on: true, color: Color(0xFFF59E0B)),
-      ToggleItem(label: 'Caregiver SMS Alerts', sub: 'Alert network if doses are missed', on: false, color: Color(0xFF8B5CF6)),
       ToggleItem(label: 'Continuous Alarm', sub: 'Loop alarm ringtone until dismissed', on: true, color: Color(0xFF3B82F6)),
     ]);
     _snoozeDuration = 5;
@@ -226,4 +214,22 @@ class SettingsProvider extends ChangeNotifier {
       }
     }
   }
+
+  Future<void> updateProfile(Profile profile) async {
+    _profile = profile;
+    notifyListeners();
+    if (!_dbEnabled) return;
+    try {
+      final db = await DatabaseHelper.instance.database;
+      await db.insert('profile', {
+        'id': 1,
+        'name': profile.name,
+        'dob': profile.dob,
+        'conditions': profile.conditions,
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
+    } catch (e) {
+      debugPrint("DB Profile Update Error: $e");
+    }
+  }
 }
+
