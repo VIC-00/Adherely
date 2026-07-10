@@ -81,7 +81,6 @@ class _AddMedScreenState extends State<AddMedScreen> {
   final _nameController = TextEditingController();
   final _doseController = TextEditingController();
   final _supplyController = TextEditingController(text: '30');
-  final _refillAlertController = TextEditingController(text: '7');
   String _form = 'Tablet';
 
   @override
@@ -89,7 +88,6 @@ class _AddMedScreenState extends State<AddMedScreen> {
     _nameController.dispose();
     _doseController.dispose();
     _supplyController.dispose();
-    _refillAlertController.dispose();
     super.dispose();
   }
 
@@ -238,35 +236,59 @@ class _AddMedScreenState extends State<AddMedScreen> {
                         } else {
                           final name = _nameController.text.trim();
                           final dose = _doseController.text.trim();
+
+                          // Validation
+                          if (name.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Please enter a medication name.'),
+                                backgroundColor: Color(0xFFEF4444),
+                              ),
+                            );
+                            setState(() => _step = 1);
+                            return;
+                          }
+                          if (dose.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Please enter the dose (e.g. 10mg).'),
+                                backgroundColor: Color(0xFFEF4444),
+                              ),
+                            );
+                            setState(() => _step = 1);
+                            return;
+                          }
+
                           final freq = '$_freq · ${_selectedTimes.join(', ')}';
                           final supply =
                               int.tryParse(_supplyController.text.trim()) ?? 30;
 
                           Color color = AppColors.medBlue;
-                          if (_category == 'Blood Pressure')
+                          if (_category == 'Blood Pressure') {
                             color = const Color(0xFFEF4444);
-                          if (_category == 'Diabetes')
+                          }
+                          if (_category == 'Diabetes') {
                             color = const Color(0xFFF97316);
-                          if (_category == 'Pain Relief')
+                          }
+                          if (_category == 'Pain Relief') {
                             color = const Color(0xFF8B5CF6);
-                          if (_category == 'Antibiotic')
+                          }
+                          if (_category == 'Antibiotic') {
                             color = const Color(0xFF22C55E);
-                          if (_category == 'Thyroid')
+                          }
+                          if (_category == 'Thyroid') {
                             color = const Color(0xFF3B82F6);
+                          }
 
                           final medState = context.read<MedicationProvider>();
-//     final vitalsState = context.watch<VitalsProvider>();
-//     final settingsState = context.watch<SettingsProvider>();
-//     final historyState = context.watch<HistoryProvider>();
                           final alertTypes = <AlertType>[];
                           if (_reminder) alertTypes.add(AlertType.push);
                           if (_voiceAlert) alertTypes.add(AlertType.voice);
 
                           medState.addMedication(
                             Medication(
-                              name:
-                                  name.isNotEmpty ? name : 'Unnamed Medication',
-                              dose: dose.isNotEmpty ? dose : 'unknown dose',
+                              name: name,
+                              dose: dose,
                               freq: freq,
                               color: color,
                               refillDays: supply,
@@ -455,15 +477,6 @@ class _AddMedScreenState extends State<AddMedScreen> {
             }).toList(),
           ),
         ),
-        const SizedBox(height: 16),
-        const _FormField(
-            label: 'Prescribing Doctor',
-            child: _TextInput(hint: "Doctor's name", initial: 'Dr. Nguyen')),
-        const SizedBox(height: 16),
-        const _FormField(
-            label: 'Notes (optional)',
-            child:
-                _TextInput(hint: 'Any special instructions...', maxLines: 3)),
       ],
     );
   }
@@ -624,85 +637,38 @@ class _AddMedScreenState extends State<AddMedScreen> {
         const SizedBox(height: 16),
         _FormField(
           label: 'Supply & Refill',
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Pills in supply',
-                        style:
-                            TextStyle(fontSize: 11, color: AppColors.ink500)),
-                    const SizedBox(height: 4),
-                    TextFormField(
-                      controller: _supplyController,
-                      keyboardType: TextInputType.number,
-                      style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.ink900),
-                      decoration: InputDecoration(
-                        hintText: 'e.g. 30',
-                        filled: true,
-                        fillColor:
-                            AppColors.isDark ? AppColors.cardBg : Colors.white,
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 13, vertical: 11),
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(
-                                color: AppColors.border, width: 1.5)),
-                        enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(
-                                color: AppColors.border, width: 1.5)),
-                        focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(
-                                color: Color(0xFF2563EB), width: 1.5)),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Refill alert (days)',
-                        style:
-                            TextStyle(fontSize: 11, color: AppColors.ink500)),
-                    const SizedBox(height: 4),
-                    TextFormField(
-                      controller: _refillAlertController,
-                      keyboardType: TextInputType.number,
-                      style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.ink900),
-                      decoration: InputDecoration(
-                        hintText: 'e.g. 7',
-                        filled: true,
-                        fillColor:
-                            AppColors.isDark ? AppColors.cardBg : Colors.white,
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 13, vertical: 11),
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(
-                                color: AppColors.border, width: 1.5)),
-                        enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(
-                                color: AppColors.border, width: 1.5)),
-                        focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(
-                                color: Color(0xFF2563EB), width: 1.5)),
-                      ),
-                    ),
-                  ],
+              Text('Pills in supply',
+                  style: TextStyle(fontSize: 11, color: AppColors.ink500)),
+              const SizedBox(height: 4),
+              TextFormField(
+                controller: _supplyController,
+                keyboardType: TextInputType.number,
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.ink900),
+                decoration: InputDecoration(
+                  hintText: 'e.g. 30',
+                  filled: true,
+                  fillColor:
+                      AppColors.isDark ? AppColors.cardBg : Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 13, vertical: 11),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                          color: AppColors.border, width: 1.5)),
+                  enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                          color: AppColors.border, width: 1.5)),
+                  focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(
+                          color: Color(0xFF2563EB), width: 1.5)),
                 ),
               ),
             ],
@@ -950,35 +916,4 @@ class _FormField extends StatelessWidget {
   }
 }
 
-class _TextInput extends StatelessWidget {
-  final String? hint;
-  final String? initial;
-  final int maxLines;
-  const _TextInput({this.hint, this.initial, this.maxLines = 1});
 
-  @override
-  Widget build(BuildContext context) {
-    return TextFormField(
-      initialValue: initial,
-      maxLines: maxLines,
-      style: TextStyle(
-          fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.ink900),
-      decoration: InputDecoration(
-        hintText: hint,
-        filled: true,
-        fillColor: AppColors.isDark ? AppColors.cardBg : Colors.white,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-        border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: AppColors.border, width: 1.5)),
-        enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: AppColors.border, width: 1.5)),
-        focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5)),
-      ),
-    );
-  }
-}

@@ -24,8 +24,6 @@ class _MedDetailScreenState extends State<MedDetailScreen> {
   Widget build(BuildContext context) {
     AppColors.isDark = Theme.of(context).brightness == Brightness.dark;
     final medState = context.watch<MedicationProvider>();
-//     final vitalsState = context.watch<VitalsProvider>();
-//     final settingsState = context.watch<SettingsProvider>();
     final historyState = context.watch<HistoryProvider>();
     return Scaffold(
       backgroundColor: AppColors.screenBg,
@@ -331,32 +329,7 @@ class _OverviewTab extends StatelessWidget {
       };
     });
 
-    // Deterministic Prescriber details based on medication name
-    final docIndex = medication.name.length % 3;
-    final doctors = [
-      {
-        'name': 'Dr. Rachel Green, MD',
-        'specialty': 'Cardiology',
-        'initial': 'G',
-        'date': 'Oct 12, 2025',
-        'colors': [const Color(0xFF2563EB), const Color(0xFF1D4ED8)]
-      },
-      {
-        'name': 'Dr. John Smith, MD',
-        'specialty': 'Endocrinology',
-        'initial': 'S',
-        'date': 'Sep 15, 2025',
-        'colors': [const Color(0xFF8B5CF6), const Color(0xFF7C3AED)]
-      },
-      {
-        'name': 'Dr. Minh Nguyen, MD',
-        'specialty': 'Neurology / Primary Care',
-        'initial': 'N',
-        'date': 'Jun 10, 2024',
-        'colors': [const Color(0xFF0D9488), const Color(0xFF0F766E)]
-      },
-    ];
-    final doc = doctors[docIndex];
+
 
     return Column(
       children: [
@@ -400,42 +373,7 @@ class _OverviewTab extends StatelessWidget {
             }).toList(),
           ),
         ),
-        const SizedBox(height: 14),
-        _InfoCard(
-          title: 'Prescriber',
-          child: Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                      colors: doc['colors'] as List<Color>),
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Text(doc['initial'] as String,
-                    style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white)),
-              ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(doc['name'] as String,
-                      style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.ink900)),
-                  Text('${doc['specialty']} · Prescribed ${doc['date']}',
-                      style: TextStyle(fontSize: 11, color: AppColors.ink400)),
-                ],
-              ),
-            ],
-          ),
-        ),
+
       ],
     );
   }
@@ -448,8 +386,6 @@ class _ScheduleTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final medState = context.watch<MedicationProvider>();
-//     final vitalsState = context.watch<VitalsProvider>();
-//     final settingsState = context.watch<SettingsProvider>();
     final historyState = context.watch<HistoryProvider>();
     final variant = medState.todayMeds[medication.id!] ?? MedCardVariant.upcoming;
     final timeStr = medication.freq.contains('·') ? medication.freq.split('·').last.trim() : medication.freq;
@@ -678,9 +614,7 @@ class _RefillsTab extends StatelessWidget {
     final totalPills = isTwiceDaily ? 60 : 30;
     final progressVal = (pillsRemaining / totalPills).clamp(0.0, 1.0);
 
-    // Deterministic pharmacy based on medication name
-    final isCVS = medication.name.length % 2 == 0;
-    final pharmacyName = isCVS ? 'CVS Pharmacy · 0.4 mi' : 'Walgreens Pharmacy · 0.8 mi';
+
 
     return Column(
       children: [
@@ -725,7 +659,7 @@ class _RefillsTab extends StatelessWidget {
                   vColor: medication.refillDays <= 7
                       ? AppColors.medRed
                       : (AppColors.isDark ? const Color(0xFFFBBF24) : const Color(0xFFF59E0B))),
-              _KV(k: 'Pharmacy', v: pharmacyName),
+
             ],
           ),
         ),
@@ -737,9 +671,9 @@ class _RefillsTab extends StatelessWidget {
               showDialog(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: const Text('Confirm Refill Request'),
+                  title: const Text('Confirm Refill'),
                   content: Text(
-                      'Would you like to request a refill for ${medication.name} at $pharmacyName?'),
+                      'Would you like to reset ${medication.name} supply tracker back to 30 days?'),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(),
@@ -747,15 +681,27 @@ class _RefillsTab extends StatelessWidget {
                     ),
                     ElevatedButton(
                       onPressed: () {
+                        final newMed = Medication(
+                          id: medication.id,
+                          name: medication.name,
+                          dose: medication.dose,
+                          freq: medication.freq,
+                          color: medication.color,
+                          refillDays: 30,
+                          description: medication.description,
+                          drugClass: medication.drugClass,
+                          sideEffects: medication.sideEffects,
+                        );
+                        context.read<MedicationProvider>().editMedication(medication.id!, newMed);
                         Navigator.of(context).pop();
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                                'Refill requested successfully! ${medication.name} prescription will be ready at $pharmacyName in 2 hours.'),
+                                'Logged refill successfully! ${medication.name} supply is reset to 30 days.'),
                           ),
                         );
                       },
-                      child: const Text('Request'),
+                      child: const Text('Confirm'),
                     ),
                   ],
                 ),
@@ -769,7 +715,7 @@ class _RefillsTab extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 13),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Request Refill Now',
+            child: const Text('Log Refill / Reset Supply',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
           ),
         ),

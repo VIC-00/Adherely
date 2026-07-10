@@ -20,6 +20,8 @@ class HealthScreen extends StatelessWidget {
     final medState = context.watch<MedicationProvider>();
     final vitalsState = context.watch<VitalsProvider>();
     final historyState = context.watch<HistoryProvider>();
+    final settingsState = context.watch<SettingsProvider>();
+    final profileName = settingsState.profile?.name ?? 'User';
 
     // Dynamically generate med impacts from actual user medications
     final dynamicMedImpacts = medState.meds.map((med) {
@@ -248,7 +250,7 @@ class HealthScreen extends StatelessWidget {
                     const SizedBox(height: 4),
                     const Text('Your Progress', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.6)),
                     const SizedBox(height: 4),
-                    Text('Medication is working. Keep it up, Sarah.',
+                    Text('Medication is working. Keep it up, $profileName.',
                         style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.75))),
                     const SizedBox(height: 12),
                     Container(
@@ -319,72 +321,79 @@ class HealthScreen extends StatelessWidget {
                     const SizedBox(height: 14),
                     SizedBox(
                       height: 90,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          for (int i = 0; i < vitalsState.bpReadings.length; i++)
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 4),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    Container(
-                                      height: _bpBarHeight(vitalsState.bpReadings[i].sys, isSystolic: true),
-                                      decoration: BoxDecoration(
-                                        color: i == vitalsState.bpReadings.length - 1 ? const Color(0xFF2563EB) : const Color(0xFF93C5FD),
-                                        borderRadius: const BorderRadius.vertical(top: Radius.circular(3)),
-                                      ),
-                                    ),
-                                    Container(
-                                      height: _bpBarHeight(vitalsState.bpReadings[i].dia, isSystolic: false),
-                                      decoration: BoxDecoration(
-                                        color: i == vitalsState.bpReadings.length - 1 ? const Color(0xFF60A5FA) : const Color(0xFFBFDBFE),
-                                        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(3)),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 3),
-                                    Builder(
-                                      builder: (context) {
-                                        final dateStr = vitalsState.bpReadings[i].date;
-                                        final parts = dateStr.split(', ');
-                                        final displayDate = parts.isNotEmpty ? parts[0] : dateStr;
-                                        final displayTime = parts.length > 1 ? parts[1] : '';
-                                        final isLast = i == vitalsState.bpReadings.length - 1;
-                                        final textColor = isLast
-                                            ? (AppColors.isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB))
-                                            : AppColors.ink400;
-
-                                        return Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              displayDate,
-                                              style: TextStyle(
-                                                fontSize: 8,
-                                                color: textColor,
-                                                fontWeight: isLast ? FontWeight.w700 : FontWeight.w500,
-                                              ),
-                                            ),
-                                            if (displayTime.isNotEmpty)
-                                              Text(
-                                                displayTime,
-                                                style: TextStyle(
-                                                  fontSize: 7,
-                                                  color: textColor.withValues(alpha: 0.8),
-                                                  fontWeight: FontWeight.w400,
-                                                ),
-                                              ),
-                                          ],
-                                        );
-                                      },
-                                    ),
-                                  ],
-                                ),
+                      child: vitalsState.bpReadings.isEmpty
+                          ? Center(
+                              child: Text(
+                                'No blood pressure data logged yet.',
+                                style: TextStyle(fontSize: 12, color: AppColors.ink400),
                               ),
+                            )
+                          : Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                for (int i = 0; i < vitalsState.bpReadings.length; i++)
+                                  Expanded(
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.end,
+                                        children: [
+                                          Container(
+                                            height: _bpBarHeight(vitalsState.bpReadings[i].sys, isSystolic: true),
+                                            decoration: BoxDecoration(
+                                              color: i == vitalsState.bpReadings.length - 1 ? const Color(0xFF2563EB) : const Color(0xFF93C5FD),
+                                              borderRadius: const BorderRadius.vertical(top: Radius.circular(3)),
+                                            ),
+                                          ),
+                                          Container(
+                                            height: _bpBarHeight(vitalsState.bpReadings[i].dia, isSystolic: false),
+                                            decoration: BoxDecoration(
+                                              color: i == vitalsState.bpReadings.length - 1 ? const Color(0xFF60A5FA) : const Color(0xFFBFDBFE),
+                                              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(3)),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 3),
+                                          Builder(
+                                            builder: (context) {
+                                              final dateStr = vitalsState.bpReadings[i].date;
+                                              final parts = dateStr.split(', ');
+                                              final displayDate = parts.isNotEmpty ? parts[0] : dateStr;
+                                              final displayTime = parts.length > 1 ? parts[1] : '';
+                                              final isLast = i == vitalsState.bpReadings.length - 1;
+                                              final textColor = isLast
+                                                  ? (AppColors.isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB))
+                                                  : AppColors.ink400;
+
+                                              return Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text(
+                                                    displayDate,
+                                                    style: TextStyle(
+                                                      fontSize: 8,
+                                                      color: textColor,
+                                                      fontWeight: isLast ? FontWeight.w700 : FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                  if (displayTime.isNotEmpty)
+                                                    Text(
+                                                      displayTime,
+                                                      style: TextStyle(
+                                                        fontSize: 7,
+                                                        color: textColor.withValues(alpha: 0.8),
+                                                        fontWeight: FontWeight.w400,
+                                                      ),
+                                                    ),
+                                                ],
+                                              );
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
-                        ],
-                      ),
                     ),
                     const SizedBox(height: 10),
                     const Row(
@@ -406,9 +415,18 @@ class HealthScreen extends StatelessWidget {
                   children: [
                     Text('Medication Impact', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink900)),
                     const SizedBox(height: 10),
-                    for (final m in dynamicMedImpacts)
+                    if (dynamicMedImpacts.isEmpty)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          'No medications logged to track impacts.',
+                          style: TextStyle(fontSize: 12, color: AppColors.ink400),
+                        ),
+                      )
+                    else
+                      for (final m in dynamicMedImpacts)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
                         child: Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(

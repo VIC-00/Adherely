@@ -15,7 +15,6 @@ class SettingsProvider extends ChangeNotifier {
   
   final List<ToggleItem> _notificationToggles = [];
   List<ToggleItem> get notificationToggles => List.unmodifiable(_notificationToggles);
-  List<ToggleItem> get globalToggles => List.unmodifiable(_notificationToggles);
   
   bool _dbEnabled = true;
   int _snoozeDuration = 5;

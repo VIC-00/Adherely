@@ -21,9 +21,11 @@ class HistoryScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     AppColors.isDark = Theme.of(context).brightness == Brightness.dark;
     final medState = context.watch<MedicationProvider>();
-//     final vitalsState = context.watch<VitalsProvider>();
-//     final settingsState = context.watch<SettingsProvider>();
     final historyState = context.watch<HistoryProvider>();
+    debugPrint("HistoryScreen items: ${historyState.historyItems.length}");
+    for (var item in historyState.historyItems) {
+      debugPrint(" - ${item.med} on ${item.date} at ${item.time}");
+    }
     return Container(
       color: AppColors.screenBg,
       child: SafeArea(

@@ -23,9 +23,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
   Widget build(BuildContext context) {
     AppColors.isDark = Theme.of(context).brightness == Brightness.dark;
     final medState = context.watch<MedicationProvider>();
-//     final vitalsState = context.watch<VitalsProvider>();
     final settingsState = context.watch<SettingsProvider>();
-//     final historyState = context.watch<HistoryProvider>();
     final rules = medState.rules;
 
     return Scaffold(

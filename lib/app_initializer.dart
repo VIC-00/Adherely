@@ -75,7 +75,6 @@ class _MedAdhereAppState extends State<MedAdhereApp> {
           id: map['id'] as int,
           name: map['name'] as String,
           dob: map['dob'] as String,
-          patientId: '',
           conditions: map['conditions'] as String,
         );
       }

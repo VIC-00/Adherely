@@ -57,26 +57,6 @@ class VitalsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> addVital(VitalStat v) async {
-    _vitals.add(v);
-    notifyListeners();
-    if (!_dbEnabled) return;
-    try {
-      final db = await DatabaseHelper.instance.database;
-      await db.insert('vitals', {
-        'label': v.label,
-        'value': v.value,
-        'unit': v.unit,
-        'trend': v.trend,
-        'color': v.color.toARGB32(),
-        'bg': v.bg.toARGB32(),
-        'border': v.border.toARGB32(),
-        'icon': v.icon,
-      });
-    } catch (e) {
-      debugPrint("DB Write Error: $e");
-    }
-  }
 
   Future<void> addBpReading(int sys, int dia) async {
     final dateStr = DateFormat('MMM d, h:mm a').format(DateTime.now());

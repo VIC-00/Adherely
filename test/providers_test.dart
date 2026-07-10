@@ -13,6 +13,8 @@ class MockNotificationService implements INotificationService {
   Future<void> scheduleReminderNotification(ReminderRule rule) async {}
   @override
   Future<void> cancelReminder(int ruleId) async {}
+  @override
+  Future<void> cancelAll() async {}
 }
 
 void main() {
@@ -23,8 +25,8 @@ void main() {
     state.setDbEnabled(false);
     state.setInMemoryDefaults();
     
-    expect(state.meds.isNotEmpty, true);
-    expect(state.meds.length, 3); // The 3 dummy meds
+    expect(state.meds.isEmpty, true);
+    expect(state.meds.length, 0);
   });
 
   test('addMedication adds med and rule', () async {
@@ -77,5 +79,25 @@ void main() {
     expect(state.meds.any((m) => m.id == medId), false);
     expect(state.todayMeds.containsKey(medId), false);
     expect(state.rules.any((r) => r.med == 'Delete Me'), false);
+  });
+
+  test('HistoryProvider logHistory logs history item', () async {
+    final state = HistoryProvider();
+    state.setDbEnabled(false);
+    state.setInMemoryDefaults();
+    
+    expect(state.historyItems.isEmpty, true);
+    
+    await state.logHistory(const HistoryItem(
+      med: 'Lisinopril 10mg',
+      date: '2026-07-10',
+      time: '12:00 PM',
+      taken: true,
+      note: 'On time',
+    ));
+    
+    expect(state.historyItems.isNotEmpty, true);
+    expect(state.historyItems.length, 1);
+    expect(state.historyItems.first.med, 'Lisinopril 10mg');
   });
 }

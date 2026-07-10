@@ -6,6 +6,7 @@ import '../providers/index.dart';
 import '../theme/app_colors.dart';
 import '../widgets/medication_card.dart';
 import 'med_detail_screen.dart';
+import 'add_med_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   final VoidCallback? onOpenReminders;
@@ -14,8 +15,9 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     AppColors.isDark = Theme.of(context).brightness == Brightness.dark;
     final medState = context.watch<MedicationProvider>();
-//     final vitalsState = context.watch<VitalsProvider>();
-//     final settingsState = context.watch<SettingsProvider>();
+    final settingsState = context.watch<SettingsProvider>();
+    final profileName = settingsState.profile?.name ?? 'User';
+    final profileInitial = profileName.isNotEmpty ? profileName[0].toUpperCase() : 'U';
     final historyState = context.watch<HistoryProvider>();
     final meds = medState.meds;
     final total = meds.length;
@@ -69,7 +71,7 @@ class DashboardScreen extends StatelessWidget {
                               children: [
                                 TextSpan(text: '${(DateTime.now().hour < 12 ? 'Good morning' : DateTime.now().hour < 17 ? 'Good afternoon' : 'Good evening')},\n'),
                                 TextSpan(
-                                    text: 'Sarah!',
+                                    text: '$profileName!',
                                     style: TextStyle(color: AppColors.isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB))),
                               ],
                             ),
@@ -101,8 +103,8 @@ class DashboardScreen extends StatelessWidget {
                               ],
                             ),
                             alignment: Alignment.center,
-                            child: const Text('S',
-                                style: TextStyle(
+                            child: Text(profileInitial,
+                                style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w800,
                                     color: Colors.white)),
@@ -293,97 +295,166 @@ class DashboardScreen extends StatelessWidget {
                 ),
               ),
 
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
-                child: Column(
-                  children: meds.map((med) {
-                    final variant = medState.getTodayMedStatus(med);
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: MedicationCard(
-                        variant: variant,
-                        compact: true,
-                        name: med.name,
-                        dose: med.dose,
-                        time: med.freq.contains('·')
-                            ? med.freq.split('·').last.trim()
-                            : med.freq,
-                        refillDays: med.refillDays,
-                        color: med.color,
-                        onTakeNow: () {
-                          medState.logMedication(med.id!, MedCardVariant.taken);
-                          final timeStr = DateFormat('h:mm a').format(DateTime.now());
-                          historyState.logHistory(HistoryItem(
-                            med: '${med.name} ${med.dose}',
-                            date: 'Today',
-                            time: timeStr,
-                            taken: true,
-                            note: 'On time',
-                          ));
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('${med.name} marked as taken!')),
-                          );
-                        },
-                        onLogTaken: () {
-                          medState.logMedication(med.id!, MedCardVariant.taken);
-                          final timeStr = DateFormat('h:mm a').format(DateTime.now());
-                          historyState.logHistory(HistoryItem(
-                            med: '${med.name} ${med.dose}',
-                            date: 'Today',
-                            time: timeStr,
-                            taken: true,
-                            note: 'Logged late',
-                          ));
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('${med.name} marked as taken!')),
-                          );
-                        },
-                        onReschedule: () async {
-                          final oldTime = med.freq.contains('·')
-                              ? med.freq.split('·').last.trim().split(',').first.trim()
-                              : med.freq;
-                          final TimeOfDay? picked = await showTimePicker(
-                            context: context,
-                            initialTime: TimeOfDay.now(),
-                            builder: (context, child) {
-                              final mediaQuery = MediaQuery.of(context);
-                              return MediaQuery(
-                                data: mediaQuery.copyWith(
-                                  size: Size(mediaQuery.size.width, mediaQuery.size.height < 600.0 ? 800.0 : mediaQuery.size.height),
-                                  viewInsets: mediaQuery.viewInsets.copyWith(bottom: 0),
-                                  textScaler: TextScaler.noScaling,
-                                ),
-                                child: OverflowBox(
-                                  minHeight: 340.0,
-                                  maxHeight: 800.0,
-                                  child: child!,
-                                ),
-                              );
-                            },
-                          );
-                          if (picked != null) {
-                            final hour = picked.hourOfPeriod == 0 ? 12 : picked.hourOfPeriod;
-                            final minute = picked.minute.toString().padLeft(2, '0');
-                            final period = picked.period == DayPeriod.am ? 'AM' : 'PM';
-                            final newTime = '$hour:$minute $period';
-                            
-                            await medState.rescheduleRule(med.id!, oldTime, newTime);
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('${med.name} rescheduled to $newTime!')),
-                              );
-                            }
-                          }
-                        },
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                              builder: (_) => MedDetailScreen(medication: med)),
+              if (meds.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+                    decoration: BoxDecoration(
+                      color: AppColors.cardBg,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
-                      ),
-                    );
-                  }).toList(),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 64,
+                          height: 64,
+                          decoration: BoxDecoration(
+                            color: AppColors.isDark ? const Color(0xFF1E3A8A).withValues(alpha: 0.3) : AppColors.medBlueLight,
+                            shape: BoxShape.circle,
+                          ),
+                          alignment: Alignment.center,
+                          child: const Text('💊', style: TextStyle(fontSize: 32)),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No Medications Logged',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.ink900,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Your scheduled daily medications and intake reminders will appear here once added.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.ink500,
+                            height: 1.4,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(builder: (context) => const AddMedScreen()),
+                            );
+                          },
+                          icon: const Icon(Icons.add_rounded, size: 18),
+                          label: const Text('Add Your First Medication', style: TextStyle(fontWeight: FontWeight.w700)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.isDark ? const Color(0xFF3B82F6) : const Color(0xFF2563EB),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+                  child: Column(
+                    children: meds.map((med) {
+                      final variant = medState.getTodayMedStatus(med);
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: MedicationCard(
+                          variant: variant,
+                          compact: true,
+                          name: med.name,
+                          dose: med.dose,
+                          time: med.freq.contains('·')
+                              ? med.freq.split('·').last.trim()
+                              : med.freq,
+                          refillDays: med.refillDays,
+                          color: med.color,
+                          onTakeNow: () {
+                            medState.logMedication(med.id!, MedCardVariant.taken);
+                            final timeStr = DateFormat('h:mm a').format(DateTime.now());
+                            historyState.logHistory(HistoryItem(
+                              med: '${med.name} ${med.dose}',
+                              date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+                              time: timeStr,
+                              taken: true,
+                              note: 'On time',
+                            ));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('${med.name} marked as taken!')),
+                            );
+                          },
+                          onLogTaken: () {
+                            medState.logMedication(med.id!, MedCardVariant.taken);
+                            final timeStr = DateFormat('h:mm a').format(DateTime.now());
+                            historyState.logHistory(HistoryItem(
+                              med: '${med.name} ${med.dose}',
+                              date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+                              time: timeStr,
+                              taken: true,
+                              note: 'Logged late',
+                            ));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('${med.name} marked as taken!')),
+                            );
+                          },
+                          onReschedule: () async {
+                            final oldTime = med.freq.contains('·')
+                                ? med.freq.split('·').last.trim().split(',').first.trim()
+                                : med.freq;
+                            final TimeOfDay? picked = await showTimePicker(
+                              context: context,
+                              initialTime: TimeOfDay.now(),
+                              builder: (context, child) {
+                                final mediaQuery = MediaQuery.of(context);
+                                return MediaQuery(
+                                  data: mediaQuery.copyWith(
+                                    size: Size(mediaQuery.size.width, mediaQuery.size.height < 600.0 ? 800.0 : mediaQuery.size.height),
+                                    viewInsets: mediaQuery.viewInsets.copyWith(bottom: 0),
+                                    textScaler: TextScaler.noScaling,
+                                  ),
+                                  child: OverflowBox(
+                                    minHeight: 340.0,
+                                    maxHeight: 800.0,
+                                    child: child!,
+                                  ),
+                                );
+                              },
+                            );
+                            if (picked != null) {
+                              final hour = picked.hourOfPeriod == 0 ? 12 : picked.hourOfPeriod;
+                              final minute = picked.minute.toString().padLeft(2, '0');
+                              final period = picked.period == DayPeriod.am ? 'AM' : 'PM';
+                              final newTime = '$hour:$minute $period';
+                              
+                              await medState.rescheduleRule(med.id!, oldTime, newTime);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('${med.name} rescheduled to $newTime!')),
+                                );
+                              }
+                            }
+                          },
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) => MedDetailScreen(medication: med)),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
                 ),
-              ),
             ],
           ),
         ),

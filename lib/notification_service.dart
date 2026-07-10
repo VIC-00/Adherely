@@ -15,6 +15,7 @@ abstract class INotificationService {
   Future<void> requestPermissions();
   Future<void> scheduleReminderNotification(ReminderRule rule);
   Future<void> cancelReminder(int ruleId);
+  Future<void> cancelAll();
 }
 
 class LocalNotificationService implements INotificationService {
@@ -219,6 +220,7 @@ class LocalNotificationService implements INotificationService {
     debugPrint('Cancelled notification and snooze for rule ID $ruleId');
   }
 
+  @override
   Future<void> cancelAll() async {
     if (!_initialized) return;
     await _flutterLocalNotificationsPlugin.cancelAll();

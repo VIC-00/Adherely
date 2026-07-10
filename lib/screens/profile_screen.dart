@@ -180,9 +180,7 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     AppColors.isDark = Theme.of(context).brightness == Brightness.dark;
     final medState = context.watch<MedicationProvider>();
-//     final vitalsState = context.watch<VitalsProvider>();
     final settingsState = context.watch<SettingsProvider>();
-//     final historyState = context.watch<HistoryProvider>();
     final profile = settingsState.profile;
 
     if (profile == null) return const SizedBox.shrink();
@@ -249,11 +247,6 @@ class ProfileScreen extends StatelessWidget {
                                       color: Colors.white,
                                       letterSpacing: -0.4)),
                               Text('DOB: ${profile.dob}',
-                                  style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.white
-                                          .withValues(alpha: 0.75))),
-                              Text('Patient ID: ${profile.patientId}',
                                   style: TextStyle(
                                       fontSize: 12,
                                       color: Colors.white

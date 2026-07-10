@@ -80,17 +80,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
     if (mounted) {
       final settingsState = context.read<SettingsProvider>();
-      // We will save to SettingsProvider. If updateProfile doesn't exist yet, we write to database helper directly or we can add it to settings provider.
-      // Since settings provider edit caregiver and profile methods exist, let's create a custom function to update profile.
-      // Wait, we need to save the profile. Let's add updateProfile to settings provider in this or a subsequent step.
-      // For now, let's use settingsState.updateProfile if we implement it, or write directly.
-      // Actually, let's add `updateProfile` to settings_provider.dart so it works perfectly.
-      // We will create the Profile model.
       final profile = Profile(
         id: 1,
         name: name,
         dob: dob,
-        patientId: '', // placeholder, will be removed in step 8
         conditions: conditions,
       );
 

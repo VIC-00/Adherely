@@ -1,4 +1,4 @@
-package com.yourcompany.medadhere
+package com.vicdev.adherely
 
 import io.flutter.embedding.android.FlutterActivity
 

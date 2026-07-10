@@ -85,7 +85,7 @@ class _RootShellState extends State<RootShell> {
         final timeStr = DateFormat('h:mm a').format(DateTime.now());
         historyState.logHistory(HistoryItem(
           med: '${med.name} ${med.dose}',
-          date: 'Today',
+          date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
           time: timeStr,
           taken: true,
           note: 'Logged from notification bar',

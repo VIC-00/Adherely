@@ -105,14 +105,6 @@ class VitalStat {
   });
 }
 
-class BpReading {
-  final int? id;
-  final String date;
-  final int sys;
-  final int dia;
-  const BpReading(this.date, this.sys, this.dia, {this.id});
-}
-
 class MedImpact {
   final String med;
   final String impact;
@@ -167,14 +159,12 @@ class Profile {
   final int? id;
   final String name;
   final String dob;
-  final String patientId;
   final String conditions;
 
   const Profile({
     this.id,
     required this.name,
     required this.dob,
-    required this.patientId,
     required this.conditions,
   });
 }
