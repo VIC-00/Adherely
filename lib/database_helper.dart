@@ -21,7 +21,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 5,
+      version: 6,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -164,7 +164,7 @@ class DatabaseHelper {
       )
     ''');
 
-    // Seed default mock data
+    // Seed default data (blank vitals + settings toggles)
     await _seedDefaultData(db);
   }
 
@@ -190,8 +190,6 @@ class DatabaseHelper {
       ['Push Notifications', 'Daily reminders and refills alerts', 1, 0xFF10B981]);
     await db.rawInsert('INSERT INTO profile_toggles (label, sub, value, color) VALUES (?, ?, ?, ?)',
       ['Voice Reminders', 'Audible spoken alerts for schedules', 1, 0xFFF59E0B]);
-    await db.rawInsert('INSERT INTO profile_toggles (label, sub, value, color) VALUES (?, ?, ?, ?)',
-      ['Caregiver SMS Alerts', 'Alert network if doses are missed', 0, 0xFF8B5CF6]);
     await db.rawInsert('INSERT INTO profile_toggles (label, sub, value, color) VALUES (?, ?, ?, ?)',
       ['Continuous Alarm', 'Loop alarm ringtone until dismissed', 1, 0xFF3B82F6]);
     await db.rawInsert('INSERT INTO profile_toggles (label, sub, value, color) VALUES (?, ?, ?, ?)',

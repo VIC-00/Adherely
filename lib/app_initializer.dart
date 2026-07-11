@@ -57,6 +57,25 @@ class _MedAdhereAppState extends State<MedAdhereApp> {
       final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
       if (lastRunDate != today) {
+        // Persist any untaken doses from yesterday into history before wiping the slate.
+        // Only do this when we actually have a recorded date (i.e. not the very first install).
+        if (lastRunDate != null) {
+          final missedRows = await db.rawQuery('''
+            SELECT m.name, m.dose
+            FROM today_meds tm
+            JOIN medications m ON m.id = tm.med_id
+            WHERE tm.status != 'taken'
+          ''');
+          for (final row in missedRows) {
+            await db.insert('history_items', {
+              'med': '${row['name']} ${row['dose']}',
+              'date': lastRunDate,
+              'time': 'Not taken',
+              'taken': 0,
+              'note': 'Missed dose',
+            });
+          }
+        }
         await db.update('today_meds', {'status': 'upcoming'});
         await prefs.setString('last_run_date', today);
         final resetTodayData = await db.query('today_meds');
@@ -105,6 +124,7 @@ class _MedAdhereAppState extends State<MedAdhereApp> {
   Widget build(BuildContext context) {
     if (!_initialized) {
       return const MaterialApp(
+        debugShowCheckedModeBanner: false,
         home: Scaffold(
           body: Center(child: CircularProgressIndicator()),
         ),

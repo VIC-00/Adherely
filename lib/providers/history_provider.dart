@@ -182,35 +182,54 @@ class HistoryProvider extends ChangeNotifier {
     for (int i = 0; i <= 365; i++) {
       final checkDate = DateTime.now().subtract(Duration(days: i));
       if (i == 0) {
-        final allTakenOrMissed = todayMeds.values.isNotEmpty &&
+        // Today: only count if at least one med was taken.
+        // If the day isn't fully resolved yet (some still upcoming) we skip
+        // today without breaking the streak — the user still has time.
+        final anyTaken = todayMeds.values.any((s) => s == MedCardVariant.taken);
+        final allResolved = todayMeds.values.isNotEmpty &&
             todayMeds.values.every((s) => s == MedCardVariant.taken || s == MedCardVariant.missed);
-        if (allTakenOrMissed) {
-          if (todayMeds.values.any((s) => s == MedCardVariant.taken)) {
-            current++;
-          } else {
-            break;
-          }
-        } else {
-          continue;
+        if (anyTaken) {
+          current++;
+        } else if (allResolved) {
+          // All meds were missed today — streak is broken
+          break;
         }
+        // else: day not done yet, don't count but don't break → continue
       } else {
         final dayItems = _historyItems.where((h) => historyDateMatchesDay(h.date, checkDate)).toList();
         if (dayItems.isEmpty) {
-          if (i <= 30) {
-            current++;
-          } else {
-            break;
-          }
+          // No record for this past day = missed entirely → streak breaks
+          break;
         } else {
           if (dayItems.any((h) => h.taken)) {
             current++;
           } else {
-            break;
+            break; // recorded but all doses were missed
           }
         }
       }
     }
     return current > 0 ? current : 1;
+  }
+
+  /// Adherence over the last 7 days based on history_items.
+  /// Returns a value from 0.0 to 100.0.
+  double calculateWeeklyAdherence() {
+    final now = DateTime.now();
+    int totalDoses = 0;
+    int takenDoses = 0;
+    for (int i = 0; i < 7; i++) {
+      final day = now.subtract(Duration(days: i));
+      final dayItems = _historyItems
+          .where((h) => historyDateMatchesDay(h.date, day))
+          .toList();
+      if (dayItems.isNotEmpty) {
+        totalDoses += dayItems.length;
+        takenDoses += dayItems.where((h) => h.taken).length;
+      }
+    }
+    if (totalDoses == 0) return 100.0; // new user — no data yet
+    return (takenDoses / totalDoses) * 100;
   }
 
   int _personalBestStreak = 0;

@@ -112,11 +112,21 @@ class LocalNotificationService implements INotificationService {
         hour = 0;
       }
 
-      // Calculate time considering the advance minutes
-      final sysNow = DateTime.now();
+      // Check if this is an "every other day" medication
+      bool isEveryOtherDay = false;
+      try {
+        final db = await DatabaseHelper.instance.database;
+        final medRows = await db.query('medications', where: 'name = ?', whereArgs: [rule.med]);
+        if (medRows.isNotEmpty) {
+          final freq = medRows.first['freq'] as String? ?? '';
+          isEveryOtherDay = freq.toLowerCase().contains('every other day');
+        }
+      } catch (_) {}
+
       final now = tz.TZDateTime.now(tz.local);
-      debugPrint('System time check: $sysNow, Timezone time check: $now');
-      final actualDoseTime = tz.TZDateTime(
+      debugPrint('Notification timezone time: $now');
+
+      final tz.TZDateTime actualDoseTime = tz.TZDateTime(
         tz.local,
         now.year,
         now.month,
@@ -129,7 +139,8 @@ class LocalNotificationService implements INotificationService {
       var scheduledTime = actualDoseTime.subtract(Duration(minutes: rule.advance));
 
       if (scheduledTime.isBefore(now)) {
-        scheduledTime = scheduledTime.add(const Duration(days: 1));
+        // For every-other-day: skip to 2 days out instead of 1
+        scheduledTime = scheduledTime.add(Duration(days: isEveryOtherDay ? 2 : 1));
       }
 
       // Create a unique 32-bit integer ID based on the rule ID to prevent overflow in Java
@@ -173,6 +184,12 @@ class LocalNotificationService implements INotificationService {
 
       final payloadStr = '${rule.id}|${rule.med}|${rule.dose}';
 
+      // Every-other-day: schedule as a one-shot absolute alarm (no repeat component).
+      // The app will reschedule it 2 days later on next open.
+      // Daily / twice / three times: use matchDateTimeComponents.time so it auto-repeats.
+      final DateTimeComponents? repeatComponents =
+          isEveryOtherDay ? null : DateTimeComponents.time;
+
       try {
         await _flutterLocalNotificationsPlugin.zonedSchedule(
           notificationId,
@@ -183,10 +200,10 @@ class LocalNotificationService implements INotificationService {
           androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
           uiLocalNotificationDateInterpretation:
               UILocalNotificationDateInterpretation.absoluteTime,
-          matchDateTimeComponents: DateTimeComponents.time,
+          matchDateTimeComponents: repeatComponents,
           payload: payloadStr,
         );
-        debugPrint('Scheduled exact notification for ${rule.med} at $scheduledTime with payload: $payloadStr');
+        debugPrint('Scheduled notification for ${rule.med} at $scheduledTime${isEveryOtherDay ? " (one-shot, every-other-day)" : " (daily repeat)"}');
       } catch (e) {
         debugPrint('Exact alarm scheduling failed, attempting inexact alarm: $e');
         try {
@@ -199,7 +216,7 @@ class LocalNotificationService implements INotificationService {
             androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
             uiLocalNotificationDateInterpretation:
                 UILocalNotificationDateInterpretation.absoluteTime,
-            matchDateTimeComponents: DateTimeComponents.time,
+            matchDateTimeComponents: repeatComponents,
             payload: payloadStr,
           );
           debugPrint('Scheduled inexact notification for ${rule.med} at $scheduledTime');

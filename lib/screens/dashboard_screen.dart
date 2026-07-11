@@ -227,7 +227,7 @@ class DashboardScreen extends StatelessWidget {
                         ),
                         child: FractionallySizedBox(
                           alignment: Alignment.centerLeft,
-                          widthFactor: medState.calculateAdherence() / 100.0,
+                          widthFactor: historyState.calculateWeeklyAdherence() / 100.0,
                           child: Container(
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(colors: [
@@ -241,7 +241,7 @@ class DashboardScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    Text('${medState.calculateAdherence()}% this week',
+                    Text('${historyState.calculateWeeklyAdherence().toStringAsFixed(0)}% this week',
                         style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,

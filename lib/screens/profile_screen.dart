@@ -736,7 +736,7 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ),
 
-              // Sign out
+              // Reset App Data
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
                 child: Column(
@@ -783,18 +783,15 @@ class ProfileScreen extends StatelessWidget {
 
                                     await medProvider.load(medsData, rulesData, todayData);
                                     await vitalsProvider.load(vitalsData, bpData);
-                                    await settingsProvider.load(settingsProvider.profile, caregiversData, togglesData);
+                                    // Pass null profile so the app routes back to Onboarding
+                                    await settingsProvider.load(null, caregiversData, togglesData);
                                     await historyProvider.load(historyData);
                                     await historyProvider.loadPersonalBest();
 
                                     if (context.mounted) {
-                                      Navigator.of(context).pop();
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        const SnackBar(
-                                            content: Text(
-                                                'App data reset successfully!')),
-                                      );
+                                      // Navigate all the way back to root and let
+                                      // app_initializer redirect to OnboardingScreen
+                                      Navigator.of(context).popUntil((route) => route.isFirst);
                                     }
                                   },
                                   style: ElevatedButton.styleFrom(

@@ -395,7 +395,7 @@ class _ScheduleTab extends StatelessWidget {
     if (variant == MedCardVariant.taken) {
       final todayItems = historyState.historyItems.where((h) => 
           h.med.contains(medication.name) && 
-          h.date.contains('Today') && 
+          historyState.historyDateMatchesDay(h.date, DateTime.now()) &&
           h.taken);
       final takenTime = todayItems.isNotEmpty ? todayItems.first.time : timeStr;
       statusText = 'Taken today at $takenTime';
@@ -490,17 +490,15 @@ class _SideEffectsTab extends StatelessWidget {
       final list = medication.sideEffects!.split(',');
       return List.generate(list.length, (i) {
         final s = list[i].trim();
-        final isMild = (s.length + i) % 2 == 0;
         return {
           'effect': s,
-          'severity': isMild ? 'Mild' : 'Moderate',
-          'noted': i == 0,
-          'color': isMild ? const Color(0xFF10B981) : const Color(0xFFF59E0B)
+          'severity': 'See package insert',
+          'color': const Color(0xFF6B7280),
         };
       });
     }
     return const [
-      {'effect': 'No recorded side effects', 'severity': '-', 'noted': false, 'color': Color(0xFF6B7280)},
+      {'effect': 'No recorded side effects', 'severity': '-', 'color': Color(0xFF6B7280)},
     ];
   }
 
@@ -512,7 +510,6 @@ class _SideEffectsTab extends StatelessWidget {
           title: 'Side Effects to Watch',
           child: Column(
             children: sideEffectsList.map((s) {
-              final noted = s['noted'] as bool;
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Container(
@@ -545,19 +542,6 @@ class _SideEffectsTab extends StatelessWidget {
                           ],
                         ),
                       ),
-                      if (noted)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 7, vertical: 2),
-                          decoration: BoxDecoration(
-                              color: AppColors.isDark ? const Color(0xFF2C2415) : const Color(0xFFFEF3C7),
-                              borderRadius: BorderRadius.circular(5)),
-                          child: Text('Noted',
-                              style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.isDark ? const Color(0xFFFBBF24) : const Color(0xFFF59E0B))),
-                        ),
                     ],
                   ),
                 ),
@@ -584,7 +568,7 @@ class _SideEffectsTab extends StatelessWidget {
                       color: AppColors.isDark ? const Color(0xFFFCA5A5) : const Color(0xFFDC2626))),
               const SizedBox(height: 4),
               Text(
-                  'Severe swelling of face/throat, difficulty breathing, or sudden drop in blood pressure.',
+                  'You experience a severe allergic reaction, difficulty breathing, or any symptom that concerns you. Always consult your doctor or pharmacist.',
                   style: TextStyle(
                       fontSize: 12,
                       color: AppColors.isDark ? const Color(0xFFFECACA) : const Color(0xFF7F1D1D),
@@ -609,10 +593,11 @@ class _RefillsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isTwiceDaily = medication.freq.contains('Twice');
-    final factor = isTwiceDaily ? 2 : 1;
+    final isThreeTimesDaily = medication.freq.contains('Three times');
+    final factor = isThreeTimesDaily ? 3 : (isTwiceDaily ? 2 : 1);
     final pillsRemaining = medication.refillDays * factor;
-    final totalPills = isTwiceDaily ? 60 : 30;
-    final progressVal = (pillsRemaining / totalPills).clamp(0.0, 1.0);
+    final totalPills = medication.refillDays * factor; // same as remaining until user logs refill
+    final progressVal = totalPills > 0 ? (pillsRemaining / totalPills).clamp(0.0, 1.0) : 0.0;
 
 
 
@@ -629,7 +614,7 @@ class _RefillsTab extends StatelessWidget {
                       fontWeight: FontWeight.w800,
                       color: AppColors.isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
                       letterSpacing: -1.2)),
-              Text(medication.name == 'Gabapentin' ? 'capsules remaining' : 'pills remaining',
+              Text('pills remaining',
                   style: TextStyle(fontSize: 13, color: AppColors.ink500)),
               const SizedBox(height: 14),
               ClipRRect(

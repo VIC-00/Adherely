@@ -254,7 +254,9 @@ class MedicationProvider extends ChangeNotifier {
             'drugClass': newMed.drugClass,
             'sideEffects': newMed.sideEffects,
           }, where: 'id = ?', whereArgs: [medId]);
-        } catch(e) {}
+        } catch (e) {
+          debugPrint('DB updateMedication error: $e');
+        }
       }
 
       for (int i = 0; i < _rules.length; i++) {
@@ -281,7 +283,9 @@ class MedicationProvider extends ChangeNotifier {
                 'time': newRule.time,
                 'color': newRule.color.toARGB32(),
               }, where: 'id = ?', whereArgs: [rule.id]);
-            } catch(e) {}
+            } catch (e) {
+              debugPrint('DB updateRule error: $e');
+            }
           }
           if (newRule.active && newRule.id != null) {
             _notificationService.scheduleReminderNotification(newRule);
@@ -465,7 +469,9 @@ class MedicationProvider extends ChangeNotifier {
       try {
         final db = await DatabaseHelper.instance.database;
         await db.update('reminder_rules', {'active': !r.active ? 1 : 0}, where: 'id = ?', whereArgs: [ruleId]);
-      } catch(e) {}
+      } catch (e) {
+        debugPrint('DB toggleRule error: $e');
+      }
     }
 
     if (!r.active) {
@@ -496,7 +502,10 @@ class MedicationProvider extends ChangeNotifier {
       final timeStr = med.freq.contains('·')
           ? med.freq.split('·').last.trim()
           : med.freq;
-      if (_hasTimePassed(timeStr)) {
+      // Split by comma to check each individual time slot (e.g. "8:00 AM, 8:00 PM")
+      // If ANY scheduled time has passed and the med hasn't been taken → missed
+      final slots = timeStr.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty).toList();
+      if (slots.any((t) => _hasTimePassed(t))) {
         return MedCardVariant.missed;
       }
     }
@@ -536,8 +545,10 @@ class MedicationProvider extends ChangeNotifier {
   }
 
   Future<void> rescheduleRule(int medId, String oldTime, String newTime) async {
-    // 1. Find the rule for this med and oldTime
-    final med = _meds.firstWhere((m) => m.id == medId);
+    // Use orElse so we don't throw if the med is no longer in the list
+    final medMatches = _meds.where((m) => m.id == medId);
+    if (medMatches.isEmpty) return;
+    final med = medMatches.first;
     final ruleIdx = _rules.indexWhere((r) => r.med == med.name && r.time == oldTime);
     if (ruleIdx != -1) {
       final oldRule = _rules[ruleIdx];
@@ -561,13 +572,17 @@ class MedicationProvider extends ChangeNotifier {
       await _notificationService.scheduleReminderNotification(updatedRule);
       
       if (_dbEnabled) {
-        final db = await DatabaseHelper.instance.database;
-        await db.update(
-          'reminder_rules',
-          {'time': newTime},
-          where: 'id = ?',
-          whereArgs: [oldRule.id],
-        );
+        try {
+          final db = await DatabaseHelper.instance.database;
+          await db.update(
+            'reminder_rules',
+            {'time': newTime},
+            where: 'id = ?',
+            whereArgs: [oldRule.id],
+          );
+        } catch (e) {
+          debugPrint('DB rescheduleRule (rule) error: $e');
+        }
       }
     }
     
@@ -599,26 +614,34 @@ class MedicationProvider extends ChangeNotifier {
       );
       
       if (_dbEnabled) {
-        final db = await DatabaseHelper.instance.database;
-        await db.update(
-          'medications',
-          {'freq': newFreq},
-          where: 'id = ?',
-          whereArgs: [medId],
-        );
+        try {
+          final db = await DatabaseHelper.instance.database;
+          await db.update(
+            'medications',
+            {'freq': newFreq},
+            where: 'id = ?',
+            whereArgs: [medId],
+          );
+        } catch (e) {
+          debugPrint('DB rescheduleRule (med freq) error: $e');
+        }
       }
     }
     
     // 3. Mark the state back to upcoming
     _todayMeds[medId] = MedCardVariant.upcoming;
     if (_dbEnabled) {
-      final db = await DatabaseHelper.instance.database;
-      await db.update(
-        'today_meds',
-        {'status': 'upcoming'},
-        where: 'med_id = ?',
-        whereArgs: [medId],
-      );
+      try {
+        final db = await DatabaseHelper.instance.database;
+        await db.update(
+          'today_meds',
+          {'status': 'upcoming'},
+          where: 'med_id = ?',
+          whereArgs: [medId],
+        );
+      } catch (e) {
+        debugPrint('DB rescheduleRule (today_meds) error: $e');
+      }
     }
     
     notifyListeners();

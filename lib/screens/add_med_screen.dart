@@ -35,7 +35,6 @@ class _AddMedScreenState extends State<AddMedScreen> {
   List<String> _selectedTimes = ['8:00 AM'];
   String _category = 'Blood Pressure';
   bool _reminder = true;
-  bool _voiceAlert = true;
 
   void _onFreqChanged(String f) {
     setState(() {
@@ -283,7 +282,6 @@ class _AddMedScreenState extends State<AddMedScreen> {
                           final medState = context.read<MedicationProvider>();
                           final alertTypes = <AlertType>[];
                           if (_reminder) alertTypes.add(AlertType.push);
-                          if (_voiceAlert) alertTypes.add(AlertType.voice);
 
                           medState.addMedication(
                             Medication(
@@ -748,7 +746,7 @@ class _AddMedScreenState extends State<AddMedScreen> {
             children: [
               _ReminderRow(
                 label: 'Push Notification',
-                sub: '15 min before dose',
+                sub: 'At scheduled dose time',
                 value: _reminder,
                 color: const Color(0xFF3B82F6),
                 onChanged: (v) => setState(() => _reminder = v),
@@ -756,11 +754,12 @@ class _AddMedScreenState extends State<AddMedScreen> {
               ),
               _ReminderRow(
                 label: 'Voice Reminder',
-                sub: 'Spoken alert at dose time',
-                value: _voiceAlert,
+                sub: 'Coming soon — not yet available',
+                value: false,
                 color: AppColors.medOrange,
-                onChanged: (v) => setState(() => _voiceAlert = v),
+                onChanged: (_) {}, // disabled
                 showBorder: false,
+                disabled: true,
               ),
             ],
           ),
@@ -771,32 +770,31 @@ class _AddMedScreenState extends State<AddMedScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
             color: AppColors.isDark
-                ? const Color(0xFF2C1F15)
-                : const Color(0xFFFFF7ED),
+                ? const Color(0xFF1C1F27)
+                : const Color(0xFFF3F4F6),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-                color: AppColors.medOrange
-                    .withValues(alpha: AppColors.isDark ? 0.3 : 0.2)),
+                color: AppColors.isDark
+                    ? const Color(0xFF374151)
+                    : const Color(0xFFD1D5DB)),
           ),
-          child: RichText(
-            text: TextSpan(
-              style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.isDark
-                      ? const Color(0xFFFDBA74)
-                      : const Color(0xFF7C2D12)),
-              children: [
-                const TextSpan(
-                    text: 'Voice reminder',
-                    style: TextStyle(fontWeight: FontWeight.w700)),
-                const TextSpan(text: ' will play: '),
-                TextSpan(
-                    text:
-                        '"Time to take your ${_nameController.text.trim().isNotEmpty ? _nameController.text.trim() : 'medication'} ${_doseController.text.trim().isNotEmpty ? _doseController.text.trim() : ''}"',
-                    style: const TextStyle(fontStyle: FontStyle.italic)),
-                TextSpan(text: ' at ${_selectedTimes.join(', ')}.'),
-              ],
-            ),
+          child: Row(
+            children: [
+              Icon(Icons.mic_off_rounded, size: 16,
+                  color: AppColors.isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Voice reminders are coming in a future update. Push notifications are active.',
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.isDark
+                          ? const Color(0xFF9CA3AF)
+                          : const Color(0xFF6B7280),
+                      height: 1.4),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -811,6 +809,7 @@ class _ReminderRow extends StatelessWidget {
   final Color color;
   final ValueChanged<bool> onChanged;
   final bool showBorder;
+  final bool disabled;
 
   const _ReminderRow({
     required this.label,
@@ -819,65 +818,90 @@ class _ReminderRow extends StatelessWidget {
     required this.color,
     required this.onChanged,
     required this.showBorder,
+    this.disabled = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        border: showBorder
-            ? Border(bottom: BorderSide(color: AppColors.hairline))
-            : null,
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label,
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.ink900)),
-                Text(sub,
-                    style: TextStyle(fontSize: 11, color: AppColors.ink400)),
-              ],
+    return Opacity(
+      opacity: disabled ? 0.45 : 1.0,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          border: showBorder
+              ? Border(bottom: BorderSide(color: AppColors.hairline))
+              : null,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(label,
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.ink900)),
+                      if (disabled) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.isDark
+                                ? const Color(0xFF374151)
+                                : const Color(0xFFF3F4F6),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text('Soon',
+                              style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.ink400)),
+                        ),
+                      ],
+                    ],
+                  ),
+                  Text(sub,
+                      style: TextStyle(fontSize: 11, color: AppColors.ink400)),
+                ],
+              ),
             ),
-          ),
-          GestureDetector(
-            onTap: () => onChanged(!value),
-            child: Container(
-              width: 40,
-              height: 24,
-              decoration: BoxDecoration(
-                  color: value
-                      ? color
-                      : (AppColors.isDark
-                          ? const Color(0xFF374151)
-                          : const Color(0xFFD1D5DB)),
-                  borderRadius: BorderRadius.circular(12)),
-              child: AnimatedAlign(
-                duration: const Duration(milliseconds: 200),
-                alignment: value ? Alignment.centerRight : Alignment.centerLeft,
-                child: Container(
-                  width: 18,
-                  height: 18,
-                  margin: const EdgeInsets.symmetric(horizontal: 3),
-                  decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.2),
-                            blurRadius: 4)
-                      ]),
+            GestureDetector(
+              onTap: disabled ? null : () => onChanged(!value),
+              child: Container(
+                width: 40,
+                height: 24,
+                decoration: BoxDecoration(
+                    color: value && !disabled
+                        ? color
+                        : (AppColors.isDark
+                            ? const Color(0xFF374151)
+                            : const Color(0xFFD1D5DB)),
+                    borderRadius: BorderRadius.circular(12)),
+                child: AnimatedAlign(
+                  duration: const Duration(milliseconds: 200),
+                  alignment: value && !disabled ? Alignment.centerRight : Alignment.centerLeft,
+                  child: Container(
+                    width: 18,
+                    height: 18,
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              blurRadius: 4)
+                        ]),
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -346,7 +346,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               controller: _nameController,
               keyboardType: TextInputType.name,
               style: TextStyle(color: AppColors.ink900, fontSize: 14),
-              decoration: _buildInputDecoration('e.g. Sarah Mitchell'),
+              decoration: _buildInputDecoration('Your full name'),
               validator: (val) {
                 if (val == null || val.trim().isEmpty) {
                   return 'Please enter your name';
@@ -473,7 +473,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
           const SizedBox(height: 40),
 
-          // Visual Mock Notification Card
+          // Preview Notification Card
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
