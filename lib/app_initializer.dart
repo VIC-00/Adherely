@@ -101,6 +101,20 @@ class _MedAdhereAppState extends State<MedAdhereApp> {
       
       await _historyProvider.load(historyData);
       await _historyProvider.loadPersonalBest();
+
+      // Re-arm every-other-day alarms on each app open (they are one-shot and expire after firing).
+      // For all other frequencies this is a no-op since matchDateTimeComponents auto-repeats them.
+      final notifService = LocalNotificationService();
+      await notifService.initialize();
+      for (final rule in _medicationProvider.rules) {
+        final medList = _medicationProvider.meds.where((m) => m.name == rule.med);
+        if (medList.isNotEmpty) {
+          final freq = medList.first.freq.toLowerCase();
+          if (freq.contains('every other day')) {
+            await notifService.scheduleReminderNotification(rule);
+          }
+        }
+      }
       
     } catch (e) {
       debugPrint("DB init failed, using in-memory: $e");
@@ -147,7 +161,7 @@ class _MedAdhereAppState extends State<MedAdhereApp> {
           AppColors.isDark = darkModeToggle.on;
           final themeMode = darkModeToggle.on ? ThemeMode.dark : ThemeMode.light;
           return MaterialApp(
-            title: 'MedAdhere',
+            title: 'Adherely',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.light,
             darkTheme: AppTheme.dark,

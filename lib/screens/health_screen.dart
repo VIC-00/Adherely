@@ -115,8 +115,52 @@ class HealthScreen extends StatelessWidget {
       dynamicMedImpacts.add(const MedImpact(med: 'No Meds Added', impact: 'Add medications to track impacts', icon: 'ℹ️', weeks: 0, progress: 0));
     }
 
+    // Dynamic header subtitle
+    final weeklyAdherence = historyState.calculateWeeklyAdherence();
+    final String headerSubtitle;
+    if (medState.meds.isEmpty) {
+      headerSubtitle = 'Add your medications to start tracking.';
+    } else if (weeklyAdherence >= 85) {
+      headerSubtitle = 'Great adherence this week, $profileName!';
+    } else if (weeklyAdherence >= 60) {
+      headerSubtitle = 'Keep going — consistency makes a difference.';
+    } else {
+      headerSubtitle = 'Try not to miss doses for best results.';
+    }
+
+    // Dynamic vitals badge
+    final hasAnyVitals = vitalsState.vitals.any((v) => v.value != '--');
+    final String vitalsBadgeText;
+    final Color vitalsBadgeDot;
+    if (!hasAnyVitals) {
+      vitalsBadgeText = 'No vitals logged yet — tap + to add';
+      vitalsBadgeDot = const Color(0xFF9CA3AF);
+    } else {
+      vitalsBadgeText = 'Vitals updated';
+      vitalsBadgeDot = const Color(0xFF34D399);
+    }
+
+    // Dynamic BP trend badge
+    final bpReadings = vitalsState.bpReadings;
+    final String bpTrendLabel;
+    if (bpReadings.length >= 2) {
+      final diff = bpReadings.first.sys - bpReadings.last.sys;
+      if (diff > 5) {
+        bpTrendLabel = '↓ Improving';
+      } else if (diff < -5) {
+        bpTrendLabel = '↑ Rising';
+      } else {
+        bpTrendLabel = '→ Stable';
+      }
+    } else {
+      bpTrendLabel = 'Log readings';
+    }
+
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: Padding(
+        // Lift the FAB above the floating bottom nav bar
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom + 88),
+        child: FloatingActionButton.extended(
         onPressed: () {
           showDialog(
             context: context,
@@ -221,6 +265,7 @@ class HealthScreen extends StatelessWidget {
         icon: const Icon(Icons.add_chart_rounded, color: Colors.white),
         label: const Text('Log Vitals', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
       ),
+      ),
       body: Container(
         color: AppColors.screenBg,
       child: SafeArea(
@@ -250,18 +295,18 @@ class HealthScreen extends StatelessWidget {
                     const SizedBox(height: 4),
                     const Text('Your Progress', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.6)),
                     const SizedBox(height: 4),
-                    Text('Medication is working. Keep it up, $profileName.',
+                    Text(headerSubtitle,
                         style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.75))),
                     const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          _Dot(color: Color(0xFF34D399)),
-                          SizedBox(width: 6),
-                          Text('All vitals in healthy range', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white)),
+                          _Dot(color: vitalsBadgeDot),
+                          const SizedBox(width: 6),
+                          Text(vitalsBadgeText, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white)),
                         ],
                       ),
                     ),
@@ -310,7 +355,7 @@ class HealthScreen extends StatelessWidget {
                           decoration: BoxDecoration(
                               color: AppColors.isDark ? const Color(0xFF1E3A8A) : AppColors.medBlueLight,
                               borderRadius: BorderRadius.circular(8)),
-                          child: Text('↓ Improving',
+                          child: Text(bpTrendLabel,
                               style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,

@@ -10,8 +10,7 @@ import '../notification_service.dart';
 
 void _showEditMedDialog(
     BuildContext context, SettingsProvider settingsState, Medication med) {
-  final medState = context.read<
-      MedicationProvider>(); //(BuildContext context, SettingsProvider settingsState, Medication med) {
+  final medState = context.read<MedicationProvider>();
   final nameController = TextEditingController(text: med.name);
   final doseController = TextEditingController(text: med.dose);
   final refillDaysController = TextEditingController(text: '${med.refillDays}');
@@ -81,8 +80,7 @@ void _showEditMedDialog(
 
 void _showDeleteMedDialog(
     BuildContext context, SettingsProvider settingsState, Medication med) {
-  final medState = context.read<
-      MedicationProvider>(); //(BuildContext context, SettingsProvider settingsState, Medication med) {
+  final medState = context.read<MedicationProvider>();
   showDialog(
     context: context,
     builder: (context) => AlertDialog(
@@ -256,28 +254,40 @@ class ProfileScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: profile.conditions
-                          .split('·')
-                          .map((c) => Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 9, vertical: 3),
-                                  decoration: BoxDecoration(
-                                      color:
-                                          Colors.white.withValues(alpha: 0.18),
-                                      borderRadius: BorderRadius.circular(6)),
-                                  child: Text(c,
-                                      style: const TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.white)),
-                                ),
-                              ))
-                          .toList(),
-                    ),
+                    // Split on comma (how onboarding stores them)
+                    Builder(builder: (context) {
+                      final conditionChips = profile.conditions
+                          .split(',')
+                          .map((c) => c.trim())
+                          .where((c) => c.isNotEmpty && c != 'None')
+                          .toList();
+                      return Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: [
+                          if (conditionChips.isEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                              decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.18),
+                                  borderRadius: BorderRadius.circular(6)),
+                              child: const Text('No conditions listed',
+                                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white)),
+                            )
+                          else
+                            for (final c in conditionChips)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                                decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.18),
+                                    borderRadius: BorderRadius.circular(6)),
+                                child: Text(c,
+                                    style: const TextStyle(
+                                        fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white)),
+                              ),
+                        ],
+                      );
+                    }),
                   ],
                 ),
               ),
@@ -289,95 +299,111 @@ class ProfileScreen extends StatelessWidget {
                 onAction: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const AddMedScreen())),
                 child: Column(
-                  children: medState.meds
-                      .map((m) => Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 12),
-                              decoration: BoxDecoration(
-                                color: AppColors.cardBg,
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                      color:
-                                          Colors.black.withValues(alpha: 0.05),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 1))
-                                ],
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 36,
-                                    height: 36,
-                                    decoration: BoxDecoration(
-                                        color: m.color.withValues(alpha: 0.09),
-                                        borderRadius:
-                                            BorderRadius.circular(10)),
-                                    child: Icon(Icons.medication_liquid_rounded,
-                                        size: 16, color: m.color),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: RichText(
-                                      text: TextSpan(
-                                        style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w700,
-                                            color: AppColors.ink900),
-                                        children: [
-                                          TextSpan(text: '${m.name} '),
-                                          TextSpan(
-                                              text: m.dose,
-                                              style: TextStyle(
-                                                  fontWeight: FontWeight.w500,
-                                                  color: AppColors.ink500)),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text('${m.refillDays}d left',
-                                          style: TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w700,
-                                              color: m.refillDays <= 7
-                                                  ? AppColors.medRed
-                                                  : AppColors.medGreen)),
-                                      Text('refill',
-                                          style: TextStyle(
-                                              fontSize: 9,
-                                              color: AppColors.ink400)),
+                  children: medState.meds.isEmpty
+                      ? [
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 20),
+                            alignment: Alignment.center,
+                            child: Column(
+                              children: [
+                                Icon(Icons.medication_rounded, size: 28, color: AppColors.ink400),
+                                const SizedBox(height: 8),
+                                Text('No medications added yet.',
+                                    style: TextStyle(fontSize: 12, color: AppColors.ink400)),
+                              ],
+                            ),
+                          )
+                        ]
+                      : medState.meds
+                          .map((m) => Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.cardBg,
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                          color:
+                                              Colors.black.withValues(alpha: 0.05),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 1))
                                     ],
                                   ),
-                                  const SizedBox(width: 10),
-                                  IconButton(
-                                    icon: Icon(Icons.edit_rounded,
-                                        size: 18, color: AppColors.ink500),
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                    onPressed: () => _showEditMedDialog(
-                                        context, settingsState, m),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 36,
+                                        height: 36,
+                                        decoration: BoxDecoration(
+                                            color: m.color.withValues(alpha: 0.09),
+                                            borderRadius:
+                                                BorderRadius.circular(10)),
+                                        child: Icon(Icons.medication_liquid_rounded,
+                                            size: 16, color: m.color),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: RichText(
+                                          text: TextSpan(
+                                            style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w700,
+                                                color: AppColors.ink900),
+                                            children: [
+                                              TextSpan(text: '${m.name} '),
+                                              TextSpan(
+                                                  text: m.dose,
+                                                  style: TextStyle(
+                                                      fontWeight: FontWeight.w500,
+                                                      color: AppColors.ink500)),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        children: [
+                                          Text('${m.refillDays}d left',
+                                              style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: m.refillDays <= 7
+                                                      ? AppColors.medRed
+                                                      : AppColors.medGreen)),
+                                          Text('refill',
+                                              style: TextStyle(
+                                                  fontSize: 9,
+                                                  color: AppColors.ink400)),
+                                        ],
+                                      ),
+                                      const SizedBox(width: 10),
+                                      IconButton(
+                                        icon: Icon(Icons.edit_rounded,
+                                            size: 18, color: AppColors.ink500),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        onPressed: () => _showEditMedDialog(
+                                            context, settingsState, m),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      IconButton(
+                                        icon: const Icon(
+                                            Icons.delete_outline_rounded,
+                                            size: 18,
+                                            color: AppColors.medRed),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        onPressed: () => _showDeleteMedDialog(
+                                            context, settingsState, m),
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(width: 8),
-                                  IconButton(
-                                    icon: const Icon(
-                                        Icons.delete_outline_rounded,
-                                        size: 18,
-                                        color: AppColors.medRed),
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                    onPressed: () => _showDeleteMedDialog(
-                                        context, settingsState, m),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ))
-                      .toList(),
+                                ),
+                              ))
+                          .toList(),
                 ),
               ),
 
@@ -433,7 +459,7 @@ class ProfileScreen extends StatelessWidget {
                                   relation: relation.isNotEmpty
                                       ? relation
                                       : 'Caregiver',
-                                  phone: phone.isNotEmpty ? phone : 'Unknown',
+                                  phone: phone,
                                   active: activeVal,
                                 ));
                                 Navigator.of(context).pop();
@@ -447,131 +473,150 @@ class ProfileScreen extends StatelessWidget {
                   );
                 },
                 child: Column(
-                  children: settingsState.caregivers
-                      .map((c) => Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 12),
-                              decoration: BoxDecoration(
-                                color: AppColors.cardBg,
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                      color:
-                                          Colors.black.withValues(alpha: 0.05),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 1))
-                                ],
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 36,
-                                    height: 36,
-                                    decoration: BoxDecoration(
-                                      gradient: c.active
-                                          ? const LinearGradient(colors: [
-                                              Color(0xFF8B5CF6),
-                                              Color(0xFF6D28D9)
-                                            ])
-                                          : null,
-                                      color: c.active
-                                          ? null
-                                          : (AppColors.isDark
-                                              ? const Color(0xFF374151)
-                                              : const Color(0xFFE5E7EB)),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Text(c.name[0],
-                                        style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w700,
-                                            color: c.active
-                                                ? Colors.white
-                                                : AppColors.ink400)),
+                  children: settingsState.caregivers.isEmpty
+                      ? [
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 20),
+                            alignment: Alignment.center,
+                            child: Column(
+                              children: [
+                                Icon(Icons.group_rounded, size: 28, color: AppColors.ink400),
+                                const SizedBox(height: 8),
+                                Text('No caregivers added yet.',
+                                    style: TextStyle(fontSize: 12, color: AppColors.ink400)),
+                              ],
+                            ),
+                          )
+                        ]
+                      : settingsState.caregivers
+                          .map((c) => Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.cardBg,
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                          color:
+                                              Colors.black.withValues(alpha: 0.05),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 1))
+                                    ],
                                   ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(c.name,
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 36,
+                                        height: 36,
+                                        decoration: BoxDecoration(
+                                          gradient: c.active
+                                              ? const LinearGradient(colors: [
+                                                  Color(0xFF8B5CF6),
+                                                  Color(0xFF6D28D9)
+                                                ])
+                                              : null,
+                                          color: c.active
+                                              ? null
+                                              : (AppColors.isDark
+                                                  ? const Color(0xFF374151)
+                                                  : const Color(0xFFE5E7EB)),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: Text(c.name[0],
                                             style: TextStyle(
-                                                fontSize: 13,
+                                                fontSize: 14,
                                                 fontWeight: FontWeight.w700,
-                                                color: AppColors.ink900)),
-                                        Text('${c.relation} · ${c.phone}',
-                                            style: TextStyle(
-                                                fontSize: 11,
-                                                color: AppColors.ink400)),
-                                      ],
-                                    ),
-                                  ),
-                                  if (c.active)
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 3),
-                                      decoration: BoxDecoration(
-                                          color: AppColors.isDark
-                                              ? const Color(0xFF062F17)
-                                              : AppColors.medGreenLight,
-                                          borderRadius:
-                                              BorderRadius.circular(6)),
-                                      child: Text('Primary Contact',
-                                          style: TextStyle(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w700,
-                                              color: AppColors.isDark
-                                                  ? const Color(0xFF4ADE80)
-                                                  : const Color(0xFF15803D))),
-                                    ),
-                                  IconButton(
-                                    icon: Icon(Icons.edit_rounded,
-                                        size: 20, color: AppColors.ink500),
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                    onPressed: () => _showEditCaregiverDialog(
-                                        context, settingsState, c),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete_outline,
-                                        size: 20, color: AppColors.medRed),
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                    onPressed: () {
-                                      showDialog(
-                                        context: context,
-                                        builder: (context) => AlertDialog(
-                                          title: const Text('Remove Caregiver'),
-                                          content: Text(
-                                              'Are you sure you want to remove ${c.name}?'),
-                                          actions: [
-                                            TextButton(
-                                                onPressed: () =>
-                                                    Navigator.of(context).pop(),
-                                                child: const Text('Cancel')),
-                                            ElevatedButton(
-                                              onPressed: () {
-                                                settingsState
-                                                    .removeCaregiver(c.name);
-                                                Navigator.of(context).pop();
-                                              },
-                                              child: const Text('Remove'),
-                                            ),
+                                                color: c.active
+                                                    ? Colors.white
+                                                    : AppColors.ink400)),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(c.name,
+                                                style: TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: AppColors.ink900)),
+                                            Text(
+                                              c.phone.isNotEmpty
+                                                  ? '${c.relation} · ${c.phone}'
+                                                  : c.relation,
+                                              style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: AppColors.ink400)),
                                           ],
                                         ),
-                                      );
-                                    },
+                                      ),
+                                      if (c.active)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 3),
+                                          decoration: BoxDecoration(
+                                              color: AppColors.isDark
+                                                  ? const Color(0xFF062F17)
+                                                  : AppColors.medGreenLight,
+                                              borderRadius:
+                                                  BorderRadius.circular(6)),
+                                          child: Text('Primary',
+                                              style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: AppColors.isDark
+                                                      ? const Color(0xFF4ADE80)
+                                                      : const Color(0xFF15803D))),
+                                        ),
+                                      IconButton(
+                                        icon: Icon(Icons.edit_rounded,
+                                            size: 20, color: AppColors.ink500),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        onPressed: () => _showEditCaregiverDialog(
+                                            context, settingsState, c),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      IconButton(
+                                        icon: const Icon(Icons.delete_outline,
+                                            size: 20, color: AppColors.medRed),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        onPressed: () {
+                                          showDialog(
+                                            context: context,
+                                            builder: (context) => AlertDialog(
+                                              title: const Text('Remove Caregiver'),
+                                              content: Text(
+                                                  'Are you sure you want to remove ${c.name}?'),
+                                              actions: [
+                                                TextButton(
+                                                    onPressed: () =>
+                                                        Navigator.of(context).pop(),
+                                                    child: const Text('Cancel')),
+                                                ElevatedButton(
+                                                  onPressed: () {
+                                                    settingsState
+                                                        .removeCaregiver(c.name);
+                                                    Navigator.of(context).pop();
+                                                  },
+                                                  child: const Text('Remove'),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                            ),
-                          ))
-                      .toList(),
+                                ),
+                              ))
+                          .toList(),
                 ),
               ),
 
@@ -824,7 +869,7 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    Text('Adherely v1.0.0 · Offline-First',
+                    Text('Adherely v1.0.1 · Offline-First',
                         style:
                             TextStyle(fontSize: 11, color: AppColors.ink400)),
                   ],

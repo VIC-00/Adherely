@@ -72,7 +72,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final name = _nameController.text.trim();
     final dob = _dobController.text.trim();
     final conditions = _conditionsController.text.trim().isEmpty
-        ? 'General Health'
+        ? 'None'
         : _conditionsController.text.trim();
 
     // Request permissions
@@ -114,6 +114,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Expanded(
               child: PageView(
                 controller: _pageController,
+                // Disable swipe to prevent bypassing form validation
+                physics: const NeverScrollableScrollPhysics(),
                 onPageChanged: (page) {
                   setState(() {
                     _currentPage = page;
@@ -179,25 +181,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       Icons.healing_rounded,
                       size: 72,
                       color: AppColors.medBlue,
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 16,
-                left: 16,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.medBlue,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    'Onboarding',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
@@ -538,7 +521,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Time to take Lisinopril 10mg.',
+                        'Time to take your medication now.',
                         style: TextStyle(
                           fontSize: 12,
                           color: AppColors.ink500,
@@ -635,12 +618,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.add, size: 16),
-                        const SizedBox(width: 4),
                         Text(
                           _currentPage == 2 ? 'Get Started' : 'Next',
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.arrow_forward_rounded, size: 16),
                       ],
                     ),
                   ),
@@ -652,7 +635,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             const SizedBox(height: 12),
             GestureDetector(
               onTap: () {
-                // Animate to Slide 2
                 _pageController.animateToPage(1,
                     duration: const Duration(milliseconds: 300),
                     curve: Curves.easeInOut);
@@ -662,10 +644,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.add, size: 14, color: AppColors.medBlue),
+                    Icon(Icons.skip_next_rounded, size: 14, color: AppColors.medBlue),
                     SizedBox(width: 4),
                     Text(
-                      'Learn More',
+                      'Skip intro',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,

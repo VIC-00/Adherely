@@ -23,7 +23,19 @@ class HistoryProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  int get missedDoses => _historyItems.where((i) => !i.taken).length;
+  int get missedDoses {
+    // Only count missed doses within the currently displayed calendar month
+    return _historyItems.where((i) {
+      if (i.taken) return false;
+      try {
+        final date = DateTime.parse(i.date);
+        return date.year == _currentHistoryMonth.year &&
+            date.month == _currentHistoryMonth.month;
+      } catch (_) {
+        return false;
+      }
+    }).length;
+  }
 
   List<List<CalendarCell>> get calRows {
     final firstDay = DateTime(_currentHistoryMonth.year, _currentHistoryMonth.month, 1);

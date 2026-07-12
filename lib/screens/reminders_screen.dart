@@ -24,7 +24,25 @@ class _RemindersScreenState extends State<RemindersScreen> {
     AppColors.isDark = Theme.of(context).brightness == Brightness.dark;
     final medState = context.watch<MedicationProvider>();
     final settingsState = context.watch<SettingsProvider>();
-    final rules = medState.rules;
+    // Sort rules chronologically by their time string
+    final rules = [...medState.rules]..sort((a, b) {
+      try {
+        TimeOfDay parseTime(String t) {
+          final parts = t.split(' ');
+          final hm = parts[0].split(':');
+          int h = int.parse(hm[0]);
+          final m = int.parse(hm[1]);
+          if (parts[1].toUpperCase() == 'PM' && h < 12) h += 12;
+          if (parts[1].toUpperCase() == 'AM' && h == 12) h = 0;
+          return TimeOfDay(hour: h, minute: m);
+        }
+        final ta = parseTime(a.time);
+        final tb = parseTime(b.time);
+        return (ta.hour * 60 + ta.minute).compareTo(tb.hour * 60 + tb.minute);
+      } catch (_) {
+        return 0;
+      }
+    });
 
     return Scaffold(
       backgroundColor: AppColors.screenBg,
@@ -64,11 +82,14 @@ class _RemindersScreenState extends State<RemindersScreen> {
                     const Text('Notification Hub', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.6)),
                     Text('${medState.activeRuleCount} active rules · ${medState.activeMedCount} medications', style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.75))),
                     const SizedBox(height: 14),
-                    Row(
-                      children: [AlertType.push, AlertType.voice].map((t) {
-                        final info = _alertIcons[t]!;
-                        final count = rules.where((r) => r.active && r.types.contains(t)).length;
-                        return Expanded(
+                    // Show Push active count and Snooze duration
+                    ...() {
+                      final pushCount = rules.where((r) => r.active && r.types.contains(AlertType.push)).length;
+                      final snoozeSetting = settingsState.notificationToggles
+                          .firstWhere((t) => t.label == 'Snooze Duration', orElse: () => const ToggleItem(label: 'Snooze Duration', sub: '5 minutes', on: true));
+                      final snoozeLabel = snoozeSetting.sub.split(' ').first; // "5"
+                      return [
+                        Expanded(
                           child: Padding(
                             padding: const EdgeInsets.only(right: 8),
                             child: Container(
@@ -76,17 +97,34 @@ class _RemindersScreenState extends State<RemindersScreen> {
                               decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
                               child: Column(
                                 children: [
-                                  Text(info.icon, style: const TextStyle(fontSize: 16)),
+                                  const Text('🔔', style: TextStyle(fontSize: 16)),
                                   const SizedBox(height: 2),
-                                  Text('$count', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
-                                  Text(info.label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.65), letterSpacing: 0.5)),
+                                  Text('$pushCount', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
+                                  Text('Push', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.65), letterSpacing: 0.5)),
                                 ],
                               ),
                             ),
                           ),
-                        );
-                      }).toList(),
-                    ),
+                        ),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+                              child: Column(
+                                children: [
+                                  const Text('⏱️', style: TextStyle(fontSize: 16)),
+                                  const SizedBox(height: 2),
+                                  Text('${snoozeLabel}m', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
+                                  Text('Snooze', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.65), letterSpacing: 0.5)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ];
+                    }(),
                   ],
                 ),
               ),
@@ -99,6 +137,26 @@ class _RemindersScreenState extends State<RemindersScreen> {
                   children: [
                     Text("Today's Alert Schedule", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink900)),
                     const SizedBox(height: 12),
+                    if (rules.isEmpty)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 28),
+                        decoration: BoxDecoration(
+                          color: AppColors.cardBg,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppColors.border, width: 1.5),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(Icons.notifications_off_rounded, size: 32, color: AppColors.ink400),
+                            const SizedBox(height: 8),
+                            Text('No reminders set yet.', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.ink700)),
+                            const SizedBox(height: 4),
+                            Text('Add a medication or use the button below.', style: TextStyle(fontSize: 11, color: AppColors.ink400)),
+                          ],
+                        ),
+                      )
+                    else
                     Stack(
                       children: [
                         Positioned(
@@ -211,7 +269,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
                                 final time = timeController.text.trim();
                                 if (med.isNotEmpty) {
                                   medState.addRule(ReminderRule(
-                                    id: DateTime.now().millisecondsSinceEpoch,
+                                    id: null, // let DB auto-assign a safe integer ID
                                     med: med,
                                     dose: dose.isNotEmpty ? dose : '1 pill',
                                     time: time.isNotEmpty ? time : '8:00 AM',
@@ -367,6 +425,23 @@ class _RuleCard extends StatelessWidget {
                         runSpacing: 5,
                         children: [
                           ...rule.types.map((t) {
+                            // Show a "Soon" chip for voice type since it's disabled
+                            if (t == AlertType.voice) {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                decoration: BoxDecoration(
+                                    color: AppColors.isDark ? const Color(0xFF374151) : const Color(0xFFF3F4F6),
+                                    borderRadius: BorderRadius.circular(5)),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Text('🔊', style: TextStyle(fontSize: 10)),
+                                    const SizedBox(width: 3),
+                                    Text('Soon', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.ink400)),
+                                  ],
+                                ),
+                              );
+                            }
                             final info = _alertIcons[t]!;
                             return Container(
                               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),

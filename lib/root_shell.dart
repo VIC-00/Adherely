@@ -147,36 +147,74 @@ class _RootShellState extends State<RootShell> {
 
   @override
   Widget build(BuildContext context) {
+    final bottomPad = MediaQuery.of(context).padding.bottom;
+    // Extra space so screen content scrolls above the floating nav (64 bar + 4 gap + bottom safe area)
+    final navClearance = 64.0 + 16.0 + (bottomPad > 0 ? bottomPad : 12.0);
+
     return Scaffold(
-      body: IndexedStack(
-        index: _tab.index,
+      body: Stack(
         children: [
-          DashboardScreen(
-            onOpenReminders: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const RemindersScreen()),
-            ),
+          // Screen tabs — each wrapped with bottom padding so content clears the floating bar
+          IndexedStack(
+            index: _tab.index,
+            children: [
+              _PaddedTab(
+                bottomPad: navClearance,
+                child: DashboardScreen(
+                  onOpenReminders: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const RemindersScreen()),
+                  ),
+                ),
+              ),
+              _PaddedTab(bottomPad: navClearance, child: const HistoryScreen()),
+              _PaddedTab(bottomPad: navClearance, child: const HealthScreen()),
+              _PaddedTab(bottomPad: navClearance, child: const ProfileScreen()),
+            ],
           ),
-          const HistoryScreen(),
-          const HealthScreen(),
-          const ProfileScreen(),
+
+          // Floating nav bar overlay
+          FloatingBottomNav(
+            active: _tab,
+            onTap: (t) => setState(() => _tab = t),
+          ),
+
+          // FAB — only on home tab, positioned above floating nav on the right
+          if (_tab == NavTab.home)
+            Positioned(
+              right: 24,
+              bottom: navClearance + 8,
+              child: FloatingActionButton(
+                heroTag: 'root_add_med_fab',
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const AddMedScreen()),
+                  );
+                },
+                backgroundColor: const Color(0xFF2563EB),
+                elevation: 4,
+                child: const Icon(Icons.add_rounded, color: Colors.white),
+              ),
+            ),
         ],
       ),
-      bottomNavigationBar: BottomNav(
-        active: _tab,
-        onTap: (t) => setState(() => _tab = t),
+    );
+  }
+}
+
+/// Wraps a screen with bottom padding so its scroll content doesn't hide
+/// behind the floating navigation bar.
+class _PaddedTab extends StatelessWidget {
+  final double bottomPad;
+  final Widget child;
+  const _PaddedTab({required this.bottomPad, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(
+        padding: MediaQuery.of(context).padding.copyWith(bottom: bottomPad),
       ),
-      floatingActionButton: _tab == NavTab.home
-          ? FloatingActionButton(
-              heroTag: 'root_add_med_fab',
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const AddMedScreen()),
-                );
-              },
-              backgroundColor: const Color(0xFF2563EB),
-              child: const Icon(Icons.add_rounded, color: Colors.white),
-            )
-          : null,
+      child: child,
     );
   }
 }

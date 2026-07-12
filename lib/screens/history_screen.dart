@@ -22,10 +22,7 @@ class HistoryScreen extends StatelessWidget {
     AppColors.isDark = Theme.of(context).brightness == Brightness.dark;
     final medState = context.watch<MedicationProvider>();
     final historyState = context.watch<HistoryProvider>();
-    debugPrint("HistoryScreen items: ${historyState.historyItems.length}");
-    for (var item in historyState.historyItems) {
-      debugPrint(" - ${item.med} on ${item.date} at ${item.time}");
-    }
+
     return Container(
       color: AppColors.screenBg,
       child: SafeArea(
@@ -66,7 +63,7 @@ class HistoryScreen extends StatelessWidget {
                     Row(
                       children: [
                         _HeaderStat(
-                            v: '${medState.calculateAdherence()}%',
+                            v: '${historyState.calculateWeeklyAdherence().toStringAsFixed(0)}%',
                             l: 'Adherence'),
                         const SizedBox(width: 16),
                         _HeaderStat(
@@ -363,6 +360,13 @@ class HistoryScreen extends StatelessWidget {
 
   String _displayDate(String dateStr) {
     try {
+      // Handle legacy "Today" / "Yesterday" strings from old DB rows
+      if (dateStr == 'Today' || dateStr.startsWith('Today,')) {
+        return 'Today';
+      }
+      if (dateStr == 'Yesterday' || dateStr.startsWith('Yesterday,')) {
+        return 'Yesterday';
+      }
       final date = DateTime.parse(dateStr);
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);

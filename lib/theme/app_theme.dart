@@ -5,6 +5,7 @@ class AppTheme {
   AppTheme._();
 
   static ThemeData get light {
+    AppColors.isDark = false; // ensure tokens resolve to light values
     final base = ThemeData(
       useMaterial3: true,
       fontFamily: 'Inter',
@@ -22,18 +23,20 @@ class AppTheme {
   }
 
   static ThemeData get dark {
+    AppColors.isDark = true; // ensure tokens resolve to dark values
     final base = ThemeData(
       useMaterial3: true,
       fontFamily: 'Inter',
       brightness: Brightness.dark,
-      colorScheme: ColorScheme.fromSeed(seedColor: AppColors.medBlue, brightness: Brightness.dark),
-      scaffoldBackgroundColor: const Color(0xFF111827), // AppColors.ink900 roughly
+      colorScheme: ColorScheme.fromSeed(
+          seedColor: AppColors.medBlue, brightness: Brightness.dark),
+      scaffoldBackgroundColor: AppColors.canvasBg,
       splashFactory: InkRipple.splashFactory,
     );
     return base.copyWith(
       textTheme: base.textTheme.apply(
-        bodyColor: const Color(0xFFF9FAFB),
-        displayColor: const Color(0xFFF9FAFB),
+        bodyColor: AppColors.ink900,
+        displayColor: AppColors.ink900,
         fontFamily: 'Inter',
       ),
     );

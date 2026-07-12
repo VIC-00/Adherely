@@ -20,16 +20,20 @@ class AppColors {
   static const Color medPurple = Color(0xFF8B5CF6);
   static const Color medTeal = Color(0xFF0D9488);
 
+  // NOTE: isDark is a mutable static that must be set at the top of every
+  // screen's build() via:
+  //   AppColors.isDark = Theme.of(context).brightness == Brightness.dark;
+  // This pattern is intentional for this app's single-theme-at-a-time usage.
   static bool isDark = false;
 
   static Color get canvasBg => isDark ? const Color(0xFF111827) : const Color(0xFFF0F4F8);
   static Color get screenBg => isDark ? const Color(0xFF111827) : const Color(0xFFF8FAFC);
-  static Color get cardBg => isDark ? const Color(0xFF1F2937) : Colors.white;
+  static Color get cardBg   => isDark ? const Color(0xFF1F2937) : Colors.white;
 
   static Color get ink900 => isDark ? const Color(0xFFF9FAFB) : const Color(0xFF111827);
   static Color get ink700 => isDark ? const Color(0xFFE5E7EB) : const Color(0xFF374151);
   static Color get ink500 => isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
   static Color get ink400 => isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF);
   static Color get hairline => isDark ? const Color(0xFF374151) : const Color(0xFFF3F4F6);
-  static Color get border => isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB);
+  static Color get border   => isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB);
 }

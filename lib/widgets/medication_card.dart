@@ -22,9 +22,9 @@ class MedicationCard extends StatefulWidget {
     this.onTakeNow,
     this.onLogTaken,
     this.onReschedule,
-    this.name = 'Lisinopril',
-    this.dose = '10mg · Oral tablet',
-    this.time = '8:00 AM',
+    this.name = '',
+    this.dose = '',
+    this.time = '',
     this.refillDays,
     this.color,
   });
@@ -232,29 +232,6 @@ class _UpcomingCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFBBF24).withValues(alpha: 0.25),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.sync_rounded, size: 10, color: Color(0xFFFCD34D)),
-                          SizedBox(width: 4),
-                          Text(
-                            'Sync Pending',
-                            style: TextStyle(
-                              color: Color(0xFFFCD34D),
-                              fontSize: 9,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   ],
                 ),
               ],
@@ -269,47 +246,6 @@ class _UpcomingCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: compact ? 10 : 14,
-                    vertical: compact ? 8 : 10,
-                  ),
-                  margin: EdgeInsets.only(bottom: compact ? 12 : 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.isDark ? const Color(0xFF2C1F15) : const Color(0xFFFFF7ED),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.medOrange.withValues(alpha: AppColors.isDark ? 0.3 : 0.2)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.volume_up_rounded, size: 22, color: AppColors.medOrange),
-                      const SizedBox(width: 12),
-                      const _SoundWave(),
-                      const Spacer(),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            'VOICE REMINDER',
-                            style: TextStyle(
-                              fontSize: compact ? 10 : 11,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.medOrange,
-                              letterSpacing: 0.6,
-                            ),
-                          ),
-                          const SizedBox(height: 1),
-                          Text(
-                            'Active · 7:55 AM',
-                            style: TextStyle(
-                                fontSize: 9,
-                                color: AppColors.isDark ? const Color(0xFF9CA3AF) : const Color(0xFF78716C)),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
                 if (refillDays != null && refillDays! <= 7)
                   Container(
                     width: double.infinity,

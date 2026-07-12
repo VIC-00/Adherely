@@ -109,7 +109,7 @@ class DashboardScreen extends StatelessWidget {
                                     fontWeight: FontWeight.w800,
                                     color: Colors.white)),
                           ),
-                          if (medState.rules.where((r) => r.active).isNotEmpty)
+                           if (missed > 0)
                             Positioned(
                               top: -2,
                               right: -2,
@@ -124,7 +124,7 @@ class DashboardScreen extends StatelessWidget {
                                   minHeight: 16,
                                 ),
                                 child: Text(
-                                  '${medState.rules.where((r) => r.active).length}',
+                                  '$missed',
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 8,
@@ -257,7 +257,7 @@ class DashboardScreen extends StatelessWidget {
                   children: [
                     _StatChip(
                         val: '$total',
-                        label: 'Today',
+                        label: 'Meds',
                         color: AppColors.medBlue,
                         bg: AppColors.medBlueLight),
                     const SizedBox(width: 8),
