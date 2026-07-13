@@ -140,7 +140,7 @@ class HealthScreen extends StatelessWidget {
     }
 
     // Dynamic header subtitle
-    final weeklyAdherence = historyState.calculateWeeklyAdherence(medState.rules, medState.dynamicTodayMeds);
+    final weeklyAdherence = historyState.calculateWeeklyAdherence(medState.rules, medState.dynamicTodayMeds, medState.meds);
     final String headerSubtitle;
     if (medState.meds.isEmpty) {
       headerSubtitle = 'Add your medications to start tracking.';
@@ -542,10 +542,10 @@ class HealthScreen extends StatelessWidget {
                                             ],
                                           ),
                                         ),
-                                        Text('${m.weeks}w',
+                                        Text('${m.weeks}-week trend',
                                             style: TextStyle(
                                                 fontSize: 10,
-                                                color: AppColors.ink400,
+                                                color: AppColors.ink500,
                                                 fontWeight: FontWeight.w600)),
                                       ],
                                     ),

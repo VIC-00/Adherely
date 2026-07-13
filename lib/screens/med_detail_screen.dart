@@ -41,16 +41,20 @@ class _MedDetailScreenState extends State<MedDetailScreen> {
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                           colors: [
-                            Color(0xFF1D4ED8),
-                            Color(0xFF2563EB),
-                            Color(0xFF3B82F6)
+                            HSLColor.fromColor(widget.medication.color)
+                                .withLightness((HSLColor.fromColor(widget.medication.color).lightness * 0.75).clamp(0.0, 1.0))
+                                .toColor(),
+                            widget.medication.color,
+                            HSLColor.fromColor(widget.medication.color)
+                                .withLightness((HSLColor.fromColor(widget.medication.color).lightness * 1.25).clamp(0.0, 1.0))
+                                .toColor(),
                           ],
-                          stops: [0, 0.7, 1],
+                          stops: const [0, 0.7, 1],
                         ),
                       ),
                       child: Column(
@@ -104,7 +108,33 @@ class _MedDetailScreenState extends State<MedDetailScreen> {
                                   color: Colors.white,
                                   letterSpacing: -0.6)),
                           Text(
-                            '${widget.medication.dose} · ${widget.medication.drugClass ?? "Medication"}',
+                            (() {
+                              final med = widget.medication;
+                              final qty = med.intakeQty;
+                              final formLower = (med.form ?? 'tablet').toLowerCase();
+                              String unit = 'pill';
+                              if (formLower.contains('tablet')) {
+                                unit = qty == 1.0 ? 'tablet' : 'tablets';
+                              } else if (formLower.contains('capsule')) {
+                                unit = qty == 1.0 ? 'capsule' : 'capsules';
+                              } else if (formLower.contains('liquid')) {
+                                unit = 'ml';
+                              } else if (formLower.contains('injection')) {
+                                unit = qty == 1.0 ? 'injection' : 'injections';
+                              } else {
+                                unit = qty == 1.0 ? 'unit' : 'units';
+                              }
+                              final qtyStr = qty.toStringAsFixed(qty == qty.toInt() ? 0 : 1);
+                              String doseSpec = '';
+                              if (med.dose.isNotEmpty) {
+                                if (qty > 1.0) {
+                                  doseSpec = ' (${med.dose} each)';
+                                } else {
+                                  doseSpec = ' (${med.dose})';
+                                }
+                              }
+                              return '$qtyStr $unit$doseSpec · ${med.drugClass ?? "Medication"}';
+                            })(),
                             style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.white.withValues(alpha: 0.8)),
@@ -149,7 +179,7 @@ class _MedDetailScreenState extends State<MedDetailScreen> {
                                   border: Border(
                                       bottom: BorderSide(
                                           color: active
-                                              ? const Color(0xFF2563EB)
+                                              ? widget.medication.color
                                               : Colors.transparent,
                                           width: 2)),
                                 ),
@@ -163,7 +193,7 @@ class _MedDetailScreenState extends State<MedDetailScreen> {
                                         ? FontWeight.w700
                                         : FontWeight.w500,
                                     color: active
-                                        ? const Color(0xFF2563EB)
+                                        ? widget.medication.color
                                         : AppColors.ink400,
                                   ),
                                 ),
@@ -236,7 +266,7 @@ class _MedDetailScreenState extends State<MedDetailScreen> {
                           : 'Take Now · ${medState.getNextDoseTime(widget.medication)}',
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2563EB),
+                    backgroundColor: widget.medication.color,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 15),
                     shape: RoundedRectangleBorder(
@@ -859,14 +889,32 @@ class _RefillsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isTwiceDaily = medication.freq.contains('Twice');
-    final isThreeTimesDaily = medication.freq.contains('Three times');
-    final factor = isThreeTimesDaily ? 3 : (isTwiceDaily ? 2 : 1);
-    final pillsRemaining = medication.refillDays * factor;
-    final totalPills = medication.refillDays * factor; // same as remaining until user logs refill
-    final progressVal = totalPills > 0 ? (pillsRemaining / totalPills).clamp(0.0, 1.0) : 0.0;
+    final medState = context.watch<MedicationProvider>();
+    final med = medState.meds.firstWhere((m) => m.id == medication.id, orElse: () => medication);
 
+    final timesStr = med.freq.contains('·') ? med.freq.split('·').last : '';
+    final timesCount = timesStr.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).length;
+    final dailyIntake = med.intakeQty * (timesCount > 0 ? timesCount : 1);
+    final daysRemaining = dailyIntake > 0 ? (med.supplyQty / dailyIntake).ceil() : 0;
 
+    final total = med.initialSupply;
+    final remaining = med.supplyQty;
+    final progressVal = total > 0 ? (remaining / total).clamp(0.0, 1.0) : 0.0;
+
+    String unit = 'pills';
+    final formLower = (med.form ?? 'tablet').toLowerCase();
+    if (formLower.contains('tablet')) {
+      unit = 'tablets';
+    } else if (formLower.contains('capsule')) {
+      unit = 'capsules';
+    } else if (formLower.contains('liquid')) {
+      unit = 'ml';
+    } else if (formLower.contains('injection')) {
+      unit = 'injections';
+    }
+
+    final remainingStr = remaining.toStringAsFixed(remaining == remaining.toInt() ? 0 : 1);
+    final totalStr = total.toStringAsFixed(total == total.toInt() ? 0 : 1);
 
     return Column(
       children: [
@@ -875,13 +923,13 @@ class _RefillsTab extends StatelessWidget {
           child: Column(
             children: [
               const SizedBox(height: 10),
-              Text('$pillsRemaining',
+              Text(remainingStr,
                   style: TextStyle(
                       fontSize: 48,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
+                      color: med.color,
                       letterSpacing: -1.2)),
-              Text('pills remaining',
+              Text('$unit remaining',
                   style: TextStyle(fontSize: 13, color: AppColors.ink500)),
               const SizedBox(height: 14),
               ClipRRect(
@@ -889,26 +937,26 @@ class _RefillsTab extends StatelessWidget {
                 child: LinearProgressIndicator(
                   value: progressVal,
                   minHeight: 8,
-                  backgroundColor: AppColors.isDark ? const Color(0xFF1E3A8A) : const Color(0xFFDBEAFE),
-                  valueColor: AlwaysStoppedAnimation(AppColors.isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB)),
+                  backgroundColor: med.color.withValues(alpha: 0.15),
+                  valueColor: AlwaysStoppedAnimation(med.color),
                 ),
               ),
               const SizedBox(height: 5),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('0 pills',
+                  Text('0 $unit',
                       style: TextStyle(fontSize: 10, color: AppColors.ink400)),
-                  Text('$totalPills pills',
+                  Text('$totalStr $unit',
                       style: TextStyle(fontSize: 10, color: AppColors.ink400)),
                 ],
               ),
               const SizedBox(height: 12),
-              _KV(k: 'Days remaining', v: '${medication.refillDays} days'),
+              _KV(k: 'Days remaining', v: '$daysRemaining days'),
               _KV(
                   k: 'Refill due',
-                  v: _refillDueDate(medication.refillDays),
-                  vColor: medication.refillDays <= 7
+                  v: _refillDueDate(daysRemaining),
+                  vColor: daysRemaining <= 7
                       ? AppColors.medRed
                       : (AppColors.isDark ? const Color(0xFFFBBF24) : const Color(0xFFF59E0B))),
 
@@ -923,9 +971,10 @@ class _RefillsTab extends StatelessWidget {
               showDialog(
                 context: context,
                 builder: (context) => AlertDialog(
+                  backgroundColor: AppColors.cardBg,
                   title: const Text('Confirm Refill'),
                   content: Text(
-                      'Would you like to reset ${medication.name} supply tracker back to 30 days?'),
+                      'Would you like to reset ${med.name} supply tracker back to $totalStr $unit?'),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(),
@@ -934,19 +983,25 @@ class _RefillsTab extends StatelessWidget {
                     ElevatedButton(
                       onPressed: () {
                         final newMed = Medication(
-                          id: medication.id,
-                          name: medication.name,
-                          dose: medication.dose,
-                          freq: medication.freq,
-                          color: medication.color,
-                          refillDays: 30,
-                          description: medication.description,
-                          drugClass: medication.drugClass,
-                          sideEffects: medication.sideEffects,
+                          id: med.id,
+                          name: med.name,
+                          dose: med.dose,
+                          freq: med.freq,
+                          color: med.color,
+                          refillDays: daysRemaining,
+                          description: med.description,
+                          drugClass: med.drugClass,
+                          sideEffects: med.sideEffects,
+                          doctor: med.doctor,
+                          notes: med.notes,
+                          form: med.form,
+                          intakeQty: med.intakeQty,
+                          supplyQty: med.initialSupply,
+                          initialSupply: med.initialSupply,
                         );
-                        context.read<MedicationProvider>().editMedication(medication.id!, newMed);
+                        context.read<MedicationProvider>().editMedication(med.id!, newMed);
                         Navigator.of(context).pop();
-                        SuccessOverlay.showRefillLogged(context, medName: medication.name);
+                        SuccessOverlay.showRefillLogged(context, medName: med.name);
                       },
                       child: const Text('Confirm'),
                     ),
@@ -955,10 +1010,10 @@ class _RefillsTab extends StatelessWidget {
               );
             },
             style: OutlinedButton.styleFrom(
-              backgroundColor: AppColors.isDark ? const Color(0xFF1E3A8A) : AppColors.medBlueLight,
-              foregroundColor: AppColors.isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
+              backgroundColor: med.color.withValues(alpha: 0.12),
+              foregroundColor: med.color,
               side: BorderSide(
-                  color: AppColors.isDark ? const Color(0xFF1D4ED8) : const Color(0xFFBFDBFE), width: 1.5),
+                  color: med.color.withValues(alpha: 0.35), width: 1.5),
               padding: const EdgeInsets.symmetric(vertical: 13),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),

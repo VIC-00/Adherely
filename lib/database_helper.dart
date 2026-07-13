@@ -21,7 +21,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 7,
+      version: 8,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -55,6 +55,26 @@ class DatabaseHelper {
           await db.execute('ALTER TABLE medications ADD COLUMN notes TEXT');
         }
       }
+      if (oldVersion < 8) {
+        final columns = await db.rawQuery('PRAGMA table_info(medications)');
+        final hasForm = columns.any((column) => column['name'] == 'form');
+        final hasIntakeQty = columns.any((column) => column['name'] == 'intakeQty');
+        final hasSupplyQty = columns.any((column) => column['name'] == 'supplyQty');
+        final hasInitialSupply = columns.any((column) => column['name'] == 'initialSupply');
+
+        if (!hasForm) {
+          await db.execute('ALTER TABLE medications ADD COLUMN form TEXT');
+        }
+        if (!hasIntakeQty) {
+          await db.execute('ALTER TABLE medications ADD COLUMN intakeQty REAL DEFAULT 1.0');
+        }
+        if (!hasSupplyQty) {
+          await db.execute('ALTER TABLE medications ADD COLUMN supplyQty REAL DEFAULT 0.0');
+        }
+        if (!hasInitialSupply) {
+          await db.execute('ALTER TABLE medications ADD COLUMN initialSupply REAL DEFAULT 0.0');
+        }
+      }
     } catch (e) {
       debugPrint("Migration error: $e");
       await db.execute('DROP TABLE IF EXISTS medications');
@@ -84,7 +104,11 @@ class DatabaseHelper {
         drugClass TEXT,
         sideEffects TEXT,
         doctor TEXT,
-        notes TEXT
+        notes TEXT,
+        form TEXT,
+        intakeQty REAL,
+        supplyQty REAL,
+        initialSupply REAL
       )
     ''');
 

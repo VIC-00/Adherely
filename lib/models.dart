@@ -16,6 +16,11 @@ class Medication {
   final String? doctor;
   final String? notes;
 
+  final String? form;
+  final double intakeQty;
+  final double supplyQty;
+  final double initialSupply;
+
   const Medication({
     this.id,
     required this.name,
@@ -28,6 +33,10 @@ class Medication {
     this.sideEffects,
     this.doctor,
     this.notes,
+    this.form,
+    this.intakeQty = 1.0,
+    this.supplyQty = 0.0,
+    this.initialSupply = 0.0,
   });
 }
 

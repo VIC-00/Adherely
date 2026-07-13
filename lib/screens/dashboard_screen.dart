@@ -21,11 +21,17 @@ class DashboardScreen extends StatelessWidget {
     final profileInitial = profileName.isNotEmpty ? profileName[0].toUpperCase() : 'U';
     final historyState = context.watch<HistoryProvider>();
     final meds = medState.meds;
-    final total = meds.length;
+    final activeMeds = meds.where((m) {
+      if (m.freq.toLowerCase().contains('as needed')) return false;
+      if (historyState.isOffDay(m, DateTime.now())) return false;
+      return true;
+    }).toList();
+    final prnMeds = meds.where((m) => m.freq.toLowerCase().contains('as needed')).toList();
+    final total = activeMeds.length;
     final taken =
-        meds.where((m) => medState.getTodayMedStatus(m) == MedCardVariant.taken).length;
+        activeMeds.where((m) => medState.getTodayMedStatus(m) == MedCardVariant.taken).length;
     final missed =
-        meds.where((m) => medState.getTodayMedStatus(m) == MedCardVariant.missed).length;
+        activeMeds.where((m) => medState.getTodayMedStatus(m) == MedCardVariant.missed).length;
 
     return Container(
       decoration: BoxDecoration(
@@ -228,7 +234,7 @@ class DashboardScreen extends StatelessWidget {
                         ),
                         child: FractionallySizedBox(
                           alignment: Alignment.centerLeft,
-                          widthFactor: historyState.calculateWeeklyAdherence(medState.rules, medState.dynamicTodayMeds) / 100.0,
+                          widthFactor: historyState.calculateWeeklyAdherence(medState.rules, medState.dynamicTodayMeds, meds) / 100.0,
                           child: Container(
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(colors: [
@@ -242,7 +248,7 @@ class DashboardScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    Text('${historyState.calculateWeeklyAdherence(medState.rules, medState.dynamicTodayMeds).toStringAsFixed(0)}% this week',
+                    Text('${historyState.calculateWeeklyAdherence(medState.rules, medState.dynamicTodayMeds, meds).toStringAsFixed(0)}% this week',
                         style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
@@ -364,142 +370,246 @@ class DashboardScreen extends StatelessWidget {
                     ),
                   ),
                 )
-              else
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
-                  child: Column(
-                    children: meds.map((med) {
-                      final variant = medState.getTodayMedStatus(med);
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: MedicationCard(
-                          variant: variant,
-                          compact: true,
-                          name: med.name,
-                          dose: med.dose,
-                          time: med.freq.contains('·') ? med.freq.split('·').last.trim() : med.freq,
-                          refillDays: med.refillDays,
-                          color: med.color,
-                          takenCount: medState.todayTakenCounts[med.id!] ?? 0,
-                          onTakeNow: () {
-                            final medRules = medState.rules.where((r) => r.med.toLowerCase() == med.name.toLowerCase() && r.active).toList();
-                            final takenCount = medState.todayTakenCounts[med.id!] ?? 0;
+                else if (activeMeds.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: AppColors.cardBg,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.border, width: 1.5),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        'No scheduled medications for today.',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.ink400),
+                      ),
+                    ),
+                  )
+                else
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+                    child: Column(
+                      children: activeMeds.map((med) {
+                        final variant = medState.getTodayMedStatus(med);
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: MedicationCard(
+                            variant: variant,
+                            compact: true,
+                            name: med.name,
+                            dose: med.dose,
+                            intakeQty: med.intakeQty,
+                            form: med.form,
+                            time: med.freq.contains('·') ? med.freq.split('·').last.trim() : med.freq,
+                            refillDays: med.refillDays,
+                            color: med.color,
+                            takenCount: medState.todayTakenCounts[med.id!] ?? 0,
+                            onTakeNow: () {
+                              final medRules = medState.rules.where((r) => r.med.toLowerCase() == med.name.toLowerCase() && r.active).toList();
+                              final takenCount = medState.todayTakenCounts[med.id!] ?? 0;
 
-                            void logDose(ReminderRule rule) {
-                              medState.logMedication(med.id!, MedCardVariant.taken);
-                              final timeStr = DateFormat('h:mm a').format(DateTime.now());
-                              historyState.logHistory(HistoryItem(
-                                med: '${med.name} ${med.dose}',
-                                date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
-                                time: timeStr,
-                                taken: true,
-                                note: 'Took ${rule.time} dose',
-                              ));
-                              SuccessOverlay.showDoseLogged(context, medName: med.name, dose: med.dose);
-                            }
+                              void logDose(ReminderRule rule) {
+                                medState.logMedication(med.id!, MedCardVariant.taken);
+                                final timeStr = DateFormat('h:mm a').format(DateTime.now());
+                                historyState.logHistory(HistoryItem(
+                                  med: '${med.name} ${med.dose}',
+                                  date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+                                  time: timeStr,
+                                  taken: true,
+                                  note: 'Took ${rule.time} dose',
+                                ));
+                                SuccessOverlay.showDoseLogged(context, medName: med.name, dose: med.dose);
+                              }
 
-                            if (medRules.length > 1) {
-                              _showDoseSelector(
-                                context: context,
-                                title: 'Log which dose?',
-                                med: med,
-                                rules: medState.rules,
-                                takenCount: takenCount,
-                                onSelected: logDose,
-                              );
-                            } else if (medRules.isNotEmpty) {
-                              logDose(medRules.first);
-                            }
-                          },
-                          onLogTaken: () {
-                            final medRules = medState.rules.where((r) => r.med.toLowerCase() == med.name.toLowerCase() && r.active).toList();
-                            final takenCount = medState.todayTakenCounts[med.id!] ?? 0;
+                              if (medRules.length > 1) {
+                                _showDoseSelector(
+                                  context: context,
+                                  title: 'Log which dose?',
+                                  med: med,
+                                  rules: medState.rules,
+                                  takenCount: takenCount,
+                                  onSelected: logDose,
+                                );
+                              } else if (medRules.isNotEmpty) {
+                                logDose(medRules.first);
+                              }
+                            },
+                            onLogTaken: () {
+                              final medRules = medState.rules.where((r) => r.med.toLowerCase() == med.name.toLowerCase() && r.active).toList();
+                              final takenCount = medState.todayTakenCounts[med.id!] ?? 0;
 
-                            void logDose(ReminderRule rule) {
-                              medState.logMedication(med.id!, MedCardVariant.taken);
-                              final timeStr = DateFormat('h:mm a').format(DateTime.now());
-                              historyState.logHistory(HistoryItem(
-                                med: '${med.name} ${med.dose}',
-                                date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
-                                time: timeStr,
-                                taken: true,
-                                note: 'Took ${rule.time} dose late',
-                              ));
-                              SuccessOverlay.showDoseLogged(context, medName: med.name, dose: med.dose);
-                            }
+                              void logDose(ReminderRule rule) {
+                                medState.logMedication(med.id!, MedCardVariant.taken);
+                                final timeStr = DateFormat('h:mm a').format(DateTime.now());
+                                historyState.logHistory(HistoryItem(
+                                  med: '${med.name} ${med.dose}',
+                                  date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+                                  time: timeStr,
+                                  taken: true,
+                                  note: 'Took ${rule.time} dose late',
+                                ));
+                                SuccessOverlay.showDoseLogged(context, medName: med.name, dose: med.dose);
+                              }
 
-                            if (medRules.length > 1) {
-                              _showDoseSelector(
-                                context: context,
-                                title: 'Log which dose?',
-                                med: med,
-                                rules: medState.rules,
-                                takenCount: takenCount,
-                                onSelected: logDose,
-                              );
-                            } else if (medRules.isNotEmpty) {
-                              logDose(medRules.first);
-                            }
-                          },
-                          onReschedule: () async {
-                            final medRules = medState.rules.where((r) => r.med.toLowerCase() == med.name.toLowerCase() && r.active).toList();
-                            final takenCount = medState.todayTakenCounts[med.id!] ?? 0;
+                              if (medRules.length > 1) {
+                                _showDoseSelector(
+                                  context: context,
+                                  title: 'Log which dose?',
+                                  med: med,
+                                  rules: medState.rules,
+                                  takenCount: takenCount,
+                                  onSelected: logDose,
+                                );
+                              } else if (medRules.isNotEmpty) {
+                                logDose(medRules.first);
+                              }
+                            },
+                            onReschedule: () async {
+                              final medRules = medState.rules.where((r) => r.med.toLowerCase() == med.name.toLowerCase() && r.active).toList();
+                              final takenCount = medState.todayTakenCounts[med.id!] ?? 0;
 
-                            Future<void> rescheduleDose(ReminderRule rule) async {
-                              final TimeOfDay? picked = await showTimePicker(
-                                context: context,
-                                initialTime: TimeOfDay.now(),
-                                builder: (context, child) {
-                                  final mediaQuery = MediaQuery.of(context);
-                                  return MediaQuery(
-                                    data: mediaQuery.copyWith(
-                                      size: Size(mediaQuery.size.width, mediaQuery.size.height < 600.0 ? 800.0 : mediaQuery.size.height),
-                                      viewInsets: mediaQuery.viewInsets.copyWith(bottom: 0),
-                                      textScaler: TextScaler.noScaling,
-                                    ),
-                                    child: OverflowBox(
-                                      minHeight: 340.0,
-                                      maxHeight: 800.0,
-                                      child: child!,
-                                    ),
-                                  );
-                                },
-                              );
-                              if (picked != null) {
-                                final hour = picked.hourOfPeriod == 0 ? 12 : picked.hourOfPeriod;
-                                final minute = picked.minute.toString().padLeft(2, '0');
-                                final period = picked.period == DayPeriod.am ? 'AM' : 'PM';
-                                final newTime = '$hour:$minute $period';
-                                
-                                await medState.rescheduleRule(med.id!, rule.time, newTime);
-                                if (context.mounted) {
-                                  SuccessOverlay.showRescheduled(context, medName: med.name, time: newTime);
+                              Future<void> rescheduleDose(ReminderRule rule) async {
+                                final TimeOfDay? picked = await showTimePicker(
+                                  context: context,
+                                  initialTime: TimeOfDay.now(),
+                                  builder: (context, child) {
+                                    final mediaQuery = MediaQuery.of(context);
+                                    return MediaQuery(
+                                      data: mediaQuery.copyWith(
+                                        size: Size(mediaQuery.size.width, mediaQuery.size.height < 600.0 ? 800.0 : mediaQuery.size.height),
+                                        viewInsets: mediaQuery.viewInsets.copyWith(bottom: 0),
+                                        textScaler: TextScaler.noScaling,
+                                      ),
+                                      child: OverflowBox(
+                                        minHeight: 340.0,
+                                        maxHeight: 800.0,
+                                        child: child!,
+                                      ),
+                                    );
+                                  },
+                                );
+                                if (picked != null) {
+                                  final hour = picked.hourOfPeriod == 0 ? 12 : picked.hourOfPeriod;
+                                  final minute = picked.minute.toString().padLeft(2, '0');
+                                  final period = picked.period == DayPeriod.am ? 'AM' : 'PM';
+                                  final newTime = '$hour:$minute $period';
+                                  
+                                  await medState.rescheduleRule(med.id!, rule.time, newTime);
+                                  final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+                                  await historyState.logHistory(HistoryItem(
+                                    med: '${med.name} ${med.dose}',
+                                    date: todayStr,
+                                    time: rule.time,
+                                    taken: false,
+                                    note: 'Rescheduled to $newTime',
+                                  ));
+                                  if (context.mounted) {
+                                    SuccessOverlay.showRescheduled(context, medName: med.name, time: newTime);
+                                  }
                                 }
                               }
-                            }
 
-                            if (medRules.length > 1) {
-                              _showDoseSelector(
-                                context: context,
-                                title: 'Reschedule which dose?',
-                                med: med,
-                                rules: medState.rules,
-                                takenCount: takenCount,
-                                onSelected: rescheduleDose,
-                              );
-                            } else if (medRules.isNotEmpty) {
-                              rescheduleDose(medRules.first);
-                            }
-                          },
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                                builder: (_) => MedDetailScreen(medication: med)),
+                              if (medRules.length > 1) {
+                                _showDoseSelector(
+                                  context: context,
+                                  title: 'Reschedule which dose?',
+                                  med: med,
+                                  rules: medState.rules,
+                                  takenCount: takenCount,
+                                  onSelected: rescheduleDose,
+                                );
+                              } else if (medRules.isNotEmpty) {
+                                rescheduleDose(medRules.first);
+                              }
+                            },
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                  builder: (_) => MedDetailScreen(medication: med)),
+                            ),
                           ),
-                        ),
-                      );
-                    }).toList(),
+                        );
+                      }).toList(),
+                    ),
                   ),
-                ),
+                if (prnMeds.isNotEmpty) ...[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+                    child: Text(
+                      'As Needed (PRN)',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.ink900,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Column(
+                      children: prnMeds.map((med) {
+                        return Card(
+                          color: AppColors.cardBg,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(color: AppColors.border, width: 1.5),
+                          ),
+                          margin: const EdgeInsets.only(bottom: 10),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                            leading: Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: med.color.withValues(alpha: 0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(Icons.medical_services_rounded, size: 18, color: med.color),
+                            ),
+                            title: Text(
+                              med.name,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.ink900,
+                              ),
+                            ),
+                            subtitle: Text(
+                              med.dose.isNotEmpty ? '${med.dose} · As needed' : 'As needed',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.ink500,
+                              ),
+                            ),
+                            trailing: ElevatedButton(
+                              onPressed: () {
+                                final timeStr = DateFormat('h:mm a').format(DateTime.now());
+                                historyState.logHistory(HistoryItem(
+                                  med: '${med.name} ${med.dose}',
+                                  date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+                                  time: timeStr,
+                                  taken: true,
+                                  note: 'Taken as needed',
+                                ));
+                                SuccessOverlay.showDoseLogged(context, medName: med.name, dose: med.dose);
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF2563EB),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                elevation: 0,
+                              ),
+                              child: const Text('Log Intake', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
             ],
           ),
         ),

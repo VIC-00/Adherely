@@ -63,7 +63,7 @@ class HistoryScreen extends StatelessWidget {
                     Row(
                       children: [
                         _HeaderStat(
-                            v: '${historyState.calculateWeeklyAdherence(medState.rules, medState.todayMeds).toStringAsFixed(0)}%',
+                            v: '${historyState.calculateWeeklyAdherence(medState.rules, medState.dynamicTodayMeds, medState.meds).toStringAsFixed(0)}%',
                             l: 'Adherence'),
                         const SizedBox(width: 16),
                         _HeaderStat(
@@ -134,7 +134,7 @@ class HistoryScreen extends StatelessWidget {
                           .toList(),
                     ),
                     const SizedBox(height: 6),
-                    for (final row in historyState.getCalRows(medState.rules))
+                    for (final row in historyState.getCalRows(medState.rules, medState.meds))
                       Padding(
                         padding: const EdgeInsets.only(bottom: 4),
                         child: Row(
@@ -190,7 +190,7 @@ class HistoryScreen extends StatelessWidget {
                                 cell.status != DayStatus.empty) {
                               cellWidget = GestureDetector(
                                 onTap: () => _showDayDosesDialog(
-                                    context, historyState, cell.day, medState.rules),
+                                    context, historyState, cell.day, medState.rules, medState.meds),
                                 child: cellWidget,
                               );
                             }
@@ -253,7 +253,7 @@ class HistoryScreen extends StatelessWidget {
                                 color: AppColors.ink400)),
                       )
                     else
-                      for (final item in historyState.getDoseLog(medState.rules))
+                      for (final item in historyState.getDoseLog(medState.rules, medState.meds))
                         Padding(
                           padding: const EdgeInsets.only(bottom: 8),
                           child: Container(
@@ -270,9 +270,11 @@ class HistoryScreen extends StatelessWidget {
                               ],
                               border: Border(
                                   left: BorderSide(
-                                      color: item.taken
-                                          ? AppColors.medGreen
-                                          : AppColors.medRed,
+                                      color: item.note.toLowerCase().contains('rescheduled')
+                                          ? const Color(0xFFF59E0B)
+                                          : (item.taken
+                                              ? AppColors.medGreen
+                                              : AppColors.medRed),
                                       width: 3)),
                             ),
                             child: Row(
@@ -281,25 +283,34 @@ class HistoryScreen extends StatelessWidget {
                                   width: 32,
                                   height: 32,
                                   decoration: BoxDecoration(
-                                    color: item.taken
+                                    color: item.note.toLowerCase().contains('rescheduled')
                                         ? (AppColors.isDark
-                                            ? const Color(0xFF14532D)
+                                            ? const Color(0xFF78350F)
                                                 .withValues(alpha: 0.3)
-                                            : AppColors.medGreenLight)
-                                        : (AppColors.isDark
-                                            ? const Color(0xFF7F1D1D)
-                                                .withValues(alpha: 0.3)
-                                            : AppColors.medRedLight),
+                                            : const Color(0xFFFEF3C7))
+                                        : (item.taken
+                                            ? (AppColors.isDark
+                                                ? const Color(0xFF14532D)
+                                                    .withValues(alpha: 0.3)
+                                                : AppColors.medGreenLight)
+                                            : (AppColors.isDark
+                                                ? const Color(0xFF7F1D1D)
+                                                    .withValues(alpha: 0.3)
+                                                : AppColors.medRedLight)),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(
-                                    item.taken
-                                        ? Icons.check_rounded
-                                        : Icons.close_rounded,
+                                    item.note.toLowerCase().contains('rescheduled')
+                                        ? Icons.edit_calendar_rounded
+                                        : (item.taken
+                                            ? Icons.check_rounded
+                                            : Icons.close_rounded),
                                     size: 14,
-                                    color: item.taken
-                                        ? AppColors.medGreen
-                                        : AppColors.medRed,
+                                    color: item.note.toLowerCase().contains('rescheduled')
+                                        ? const Color(0xFFD97706)
+                                        : (item.taken
+                                            ? AppColors.medGreen
+                                            : AppColors.medRed),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
@@ -329,14 +340,18 @@ class HistoryScreen extends StatelessWidget {
                                         style: TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w700,
-                                            color: item.taken
+                                            color: item.note.toLowerCase().contains('rescheduled')
                                                 ? (AppColors.isDark
-                                                    ? const Color(0xFF4ADE80)
-                                                    : const Color(0xFF15803D))
-                                                : (AppColors.isDark
-                                                    ? const Color(0xFFFCA5A5)
-                                                    : const Color(
-                                                        0xFFB91C1C)))),
+                                                    ? const Color(0xFFFBBF24)
+                                                    : const Color(0xFFB45309))
+                                                : (item.taken
+                                                    ? (AppColors.isDark
+                                                        ? const Color(0xFF4ADE80)
+                                                        : const Color(0xFF15803D))
+                                                    : (AppColors.isDark
+                                                        ? const Color(0xFFFCA5A5)
+                                                        : const Color(
+                                                            0xFFB91C1C))))),
                                     const SizedBox(height: 1),
                                     Text(item.note,
                                         style: TextStyle(
@@ -384,8 +399,8 @@ class HistoryScreen extends StatelessWidget {
   }
 
   void _showDayDosesDialog(
-      BuildContext context, HistoryProvider historyState, int day, List<ReminderRule> rules) {
-    final doses = historyState.getDosesForDay(day, rules);
+      BuildContext context, HistoryProvider historyState, int day, List<ReminderRule> rules, List<Medication> meds) {
+    final doses = historyState.getDosesForDay(day, rules, meds);
 
     showDialog(
       context: context,

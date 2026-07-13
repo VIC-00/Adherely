@@ -12,6 +12,8 @@ class MedicationCard extends StatefulWidget {
   final VoidCallback? onReschedule;
   final String name;
   final String dose;
+  final double intakeQty;
+  final String? form;
   final String time;
   final int? refillDays;
   final Color? color;
@@ -27,6 +29,8 @@ class MedicationCard extends StatefulWidget {
     this.onReschedule,
     this.name = '',
     this.dose = '',
+    this.intakeQty = 1.0,
+    this.form,
     this.time = '',
     this.refillDays,
     this.color,
@@ -38,8 +42,6 @@ class MedicationCard extends StatefulWidget {
 }
 
 class _MedicationCardState extends State<MedicationCard> {
-  bool _taken = false;
-  bool _rescheduled = false;
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +51,8 @@ class _MedicationCardState extends State<MedicationCard> {
           compact: widget.compact,
           name: widget.name,
           dose: widget.dose,
+          intakeQty: widget.intakeQty,
+          form: widget.form,
           time: widget.time,
           refillDays: widget.refillDays,
           onTakeNow: widget.onTakeNow,
@@ -59,6 +63,8 @@ class _MedicationCardState extends State<MedicationCard> {
           compact: widget.compact,
           name: widget.name,
           dose: widget.dose,
+          intakeQty: widget.intakeQty,
+          form: widget.form,
           time: widget.time,
           refillDays: widget.refillDays,
           takenCount: widget.takenCount,
@@ -67,19 +73,13 @@ class _MedicationCardState extends State<MedicationCard> {
           compact: widget.compact,
           name: widget.name,
           dose: widget.dose,
+          intakeQty: widget.intakeQty,
+          form: widget.form,
           time: widget.time,
-          taken: _taken,
-          rescheduled: _rescheduled,
           refillDays: widget.refillDays,
           takenCount: widget.takenCount,
-          onTaken: () {
-            setState(() => _taken = true);
-            if (widget.onLogTaken != null) widget.onLogTaken!();
-          },
-          onReschedule: () {
-            setState(() => _rescheduled = true);
-            if (widget.onReschedule != null) widget.onReschedule!();
-          },
+          onTaken: widget.onLogTaken ?? () {},
+          onReschedule: widget.onReschedule ?? () {},
         ),
     };
 
@@ -100,6 +100,8 @@ class _UpcomingCard extends StatelessWidget {
   final bool compact;
   final String name;
   final String dose;
+  final double intakeQty;
+  final String? form;
   final String time;
   final int? refillDays;
   final VoidCallback? onTakeNow;
@@ -110,6 +112,8 @@ class _UpcomingCard extends StatelessWidget {
     required this.compact,
     required this.name,
     required this.dose,
+    required this.intakeQty,
+    this.form,
     required this.time,
     this.refillDays,
     this.onTakeNow,
@@ -203,7 +207,7 @@ class _UpcomingCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 1),
                       Text(
-                        dose,
+                        _getIntakeText(intakeQty, form),
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.75),
                           fontSize: compact ? 12 : 14,
@@ -213,11 +217,15 @@ class _UpcomingCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    _buildTimePills(time, takenCount, false),
-                  ],
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 155),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildTimePills(time, takenCount, false),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -305,6 +313,8 @@ class _TakenCard extends StatelessWidget {
   final bool compact;
   final String name;
   final String dose;
+  final double intakeQty;
+  final String? form;
   final String time;
   final int? refillDays;
   final int takenCount;
@@ -313,6 +323,8 @@ class _TakenCard extends StatelessWidget {
     required this.compact,
     required this.name,
     required this.dose,
+    required this.intakeQty,
+    this.form,
     required this.time,
     this.refillDays,
     required this.takenCount,
@@ -374,23 +386,27 @@ class _TakenCard extends StatelessWidget {
                             letterSpacing: -0.4,
                           ),
                         ),
-                        const SizedBox(height: 1),
-                        Text(
-                          dose,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.6),
-                            fontSize: compact ? 12 : 14,
-                            fontWeight: FontWeight.w500,
-                          ),
+                      const SizedBox(height: 1),
+                      Text(
+                        _getIntakeText(intakeQty, form),
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          fontSize: compact ? 12 : 14,
+                          fontWeight: FontWeight.w500,
                         ),
+                      ),
                       ],
                     ),
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      _buildTimePills(time, takenCount, true),
-                    ],
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 155),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildTimePills(time, takenCount, true),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -472,24 +488,24 @@ class _TakenCard extends StatelessWidget {
 
 class _MissedCard extends StatelessWidget {
   final bool compact;
-  final bool taken;
-  final bool rescheduled;
   final VoidCallback onTaken;
   final VoidCallback onReschedule;
   final String name;
   final String dose;
+  final double intakeQty;
+  final String? form;
   final String time;
   final int? refillDays;
   final int takenCount;
 
   const _MissedCard({
     required this.compact,
-    required this.taken,
-    required this.rescheduled,
     required this.onTaken,
     required this.onReschedule,
     required this.name,
     required this.dose,
+    required this.intakeQty,
+    this.form,
     required this.time,
     this.refillDays,
     required this.takenCount,
@@ -569,7 +585,7 @@ class _MissedCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 1),
                       Text(
-                        dose,
+                        _getIntakeText(intakeQty, form),
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.7),
                           fontSize: compact ? 12 : 14,
@@ -579,11 +595,15 @@ class _MissedCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    _buildTimePills(time, takenCount, false),
-                  ],
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 155),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildTimePills(time, takenCount, false),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -633,18 +653,17 @@ class _MissedCard extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: ElevatedButton.icon(
+                      child: ElevatedButton(
                         onPressed: onTaken,
-                        icon: taken ? const Icon(Icons.check_rounded, size: 13) : const SizedBox.shrink(),
-                        label: Text(taken ? 'Logged' : 'Log as Taken',
-                            style: TextStyle(fontSize: compact ? 12 : 13, fontWeight: FontWeight.w700)),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: taken ? const Color(0xFF15803D) : const Color(0xFF16A34A),
+                          backgroundColor: const Color(0xFF16A34A),
                           foregroundColor: Colors.white,
-                          elevation: taken ? 0 : 2,
+                          elevation: 2,
                           padding: EdgeInsets.symmetric(vertical: compact ? 10 : 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
+                        child: Text('Log as Taken',
+                            style: TextStyle(fontSize: compact ? 12 : 13, fontWeight: FontWeight.w700)),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -652,16 +671,13 @@ class _MissedCard extends StatelessWidget {
                       child: OutlinedButton(
                         onPressed: onReschedule,
                         style: OutlinedButton.styleFrom(
-                          backgroundColor: rescheduled
-                              ? const Color(0xFF374151)
-                              : (AppColors.isDark ? AppColors.cardBg : Colors.white),
-                          foregroundColor: rescheduled ? const Color(0xFF9CA3AF) : AppColors.ink900,
-                          side: BorderSide(
-                              color: rescheduled ? const Color(0xFF6B7280) : AppColors.border, width: 1.5),
+                          backgroundColor: AppColors.isDark ? AppColors.cardBg : Colors.white,
+                          foregroundColor: AppColors.ink900,
+                          side: BorderSide(color: AppColors.border, width: 1.5),
                           padding: EdgeInsets.symmetric(vertical: compact ? 10 : 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
-                        child: Text(rescheduled ? 'Rescheduled' : 'Reschedule',
+                        child: Text('Reschedule',
                             style: TextStyle(fontSize: compact ? 12 : 13, fontWeight: FontWeight.w700)),
                       ),
                     ),
@@ -744,4 +760,22 @@ bool _hasTimePassed(String timeStr) {
   } catch (_) {
     return false;
   }
+}
+
+String _getIntakeText(double qty, String? form) {
+  final qtyStr = qty.toStringAsFixed(qty == qty.toInt() ? 0 : 1);
+  final formLower = (form ?? 'tablet').toLowerCase();
+  String unit = 'pill';
+  if (formLower.contains('tablet')) {
+    unit = qty == 1.0 ? 'tablet' : 'tablets';
+  } else if (formLower.contains('capsule')) {
+    unit = qty == 1.0 ? 'capsule' : 'capsules';
+  } else if (formLower.contains('liquid')) {
+    unit = 'ml';
+  } else if (formLower.contains('injection')) {
+    unit = qty == 1.0 ? 'injection' : 'injections';
+  } else {
+    unit = qty == 1.0 ? 'unit' : 'units';
+  }
+  return '$qtyStr $unit';
 }

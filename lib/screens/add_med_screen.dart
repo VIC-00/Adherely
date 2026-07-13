@@ -83,6 +83,67 @@ class _AddMedScreenState extends State<AddMedScreen> {
   final _doctorController = TextEditingController();
   final _notesController = TextEditingController();
   String _form = 'Tablet';
+  double _intakeQty = 1.0;
+
+  String _getIntakeUnit() {
+    switch (_form.toLowerCase()) {
+      case 'tablet':
+        return 'tablets';
+      case 'capsule':
+        return 'capsules';
+      case 'liquid':
+        return 'ml';
+      case 'injection':
+        return 'units';
+      default:
+        return 'units';
+    }
+  }
+
+  String _getIntakeDescription() {
+    switch (_form.toLowerCase()) {
+      case 'tablet':
+        return 'Number of tablets taken per dose (e.g. 1, 2, or 0.5).';
+      case 'capsule':
+        return 'Number of capsules taken per dose (e.g. 1 or 2).';
+      case 'liquid':
+        return 'Volume of liquid taken per dose (e.g. 5 or 10 ml).';
+      case 'injection':
+        return 'Units or injections taken per dose (e.g. 1 or 12).';
+      default:
+        return 'Quantity of medicine taken per dose.';
+    }
+  }
+
+  String _getSupplyLabel() {
+    switch (_form.toLowerCase()) {
+      case 'tablet':
+        return 'Tablets in supply';
+      case 'capsule':
+        return 'Capsules in supply';
+      case 'liquid':
+        return 'Liquid volume in supply (ml)';
+      case 'injection':
+        return 'Injections/Units in supply';
+      default:
+        return 'Quantity in supply';
+    }
+  }
+
+  String _getSupplyHint() {
+    switch (_form.toLowerCase()) {
+      case 'tablet':
+        return 'e.g. 30';
+      case 'capsule':
+        return 'e.g. 30';
+      case 'liquid':
+        return 'e.g. 150';
+      case 'injection':
+        return 'e.g. 5';
+      default:
+        return 'e.g. 30';
+    }
+  }
 
   @override
   void dispose() {
@@ -252,20 +313,10 @@ class _AddMedScreenState extends State<AddMedScreen> {
                             setState(() => _step = 1);
                             return;
                           }
-                          if (dose.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Please enter the dose (e.g. 10mg).'),
-                                backgroundColor: Color(0xFFEF4444),
-                              ),
-                            );
-                            setState(() => _step = 1);
-                            return;
-                          }
 
                           final freq = '$_freq · ${_selectedTimes.join(', ')}';
                           final supply =
-                              int.tryParse(_supplyController.text.trim()) ?? 30;
+                              double.tryParse(_supplyController.text.trim()) ?? 30.0;
                           final doctor = _doctorController.text.trim();
                           final notes = _notesController.text.trim();
 
@@ -296,9 +347,13 @@ class _AddMedScreenState extends State<AddMedScreen> {
                               dose: dose,
                               freq: freq,
                               color: color,
-                              refillDays: supply,
+                              refillDays: supply.toInt(),
                               doctor: doctor.isNotEmpty ? doctor : null,
                               notes: notes.isNotEmpty ? notes : null,
+                              form: _form,
+                              intakeQty: _intakeQty,
+                              supplyQty: supply,
+                              initialSupply: supply,
                             ),
                             types: alertTypes,
                             advanceMinutes: 0,
@@ -367,8 +422,9 @@ class _AddMedScreenState extends State<AddMedScreen> {
           children: [
             Expanded(
               child: _FormField(
-                label: 'Dosage',
-                required: true,
+                label: 'Dosage (Optional)',
+                description: 'Strength of a single unit (e.g. 500mg, 10mg, or 100 units/ml).',
+                required: false,
                 child: TextFormField(
                   controller: _doseController,
                   style: TextStyle(
@@ -482,6 +538,46 @@ class _AddMedScreenState extends State<AddMedScreen> {
                 ),
               );
             }).toList(),
+          ),
+        ),
+        const SizedBox(height: 16),
+        _FormField(
+          label: 'Intake Amount (per dose)',
+          description: _getIntakeDescription(),
+          required: true,
+          child: Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  initialValue: _intakeQty.toStringAsFixed(_intakeQty == _intakeQty.toInt() ? 0 : 1),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.ink900),
+                  decoration: InputDecoration(
+                    hintText: 'e.g. 1',
+                    filled: true,
+                    fillColor: AppColors.isDark ? AppColors.cardBg : Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5)),
+                  ),
+                  onChanged: (val) {
+                    setState(() {
+                      _intakeQty = double.tryParse(val) ?? 1.0;
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                _getIntakeUnit(),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.ink700,
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -647,18 +743,18 @@ class _AddMedScreenState extends State<AddMedScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Pills in supply',
+              Text(_getSupplyLabel(),
                   style: TextStyle(fontSize: 11, color: AppColors.ink500)),
               const SizedBox(height: 4),
               TextFormField(
                 controller: _supplyController,
-                keyboardType: TextInputType.number,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                     color: AppColors.ink900),
                 decoration: InputDecoration(
-                  hintText: 'e.g. 30',
+                  hintText: _getSupplyHint(),
                   filled: true,
                   fillColor:
                       AppColors.isDark ? AppColors.cardBg : Colors.white,
@@ -787,13 +883,14 @@ class _AddMedScreenState extends State<AddMedScreen> {
                   children: [
                     TextSpan(
                         text:
-                            '${_nameController.text.trim().isNotEmpty ? _nameController.text.trim() : 'Medication'} '),
-                    TextSpan(
-                        text: _doseController.text.trim().isNotEmpty
-                            ? _doseController.text.trim()
-                            : 'dose',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w500, fontSize: 16)),
+                            _nameController.text.trim().isNotEmpty ? _nameController.text.trim() : 'Medication'),
+                    if (_doseController.text.trim().isNotEmpty) ...[
+                      const TextSpan(text: ' '),
+                      TextSpan(
+                          text: _doseController.text.trim(),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w500, fontSize: 16)),
+                    ],
                   ],
                 ),
               ),
@@ -984,8 +1081,9 @@ class _FormField extends StatelessWidget {
   final String label;
   final bool required;
   final Widget child;
+  final String? description;
   const _FormField(
-      {required this.label, this.required = false, required this.child});
+      {required this.label, this.required = false, required this.child, this.description});
 
   @override
   Widget build(BuildContext context) {
@@ -1006,6 +1104,17 @@ class _FormField extends StatelessWidget {
             ],
           ),
         ),
+        if (description != null) ...[
+          const SizedBox(height: 3),
+          Text(
+            description!,
+            style: TextStyle(
+                fontSize: 10,
+                color: AppColors.ink400,
+                fontWeight: FontWeight.w500,
+                height: 1.3),
+          ),
+        ],
         const SizedBox(height: 6),
         child,
       ],
