@@ -854,7 +854,7 @@ class ProfileScreen extends StatelessWidget {
                                     final historyData = await db.query('history_items', orderBy: 'id DESC');
                                     final bpData = await db.query('bp_readings');
 
-                                    await medProvider.load(medsData, rulesData, todayData);
+                                    await medProvider.load(medsData, rulesData, todayData, historyData);
                                     await vitalsProvider.load(vitalsData, bpData);
                                     // Pass null profile so the app routes back to Onboarding
                                     await settingsProvider.load(null, caregiversData, togglesData);

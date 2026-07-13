@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../models.dart';
 import '../theme/app_colors.dart';
+
 class MedicationCard extends StatefulWidget {
   final MedCardVariant variant;
   final bool compact;
@@ -13,6 +15,7 @@ class MedicationCard extends StatefulWidget {
   final String time;
   final int? refillDays;
   final Color? color;
+  final int takenCount;
 
   const MedicationCard({
     super.key,
@@ -27,6 +30,7 @@ class MedicationCard extends StatefulWidget {
     this.time = '',
     this.refillDays,
     this.color,
+    this.takenCount = 0,
   });
 
   @override
@@ -49,12 +53,15 @@ class _MedicationCardState extends State<MedicationCard> {
           refillDays: widget.refillDays,
           onTakeNow: widget.onTakeNow,
           color: widget.color,
+          takenCount: widget.takenCount,
         ),
       MedCardVariant.taken => _TakenCard(
           compact: widget.compact,
           name: widget.name,
           dose: widget.dose,
+          time: widget.time,
           refillDays: widget.refillDays,
+          takenCount: widget.takenCount,
         ),
       MedCardVariant.missed => _MissedCard(
           compact: widget.compact,
@@ -64,6 +71,7 @@ class _MedicationCardState extends State<MedicationCard> {
           taken: _taken,
           rescheduled: _rescheduled,
           refillDays: widget.refillDays,
+          takenCount: widget.takenCount,
           onTaken: () {
             setState(() => _taken = true);
             if (widget.onLogTaken != null) widget.onLogTaken!();
@@ -96,6 +104,7 @@ class _UpcomingCard extends StatelessWidget {
   final int? refillDays;
   final VoidCallback? onTakeNow;
   final Color? color;
+  final int takenCount;
 
   const _UpcomingCard({
     required this.compact,
@@ -105,6 +114,7 @@ class _UpcomingCard extends StatelessWidget {
     this.refillDays,
     this.onTakeNow,
     this.color,
+    required this.takenCount,
   });
 
   @override
@@ -206,32 +216,7 @@ class _UpcomingCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: compact ? 8 : 10,
-                        vertical: compact ? 4 : 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.access_time_rounded,
-                              size: 12, color: Colors.white.withValues(alpha: 0.9)),
-                          const SizedBox(width: 5),
-                          Text(
-                            time,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: compact ? 12 : 13,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    _buildTimePills(time, takenCount, false),
                   ],
                 ),
               ],
@@ -320,13 +305,17 @@ class _TakenCard extends StatelessWidget {
   final bool compact;
   final String name;
   final String dose;
+  final String time;
   final int? refillDays;
+  final int takenCount;
 
   const _TakenCard({
     required this.compact,
     required this.name,
     required this.dose,
+    required this.time,
     this.refillDays,
+    required this.takenCount,
   });
 
   @override
@@ -397,17 +386,11 @@ class _TakenCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Container(
-                    width: compact ? 36 : 44,
-                    height: compact ? 36 : 44,
-                    decoration: BoxDecoration(
-                      color: AppColors.medGreen,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(color: AppColors.medGreen.withValues(alpha: 0.2), blurRadius: 0, spreadRadius: 4),
-                      ],
-                    ),
-                    child: Icon(Icons.check_rounded, size: compact ? 18 : 22, color: Colors.white),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      _buildTimePills(time, takenCount, true),
+                    ],
                   ),
                 ],
               ),
@@ -497,6 +480,7 @@ class _MissedCard extends StatelessWidget {
   final String dose;
   final String time;
   final int? refillDays;
+  final int takenCount;
 
   const _MissedCard({
     required this.compact,
@@ -508,6 +492,7 @@ class _MissedCard extends StatelessWidget {
     required this.dose,
     required this.time,
     this.refillDays,
+    required this.takenCount,
   });
 
   @override
@@ -594,25 +579,11 @@ class _MissedCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: compact ? 8 : 10,
-                    vertical: compact ? 6 : 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.error_outline_rounded, size: 16, color: Colors.white),
-                      Text(time,
-                          style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.9), fontSize: 10, fontWeight: FontWeight.w700)),
-                      Text('overdue', style: TextStyle(color: Colors.white.withValues(alpha: 0.65), fontSize: 9)),
-                    ],
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    _buildTimePills(time, takenCount, false),
+                  ],
                 ),
               ],
             ),
@@ -702,5 +673,75 @@ class _MissedCard extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+Widget _buildTimePills(String timeStr, int takenCount, bool isTakenState) {
+  final times = timeStr.split(',').map((t) => t.trim()).toList();
+  return Wrap(
+    spacing: 5,
+    runSpacing: 4,
+    alignment: WrapAlignment.end,
+    crossAxisAlignment: WrapCrossAlignment.center,
+    children: times.map((t) {
+      final int idx = times.indexOf(t);
+      final bool isDoseTaken = isTakenState || idx < takenCount;
+      final bool isDosePassed = _hasTimePassed(t);
+
+      Color pillBg;
+      Color pillBorder;
+      IconData pillIcon;
+
+      if (isDoseTaken) {
+        pillBg = Colors.white.withValues(alpha: 0.25);
+        pillBorder = Colors.white.withValues(alpha: 0.4);
+        pillIcon = Icons.check_rounded;
+      } else if (isDosePassed) {
+        pillBg = const Color(0xFFEF4444).withValues(alpha: 0.35);
+        pillBorder = const Color(0xFFEF4444).withValues(alpha: 0.6);
+        pillIcon = Icons.close_rounded;
+      } else {
+        pillBg = Colors.white.withValues(alpha: 0.1);
+        pillBorder = Colors.white.withValues(alpha: 0.2);
+        pillIcon = Icons.access_time_rounded;
+      }
+
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+        decoration: BoxDecoration(
+          color: pillBg,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: pillBorder, width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(pillIcon, size: 9, color: Colors.white),
+            const SizedBox(width: 3),
+            Text(
+              t,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      );
+    }).toList(),
+  );
+}
+
+bool _hasTimePassed(String timeStr) {
+  try {
+    final cleanTime = timeStr.trim();
+    final format = DateFormat('h:mm a');
+    final parsedTime = format.parse(cleanTime);
+    final now = DateTime.now();
+    final todayTime = DateTime(now.year, now.month, now.day, parsedTime.hour, parsedTime.minute);
+    return todayTime.isBefore(now);
+  } catch (_) {
+    return false;
   }
 }

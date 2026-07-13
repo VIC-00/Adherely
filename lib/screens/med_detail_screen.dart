@@ -109,16 +109,22 @@ class _MedDetailScreenState extends State<MedDetailScreen> {
                                 fontSize: 14,
                                 color: Colors.white.withValues(alpha: 0.8)),
                           ),
-                          const SizedBox(height: 14),
-                           Row(
-                            children: [
-                              _StatPill(val: widget.medication.freq.contains('·') ? widget.medication.freq.split('·').last.trim() : widget.medication.freq, label: 'Schedule'),
-                              const SizedBox(width: 10),
-                              _StatPill(val: '${historyState.calculateStreak(medState.todayMeds)} days', label: 'Streak'),
-                              const SizedBox(width: 10),
-                              _StatPill(val: '${medState.calculateAdherence().toStringAsFixed(0)}%', label: 'Adherence'),
-                            ],
-                          ),
+                          const SizedBox(height: 14), Builder(
+                             builder: (context) {
+                               final timeStr = widget.medication.freq.contains('·') ? widget.medication.freq.split('·').last.trim() : widget.medication.freq;
+                               final timesCount = timeStr.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty).toList().length;
+                               final scheduleVal = timesCount > 1 ? '${timesCount}x daily' : timeStr;
+                               return Row(
+                                 children: [
+                                   _StatPill(val: scheduleVal, label: 'Schedule'),
+                                   const SizedBox(width: 10),
+                                   _StatPill(val: '${historyState.calculateStreakForMed(widget.medication.name, medState.dynamicTodayMeds, widget.medication)} days', label: 'Streak'),
+                                   const SizedBox(width: 10),
+                                   _StatPill(val: '${historyState.getMedicationAdherence(widget.medication.name)}%', label: 'Adherence'),
+                                 ],
+                               );
+                             }
+                           ),
                         ],
                       ),
                     ),
@@ -191,19 +197,43 @@ class _MedDetailScreenState extends State<MedDetailScreen> {
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: medState.todayMeds[widget.medication.id!] == MedCardVariant.taken
+                  onPressed: medState.getTodayMedStatus(widget.medication) == MedCardVariant.taken
                       ? null
                       : () {
-                          medState.logMedication(widget.medication.id!, MedCardVariant.taken);
-                          SuccessOverlay.showDoseLogged(context,
-                              medName: widget.medication.name,
-                              dose: widget.medication.dose);
+                          final medRules = medState.rules.where((r) => r.med.toLowerCase() == widget.medication.name.toLowerCase() && r.active).toList();
+                          final takenCount = medState.todayTakenCounts[widget.medication.id!] ?? 0;
+
+                          void logDose(ReminderRule rule) {
+                            medState.logMedication(widget.medication.id!, MedCardVariant.taken);
+                            final timeStr = DateFormat('h:mm a').format(DateTime.now());
+                            historyState.logHistory(HistoryItem(
+                              med: '${widget.medication.name} ${widget.medication.dose}',
+                              date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+                              time: timeStr,
+                              taken: true,
+                              note: 'Took ${rule.time} dose',
+                            ));
+                            SuccessOverlay.showDoseLogged(context, medName: widget.medication.name, dose: widget.medication.dose);
+                          }
+
+                          if (medRules.length > 1) {
+                            _showDoseSelector(
+                              context: context,
+                              title: 'Log which dose?',
+                              med: widget.medication,
+                              rules: medState.rules,
+                              takenCount: takenCount,
+                              onSelected: logDose,
+                            );
+                          } else if (medRules.isNotEmpty) {
+                            logDose(medRules.first);
+                          }
                         },
                   icon: const Icon(Icons.check_rounded, size: 16),
                   label: Text(
-                      medState.todayMeds[widget.medication.id!] == MedCardVariant.taken
+                      medState.getTodayMedStatus(widget.medication) == MedCardVariant.taken
                           ? 'Completed'
-                          : 'Take Now · ${widget.medication.freq.contains('·') ? widget.medication.freq.split('·').last.trim() : widget.medication.freq}',
+                          : 'Take Now · ${medState.getNextDoseTime(widget.medication)}',
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2563EB),
@@ -219,6 +249,123 @@ class _MedDetailScreenState extends State<MedDetailScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  void _showDoseSelector({
+    required BuildContext context,
+    required String title,
+    required Medication med,
+    required List<ReminderRule> rules,
+    required int takenCount,
+    required Function(ReminderRule rule) onSelected,
+  }) {
+    final medRules = rules.where((r) => r.med.toLowerCase() == med.name.toLowerCase() && r.active).toList();
+    double parseTime(String timeStr) {
+      try {
+        final parts = timeStr.split(' ');
+        if (parts.length != 2) return 0.0;
+        final timeParts = parts[0].split(':');
+        int hour = int.parse(timeParts[0]);
+        final int minute = int.parse(timeParts[1]);
+        if (parts[1].toUpperCase() == 'PM' && hour < 12) {
+          hour += 12;
+        } else if (parts[1].toUpperCase() == 'AM' && hour == 12) {
+          hour = 0;
+        }
+        return hour + (minute / 60.0);
+      } catch (_) {
+        return 0.0;
+      }
+    }
+    medRules.sort((a, b) => parseTime(a.time).compareTo(parseTime(b.time)));
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: AppColors.cardBg,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppColors.ink900,
+            ),
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: medRules.length,
+              separatorBuilder: (_, __) => Divider(color: AppColors.hairline),
+              itemBuilder: (context, index) {
+                final rule = medRules[index];
+                final isTaken = index < takenCount;
+
+                bool hasTimePassed(String timeStr) {
+                  try {
+                    final format = DateFormat('h:mm a');
+                    final parsedTime = format.parse(timeStr.trim());
+                    final now = DateTime.now();
+                    final todayTime = DateTime(now.year, now.month, now.day, parsedTime.hour, parsedTime.minute);
+                    return todayTime.isBefore(now);
+                  } catch (_) {
+                    return false;
+                  }
+                }
+                final isPassed = hasTimePassed(rule.time);
+
+                String statusText = 'Upcoming';
+                Color statusColor = AppColors.ink500;
+                IconData statusIcon = Icons.schedule_rounded;
+
+                if (isTaken) {
+                  statusText = 'Taken';
+                  statusColor = AppColors.medGreen;
+                  statusIcon = Icons.check_circle_rounded;
+                } else if (isPassed) {
+                  statusText = 'Missed';
+                  statusColor = AppColors.medRed;
+                  statusIcon = Icons.cancel_rounded;
+                }
+
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(statusIcon, color: statusColor, size: 22),
+                  title: Text(
+                    rule.time,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.ink900,
+                    ),
+                  ),
+                  subtitle: Text(
+                    statusText,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: statusColor,
+                    ),
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+                  onTap: isTaken ? null : () {
+                    Navigator.of(context).pop();
+                    onSelected(rule);
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancel', style: TextStyle(color: AppColors.ink500)),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -443,27 +590,48 @@ class _ScheduleTab extends StatelessWidget {
   final Medication medication;
   const _ScheduleTab({required this.medication});
 
+  bool _hasTimePassed(String timeStr) {
+    try {
+      final cleanTime = timeStr.trim();
+      final format = DateFormat('h:mm a');
+      final parsedTime = format.parse(cleanTime);
+      final now = DateTime.now();
+      final todayTime = DateTime(now.year, now.month, now.day, parsedTime.hour, parsedTime.minute);
+      return todayTime.isBefore(now);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  double _parseTimeToDouble(String timeStr) {
+    try {
+      final parts = timeStr.split(' ');
+      if (parts.length != 2) return 0.0;
+      final timeParts = parts[0].split(':');
+      if (timeParts.length != 2) return 0.0;
+      int hour = int.parse(timeParts[0]);
+      final int minute = int.parse(timeParts[1]);
+      if (parts[1].toUpperCase() == 'PM' && hour < 12) {
+        hour += 12;
+      } else if (parts[1].toUpperCase() == 'AM' && hour == 12) {
+        hour = 0;
+      }
+      return hour + (minute / 60.0);
+    } catch (_) {
+      return 0.0;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final medState = context.watch<MedicationProvider>();
     final historyState = context.watch<HistoryProvider>();
-    final variant = medState.todayMeds[medication.id!] ?? MedCardVariant.upcoming;
-    final timeStr = medication.freq.contains('·') ? medication.freq.split('·').last.trim() : medication.freq;
 
-    String statusText = 'Scheduled for today';
-    Color statusColor = AppColors.ink500;
-    if (variant == MedCardVariant.taken) {
-      final todayItems = historyState.historyItems.where((h) => 
-          h.med.contains(medication.name) && 
-          historyState.historyDateMatchesDay(h.date, DateTime.now()) &&
-          h.taken);
-      final takenTime = todayItems.isNotEmpty ? todayItems.first.time : timeStr;
-      statusText = 'Taken today at $takenTime';
-      statusColor = AppColors.isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D);
-    } else if (variant == MedCardVariant.missed) {
-      statusText = 'Missed today';
-      statusColor = AppColors.medRed;
-    }
+    final rawTimeStr = medication.freq.contains('·') ? medication.freq.split('·').last.trim() : medication.freq;
+    final times = rawTimeStr.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty).toList();
+    times.sort((a, b) => _parseTimeToDouble(a).compareTo(_parseTimeToDouble(b)));
+
+    final todayTakenCount = medState.todayTakenCounts[medication.id!] ?? 0;
 
     String instructions = medication.description ?? 'Take as directed by your physician. Best taken at the same time each day.';
 
@@ -472,67 +640,106 @@ class _ScheduleTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: variant == MedCardVariant.taken
-                  ? (AppColors.isDark ? const Color(0xFF062F17) : AppColors.medGreenLight)
-                  : AppColors.screenBg,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                  color: variant == MedCardVariant.taken
-                      ? (AppColors.isDark ? const Color(0xFF15803D) : AppColors.medGreenBorder)
-                      : AppColors.border),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                      color: variant == MedCardVariant.taken ? AppColors.medGreen : AppColors.ink400, shape: BoxShape.circle),
-                  child: Icon(variant == MedCardVariant.taken ? Icons.check_rounded : Icons.schedule_rounded,
-                      size: 18, color: Colors.white),
+          ...List.generate(times.length, (i) {
+            final time = times[i];
+            final isTaken = i < todayTakenCount;
+            final isPassed = _hasTimePassed(time);
+
+            String statusText;
+            Color statusColor;
+            Color cardBg;
+            Color cardBorder;
+            IconData statusIcon;
+            Color iconColor;
+
+            if (isTaken) {
+              final todayItems = historyState.historyItems.where((h) =>
+                  h.med.toLowerCase().contains(medication.name.toLowerCase()) &&
+                  historyState.historyDateMatchesDay(h.date, DateTime.now()) &&
+                  h.taken).toList();
+              final actualTime = todayItems.length > i ? todayItems[i].time : time;
+
+              statusText = 'Taken today at $actualTime';
+              statusColor = AppColors.isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D);
+              cardBg = AppColors.isDark ? const Color(0xFF062F17) : AppColors.medGreenLight;
+              cardBorder = AppColors.isDark ? const Color(0xFF15803D) : AppColors.medGreenBorder;
+              statusIcon = Icons.check_circle_rounded;
+              iconColor = AppColors.medGreen;
+            } else if (isPassed) {
+              statusText = 'Missed';
+              statusColor = AppColors.medRed;
+              cardBg = AppColors.isDark ? const Color(0xFF1A0B0B) : AppColors.medRedLight;
+              cardBorder = AppColors.isDark ? const Color(0xFF7F1D1D) : AppColors.medRedBorder;
+              statusIcon = Icons.cancel_rounded;
+              iconColor = AppColors.medRed;
+            } else {
+              statusText = 'Scheduled for today';
+              statusColor = AppColors.ink500;
+              cardBg = AppColors.screenBg;
+              cardBorder = AppColors.border;
+              statusIcon = Icons.schedule_rounded;
+              iconColor = AppColors.ink400;
+            }
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: cardBg,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: cardBorder),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(timeStr,
-                          style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.ink900)),
-                      const SizedBox(height: 2),
-                      Text(statusText,
-                          style: TextStyle(
-                              fontSize: 11, color: statusColor)),
-                    ],
-                  ),
+                child: Row(
+                  children: [
+                    Icon(statusIcon, size: 20, color: iconColor),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(time,
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.ink900)),
+                          const SizedBox(height: 2),
+                          Text(statusText,
+                              style: TextStyle(
+                                  fontSize: 11, color: statusColor)),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          }),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-                color: AppColors.screenBg,
-                borderRadius: BorderRadius.circular(8)),
-            child: RichText(
-              text: TextSpan(
-                style: TextStyle(
-                    fontSize: 11, color: AppColors.ink500, height: 1.4),
-                children: [
-                  TextSpan(
-                      text: 'Instructions: ',
-                      style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.ink700)),
-                  TextSpan(text: instructions),
-                ],
-              ),
+              color: AppColors.screenBg,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.info_outline_rounded,
+                    size: 16, color: AppColors.medBlue),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    instructions,
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.ink500,
+                        height: 1.4,
+                        fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

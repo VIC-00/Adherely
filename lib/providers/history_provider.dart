@@ -37,7 +37,7 @@ class HistoryProvider extends ChangeNotifier {
     }).length;
   }
 
-  List<List<CalendarCell>> get calRows {
+  List<List<CalendarCell>> getCalRows(List<ReminderRule> rules) {
     final firstDay = DateTime(_currentHistoryMonth.year, _currentHistoryMonth.month, 1);
     final daysInMonth = DateTime(_currentHistoryMonth.year, _currentHistoryMonth.month + 1, 0).day;
     final startWeekday = firstDay.weekday % 7; 
@@ -53,7 +53,7 @@ class HistoryProvider extends ChangeNotifier {
       DayStatus status = DayStatus.future;
       
       if (!cellDate.isAfter(today)) {
-        final dayItems = _historyItems.where((h) => historyDateMatchesDay(h.date, cellDate)).toList();
+        final dayItems = getDosesForDay(day, rules);
         if (dayItems.isEmpty) {
           status = DayStatus.future; // stays white
         } else {
@@ -87,7 +87,7 @@ class HistoryProvider extends ChangeNotifier {
     final medLogs = _historyItems
         .where((h) => h.med.toLowerCase().contains(medName.toLowerCase()))
         .toList();
-    if (medLogs.isEmpty) return 100;
+    if (medLogs.isEmpty) return 0;
     final takenCount = medLogs.where((h) => h.taken).length;
     return ((takenCount / medLogs.length) * 100).toInt();
   }
@@ -162,9 +162,74 @@ class HistoryProvider extends ChangeNotifier {
     }
   }
 
-  List<HistoryItem> getDosesForDay(int day) {
+  List<HistoryItem> getDosesForDay(int day, List<ReminderRule> rules) {
     final checkDate = DateTime(_currentHistoryMonth.year, _currentHistoryMonth.month, day);
-    return _historyItems.where((h) => historyDateMatchesDay(h.date, checkDate)).toList();
+    final now = DateTime.now();
+    final isToday = checkDate.year == now.year &&
+        checkDate.month == now.month &&
+        checkDate.day == now.day;
+
+    final actualItems = _historyItems.where((h) => historyDateMatchesDay(h.date, checkDate)).toList();
+
+    if (!isToday) {
+      return actualItems;
+    }
+
+    final Map<String, List<ReminderRule>> groupedRules = {};
+    for (final r in rules) {
+      if (!r.active) continue;
+      final key = '${r.med} ${r.dose}'.trim().toLowerCase();
+      groupedRules[key] = (groupedRules[key] ?? [])..add(r);
+    }
+
+    final Map<String, int> takenCounts = {};
+    for (final h in actualItems) {
+      if (h.taken) {
+        final key = h.med.trim().toLowerCase();
+        takenCounts[key] = (takenCounts[key] ?? 0) + 1;
+      }
+    }
+
+    final List<HistoryItem> result = List.from(actualItems);
+
+    for (final entry in groupedRules.entries) {
+      final key = entry.key;
+      final medRules = entry.value;
+
+      final passedRules = medRules.where((r) => _hasTimePassed(r.time)).toList();
+      final takenCount = takenCounts[key] ?? 0;
+
+      if (takenCount < passedRules.length) {
+        final missedCount = passedRules.length - takenCount;
+        final ruleMatch = rules.firstWhere((r) => '${r.med} ${r.dose}'.trim().toLowerCase() == key);
+        final medName = ruleMatch.med;
+        final medDose = ruleMatch.dose;
+
+        for (int i = 0; i < missedCount; i++) {
+          result.add(HistoryItem(
+            id: null,
+            med: '$medName $medDose',
+            date: DateFormat('yyyy-MM-dd').format(now),
+            time: passedRules[i].time,
+            taken: false,
+            note: 'Missed dose',
+          ));
+        }
+      }
+    }
+
+    return result;
+  }
+
+  List<HistoryItem> getDoseLog(List<ReminderRule> rules) {
+    final now = DateTime.now();
+    final todayDoses = getDosesForDay(now.day, rules);
+    final pastItems = _historyItems.where((h) => !historyDateMatchesDay(h.date, now)).toList();
+
+    final List<HistoryItem> combined = [];
+    combined.addAll(todayDoses);
+    combined.addAll(pastItems);
+    return combined;
   }
 
   bool historyDateMatchesDay(String historyDateStr, DateTime day) {
@@ -224,13 +289,44 @@ class HistoryProvider extends ChangeNotifier {
     return current;
   }
 
+  int calculateStreakForMed(String medName, Map<int, MedCardVariant> todayMeds, Medication med) {
+    int current = 0;
+    for (int i = 0; i <= 365; i++) {
+      final checkDate = DateTime.now().subtract(Duration(days: i));
+      if (i == 0) {
+        final todayStatus = todayMeds[med.id];
+        if (todayStatus == MedCardVariant.taken) {
+          current++;
+        } else if (todayStatus == MedCardVariant.missed) {
+          break;
+        }
+      } else {
+        final dayItems = _historyItems
+            .where((h) => h.med.toLowerCase().contains(medName.toLowerCase()) && historyDateMatchesDay(h.date, checkDate))
+            .toList();
+        if (dayItems.isEmpty) {
+          break;
+        } else {
+          if (dayItems.any((h) => h.taken)) {
+            current++;
+          } else {
+            break;
+          }
+        }
+      }
+    }
+    return current;
+  }
+
   /// Adherence over the last 7 days based on history_items.
   /// Returns a value from 0.0 to 100.0.
-  double calculateWeeklyAdherence() {
+  double calculateWeeklyAdherence(List<ReminderRule> rules, Map<int, MedCardVariant> todayMeds) {
     final now = DateTime.now();
     int totalDoses = 0;
     int takenDoses = 0;
-    for (int i = 0; i < 7; i++) {
+
+    // Past 6 days (yesterday and older)
+    for (int i = 1; i < 7; i++) {
       final day = now.subtract(Duration(days: i));
       final dayItems = _historyItems
           .where((h) => historyDateMatchesDay(h.date, day))
@@ -240,15 +336,48 @@ class HistoryProvider extends ChangeNotifier {
         takenDoses += dayItems.where((h) => h.taken).length;
       }
     }
-    if (totalDoses == 0) return 0.0; // new user — no data yet
+
+    // Today (i == 0)
+    for (final rule in rules) {
+      if (!rule.active) continue;
+      final status = todayMeds[rule.id];
+      if (status == MedCardVariant.taken) {
+        totalDoses++;
+        takenDoses++;
+      } else {
+        if (_hasTimePassed(rule.time)) {
+          totalDoses++;
+        }
+      }
+    }
+
+    if (totalDoses == 0) return 0.0;
     return (takenDoses / totalDoses) * 100;
+  }
+
+  bool _hasTimePassed(String timeStr) {
+    try {
+      final cleanTime = timeStr.trim();
+      final format = DateFormat('h:mm a');
+      final parsedTime = format.parse(cleanTime);
+      final now = DateTime.now();
+      final todayTime = DateTime(now.year, now.month, now.day, parsedTime.hour, parsedTime.minute);
+      return todayTime.isBefore(now);
+    } catch (_) {
+      return false;
+    }
   }
 
   int _personalBestStreak = 0;
 
   Future<void> loadPersonalBest() async {
     final prefs = await SharedPreferences.getInstance();
-    _personalBestStreak = prefs.getInt('personal_best_streak') ?? 0;
+    if (_historyItems.isEmpty) {
+      _personalBestStreak = 0;
+      await prefs.setInt('personal_best_streak', 0);
+    } else {
+      _personalBestStreak = prefs.getInt('personal_best_streak') ?? 0;
+    }
     notifyListeners();
   }
 
@@ -266,6 +395,6 @@ class HistoryProvider extends ChangeNotifier {
       checkAndUpdatePersonalBest(current);
       return current;
     }
-    return _personalBestStreak > 0 ? _personalBestStreak : 1;
+    return _personalBestStreak;
   }
 }

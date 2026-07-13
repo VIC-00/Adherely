@@ -60,28 +60,52 @@ class _MedAdhereAppState extends State<MedAdhereApp> {
         // Persist any untaken doses from yesterday into history before wiping the slate.
         // Only do this when we actually have a recorded date (i.e. not the very first install).
         if (lastRunDate != null) {
-          final missedRows = await db.rawQuery('''
-            SELECT m.name, m.dose
-            FROM today_meds tm
-            JOIN medications m ON m.id = tm.med_id
-            WHERE tm.status != 'taken'
-          ''');
-          for (final row in missedRows) {
-            await db.insert('history_items', {
-              'med': '${row['name']} ${row['dose']}',
-              'date': lastRunDate,
-              'time': 'Not taken',
-              'taken': 0,
-              'note': 'Missed dose',
-            });
+          final rules = await db.query('reminder_rules', where: 'active = 1');
+          final Map<String, int> scheduledCounts = {};
+          for (final r in rules) {
+            final key = '${r['med']} ${r['dose']}'.trim().toLowerCase();
+            scheduledCounts[key] = (scheduledCounts[key] ?? 0) + 1;
+          }
+
+          final historyYesterday = await db.query(
+            'history_items',
+            where: 'date = ? AND taken = 1',
+            whereArgs: [lastRunDate],
+          );
+          final Map<String, int> takenCounts = {};
+          for (final h in historyYesterday) {
+            final key = (h['med'] as String).trim().toLowerCase();
+            takenCounts[key] = (takenCounts[key] ?? 0) + 1;
+          }
+
+          for (final entry in scheduledCounts.entries) {
+            final key = entry.key;
+            final scheduled = entry.value;
+            final taken = takenCounts[key] ?? 0;
+            if (taken < scheduled) {
+              final missedCount = scheduled - taken;
+              final ruleMatch = rules.firstWhere((r) => '${r['med']} ${r['dose']}'.trim().toLowerCase() == key);
+              final medName = ruleMatch['med'] as String;
+              final medDose = ruleMatch['dose'] as String;
+
+              for (int m = 0; m < missedCount; m++) {
+                await db.insert('history_items', {
+                  'med': '$medName $medDose',
+                  'date': lastRunDate,
+                  'time': 'Not taken',
+                  'taken': 0,
+                  'note': 'Missed dose',
+                });
+              }
+            }
           }
         }
         await db.update('today_meds', {'status': 'upcoming'});
         await prefs.setString('last_run_date', today);
         final resetTodayData = await db.query('today_meds');
-        await _medicationProvider.load(medsData, rulesData, resetTodayData);
+        await _medicationProvider.load(medsData, rulesData, resetTodayData, historyData);
       } else {
-        await _medicationProvider.load(medsData, rulesData, todayData);
+        await _medicationProvider.load(medsData, rulesData, todayData, historyData);
       }
 
       await _vitalsProvider.load(vitalsData, bpData);

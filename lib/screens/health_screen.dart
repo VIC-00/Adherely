@@ -140,7 +140,7 @@ class HealthScreen extends StatelessWidget {
     }
 
     // Dynamic header subtitle
-    final weeklyAdherence = historyState.calculateWeeklyAdherence();
+    final weeklyAdherence = historyState.calculateWeeklyAdherence(medState.rules, medState.dynamicTodayMeds);
     final String headerSubtitle;
     if (medState.meds.isEmpty) {
       headerSubtitle = 'Add your medications to start tracking.';

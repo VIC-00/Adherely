@@ -63,11 +63,11 @@ class HistoryScreen extends StatelessWidget {
                     Row(
                       children: [
                         _HeaderStat(
-                            v: '${historyState.calculateWeeklyAdherence().toStringAsFixed(0)}%',
+                            v: '${historyState.calculateWeeklyAdherence(medState.rules, medState.todayMeds).toStringAsFixed(0)}%',
                             l: 'Adherence'),
                         const SizedBox(width: 16),
                         _HeaderStat(
-                            v: '${historyState.calculateStreak(medState.todayMeds)}',
+                            v: '${historyState.calculateStreak(medState.dynamicTodayMeds)}',
                             l: 'Day Streak'),
                         const SizedBox(width: 16),
                         _HeaderStat(
@@ -134,7 +134,7 @@ class HistoryScreen extends StatelessWidget {
                           .toList(),
                     ),
                     const SizedBox(height: 6),
-                    for (final row in historyState.calRows)
+                    for (final row in historyState.getCalRows(medState.rules))
                       Padding(
                         padding: const EdgeInsets.only(bottom: 4),
                         child: Row(
@@ -190,7 +190,7 @@ class HistoryScreen extends StatelessWidget {
                                 cell.status != DayStatus.empty) {
                               cellWidget = GestureDetector(
                                 onTap: () => _showDayDosesDialog(
-                                    context, historyState, cell.day),
+                                    context, historyState, cell.day, medState.rules),
                                 child: cellWidget,
                               );
                             }
@@ -253,7 +253,7 @@ class HistoryScreen extends StatelessWidget {
                                 color: AppColors.ink400)),
                       )
                     else
-                      for (final item in historyState.historyItems)
+                      for (final item in historyState.getDoseLog(medState.rules))
                         Padding(
                           padding: const EdgeInsets.only(bottom: 8),
                           child: Container(
@@ -384,8 +384,8 @@ class HistoryScreen extends StatelessWidget {
   }
 
   void _showDayDosesDialog(
-      BuildContext context, HistoryProvider historyState, int day) {
-    final doses = historyState.getDosesForDay(day);
+      BuildContext context, HistoryProvider historyState, int day, List<ReminderRule> rules) {
+    final doses = historyState.getDosesForDay(day, rules);
 
     showDialog(
       context: context,

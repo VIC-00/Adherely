@@ -44,8 +44,16 @@ class DatabaseHelper {
         await db.execute('DROP TABLE profile_old');
       }
       if (oldVersion < 7) {
-        await db.execute('ALTER TABLE medications ADD COLUMN doctor TEXT');
-        await db.execute('ALTER TABLE medications ADD COLUMN notes TEXT');
+        final columns = await db.rawQuery('PRAGMA table_info(medications)');
+        final hasDoctor = columns.any((column) => column['name'] == 'doctor');
+        final hasNotes = columns.any((column) => column['name'] == 'notes');
+
+        if (!hasDoctor) {
+          await db.execute('ALTER TABLE medications ADD COLUMN doctor TEXT');
+        }
+        if (!hasNotes) {
+          await db.execute('ALTER TABLE medications ADD COLUMN notes TEXT');
+        }
       }
     } catch (e) {
       debugPrint("Migration error: $e");

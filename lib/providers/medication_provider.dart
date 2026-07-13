@@ -18,6 +18,9 @@ class MedicationProvider extends ChangeNotifier {
   final Map<int, MedCardVariant> _todayMeds = {};
   Map<int, MedCardVariant> get todayMeds => Map.unmodifiable(_todayMeds);
   
+  final Map<int, int> _todayTakenCounts = {};
+  Map<int, int> get todayTakenCounts => _todayTakenCounts;
+  
   Map<int, MedCardVariant> get dynamicTodayMeds {
     final Map<int, MedCardVariant> dynamicMeds = {};
     for (final med in _meds) {
@@ -30,7 +33,7 @@ class MedicationProvider extends ChangeNotifier {
 
   bool _dbEnabled = true;
 
-  Future<void> load(List<Map<String, dynamic>> medsData, List<Map<String, dynamic>> rulesData, List<Map<String, dynamic>> todayData) async {
+  Future<void> load(List<Map<String, dynamic>> medsData, List<Map<String, dynamic>> rulesData, List<Map<String, dynamic>> todayData, List<Map<String, dynamic>> historyData) async {
     _meds.clear();
     _meds.addAll(medsData.map((m) => Medication(
       id: m['id'] as int,
@@ -74,6 +77,22 @@ class MedicationProvider extends ChangeNotifier {
         orElse: () => MedCardVariant.upcoming,
       );
       _todayMeds[medId] = status;
+    }
+
+    _todayTakenCounts.clear();
+    final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    for (final row in historyData) {
+      final date = row['date'] as String;
+      final taken = row['taken'] as int;
+      if (date == todayStr && taken == 1) {
+        final medName = (row['med'] as String).trim().toLowerCase();
+        final medMatch = _meds.firstWhere(
+            (m) => medName.startsWith(m.name.trim().toLowerCase()),
+            orElse: () => const Medication(name: '', dose: '', freq: '', color: Colors.blue, refillDays: 0));
+        if (medMatch.id != null) {
+          _todayTakenCounts[medMatch.id!] = (_todayTakenCounts[medMatch.id!] ?? 0) + 1;
+        }
+      }
     }
     notifyListeners();
   }
@@ -305,6 +324,9 @@ class MedicationProvider extends ChangeNotifier {
 
   Future<void> logMedication(int medId, MedCardVariant status) async {
     _todayMeds[medId] = status;
+    if (status == MedCardVariant.taken) {
+      _todayTakenCounts[medId] = (_todayTakenCounts[medId] ?? 0) + 1;
+    }
     notifyListeners();
     if (!_dbEnabled) return;
     try {
@@ -505,9 +527,23 @@ class MedicationProvider extends ChangeNotifier {
   }
   
   double calculateAdherence() {
-    if (_todayMeds.isEmpty) return 0.0;
-    final takenCount = _todayMeds.values.where((v) => v == MedCardVariant.taken).length;
-    return (takenCount / _todayMeds.length) * 100;
+    int totalPassed = 0;
+    int totalTaken = 0;
+
+    final uniqueMeds = _meds.where((m) => _rules.any((r) => r.med.toLowerCase() == m.name.toLowerCase() && r.active)).toList();
+    if (uniqueMeds.isEmpty) return 0.0;
+
+    for (final med in uniqueMeds) {
+      final medRules = _rules.where((r) => r.med.toLowerCase() == med.name.toLowerCase() && r.active).toList();
+      final passedRulesCount = medRules.where((r) => _hasTimePassed(r.time)).length;
+      final takenCount = _todayTakenCounts[med.id!] ?? 0;
+
+      totalPassed += passedRulesCount;
+      totalTaken += takenCount.clamp(0, passedRulesCount);
+    }
+
+    if (totalPassed == 0) return 100.0;
+    return (totalTaken / totalPassed) * 100;
   }
   
   int get activeRuleCount => _rules.where((r) => r.active).length;
@@ -519,20 +555,65 @@ class MedicationProvider extends ChangeNotifier {
 
   MedCardVariant getTodayMedStatus(Medication med) {
     if (med.id == null) return MedCardVariant.upcoming;
-    final rawStatus = _todayMeds[med.id!];
-    if (rawStatus == null) return MedCardVariant.upcoming;
-    if (rawStatus == MedCardVariant.upcoming) {
-      final timeStr = med.freq.contains('·')
-          ? med.freq.split('·').last.trim()
-          : med.freq;
-      // Split by comma to check each individual time slot (e.g. "8:00 AM, 8:00 PM")
-      // If ANY scheduled time has passed and the med hasn't been taken → missed
-      final slots = timeStr.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty).toList();
-      if (slots.any((t) => _hasTimePassed(t))) {
-        return MedCardVariant.missed;
-      }
+    final medRules = _rules.where((r) => r.med.toLowerCase() == med.name.toLowerCase() && r.active).toList();
+    if (medRules.isEmpty) return MedCardVariant.upcoming;
+
+    medRules.sort((a, b) => _parseTimeToDouble(a.time).compareTo(_parseTimeToDouble(b.time)));
+
+    final takenCount = _todayTakenCounts[med.id!] ?? 0;
+    final totalRules = medRules.length;
+    final passedRules = medRules.where((r) => _hasTimePassed(r.time)).toList();
+
+    if (takenCount >= totalRules) {
+      return MedCardVariant.taken;
+    } else if (takenCount < passedRules.length) {
+      return MedCardVariant.missed;
+    } else {
+      return MedCardVariant.upcoming;
     }
-    return rawStatus;
+  }
+
+  double _parseTimeToDouble(String timeStr) {
+    try {
+      final parts = timeStr.split(' ');
+      if (parts.length != 2) return 0.0;
+      final timeParts = parts[0].split(':');
+      if (timeParts.length != 2) return 0.0;
+      int hour = int.parse(timeParts[0]);
+      final int minute = int.parse(timeParts[1]);
+      if (parts[1].toUpperCase() == 'PM' && hour < 12) {
+        hour += 12;
+      } else if (parts[1].toUpperCase() == 'AM' && hour == 12) {
+        hour = 0;
+      }
+      return hour + (minute / 60.0);
+    } catch (_) {
+      return 0.0;
+    }
+  }
+
+  String getNextDoseTime(Medication med) {
+    final medRules = _rules.where((r) => r.med.toLowerCase() == med.name.toLowerCase() && r.active).toList();
+    if (medRules.isEmpty) return med.freq;
+    medRules.sort((a, b) => _parseTimeToDouble(a.time).compareTo(_parseTimeToDouble(b.time)));
+    final takenCount = _todayTakenCounts[med.id!] ?? 0;
+    if (takenCount < medRules.length) {
+      return medRules[takenCount].time;
+    }
+    return medRules.last.time;
+  }
+
+  String getNextMissedDoseTime(Medication med) {
+    final medRules = _rules.where((r) => r.med.toLowerCase() == med.name.toLowerCase() && r.active).toList();
+    if (medRules.isEmpty) return med.freq;
+    medRules.sort((a, b) => _parseTimeToDouble(a.time).compareTo(_parseTimeToDouble(b.time)));
+    final takenCount = _todayTakenCounts[med.id!] ?? 0;
+    final passedRules = medRules.where((r) => _hasTimePassed(r.time)).toList();
+
+    if (takenCount < passedRules.length) {
+      return passedRules[takenCount].time;
+    }
+    return medRules.first.time;
   }
 
   bool _hasTimePassed(String timeStr) {
