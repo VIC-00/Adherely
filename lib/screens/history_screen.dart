@@ -28,7 +28,7 @@ class HistoryScreen extends StatelessWidget {
       child: SafeArea(
         bottom: false,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 24),
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -409,15 +409,18 @@ class HistoryScreen extends StatelessWidget {
                           fontSize: 13,
                           color: AppColors.ink500)),
                 )
-              : SizedBox(
-                  width: double.maxFinite,
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: doses.length,
-                    separatorBuilder: (_, __) =>
-                        Divider(color: AppColors.hairline),
-                    itemBuilder: (context, index) {
+              : ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.5,
+                  ),
+                  child: SizedBox(
+                    width: double.maxFinite,
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: doses.length,
+                      separatorBuilder: (_, __) =>
+                          Divider(color: AppColors.hairline),
+                      itemBuilder: (context, index) {
                       final item = doses[index];
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 4),
@@ -474,6 +477,7 @@ class HistoryScreen extends StatelessWidget {
                     },
                   ),
                 ),
+              ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),

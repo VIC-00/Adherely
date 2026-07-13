@@ -6,7 +6,9 @@ import '../models.dart';
 import '../theme/app_colors.dart';
 import '../providers/medication_provider.dart';
 import '../providers/history_provider.dart';
+import '../providers/settings_provider.dart';
 import '../notification_service.dart';
+import 'success_overlay.dart';
 
 class AlarmOverlayDialog extends StatefulWidget {
   final int ruleId;
@@ -35,6 +37,10 @@ class _AlarmOverlayDialogState extends State<AlarmOverlayDialog>
   @override
   void initState() {
     super.initState();
+    try {
+      final settingsState = context.read<SettingsProvider>();
+      _selectedSnoozeMinutes = settingsState.snoozeDuration;
+    } catch (_) {}
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
@@ -97,12 +103,7 @@ class _AlarmOverlayDialogState extends State<AlarmOverlayDialog>
     // 4. Close the overlay
     if (mounted) {
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Logged ${widget.medName} as taken!'),
-          backgroundColor: AppColors.medGreen,
-        ),
-      );
+      SuccessOverlay.showDoseLogged(context, medName: widget.medName, dose: widget.dose);
     }
   }
 
@@ -133,12 +134,7 @@ class _AlarmOverlayDialogState extends State<AlarmOverlayDialog>
 
     if (mounted) {
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Alarm snoozed for $_selectedSnoozeMinutes minutes.'),
-          backgroundColor: AppColors.medOrange,
-        ),
-      );
+      SuccessOverlay.showSnoozed(context, minutes: _selectedSnoozeMinutes);
     }
   }
 

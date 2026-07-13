@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../providers/index.dart';
 import '../theme/app_colors.dart';
 import '../widgets/medication_card.dart';
+import '../widgets/success_overlay.dart';
 import 'med_detail_screen.dart';
 import 'add_med_screen.dart';
 
@@ -39,7 +40,7 @@ class DashboardScreen extends StatelessWidget {
       child: SafeArea(
         bottom: false,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 24),
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -391,9 +392,7 @@ class DashboardScreen extends StatelessWidget {
                               taken: true,
                               note: 'On time',
                             ));
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('${med.name} marked as taken!')),
-                            );
+                            SuccessOverlay.showDoseLogged(context, medName: med.name, dose: med.dose);
                           },
                           onLogTaken: () {
                             medState.logMedication(med.id!, MedCardVariant.taken);
@@ -405,9 +404,7 @@ class DashboardScreen extends StatelessWidget {
                               taken: true,
                               note: 'Logged late',
                             ));
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('${med.name} marked as taken!')),
-                            );
+                            SuccessOverlay.showDoseLogged(context, medName: med.name, dose: med.dose);
                           },
                           onReschedule: () async {
                             final oldTime = med.freq.contains('·')
@@ -440,9 +437,7 @@ class DashboardScreen extends StatelessWidget {
                               
                               await medState.rescheduleRule(med.id!, oldTime, newTime);
                               if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('${med.name} rescheduled to $newTime!')),
-                                );
+                                SuccessOverlay.showRescheduled(context, medName: med.name, time: newTime);
                               }
                             }
                           },

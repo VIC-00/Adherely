@@ -292,22 +292,19 @@ class _UpcomingCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  refillDays != null
-                      ? 'Refill in $refillDays day${refillDays == 1 ? '' : 's'}'
-                      : 'Refill info unavailable',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: (refillDays != null && refillDays! <= 7)
-                        ? (AppColors.isDark ? const Color(0xFFFBBF24) : const Color(0xFFF59E0B))
-                        : AppColors.ink400,
-                    fontWeight: (refillDays != null && refillDays! <= 7)
-                        ? FontWeight.w600
-                        : FontWeight.w400,
+                // Only show plain refill text when NOT already showing the urgent amber banner above
+                if (refillDays == null || refillDays! > 7)
+                  Text(
+                    refillDays != null
+                        ? 'Refill in $refillDays day${refillDays == 1 ? '' : 's'}'
+                        : 'Refill info unavailable',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: AppColors.ink400,
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
-                ),
               ],
             ),
           ),
@@ -317,35 +314,6 @@ class _UpcomingCard extends StatelessWidget {
   }
 }
 
-class _SoundWave extends StatelessWidget {
-  const _SoundWave();
-  static const _bars = [4.0, 8.0, 12.0, 16.0, 10.0, 14.0, 6.0, 11.0, 8.0, 5.0];
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 20,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          for (int i = 0; i < _bars.length; i++)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 1),
-              child: Container(
-                width: 3,
-                height: _bars[i],
-                decoration: BoxDecoration(
-                  color: AppColors.medOrange.withValues(alpha: 0.5 + (i % 3) * 0.2),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
 
 // ------------------------------------------------------------------ Taken
 class _TakenCard extends StatelessWidget {

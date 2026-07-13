@@ -221,7 +221,7 @@ class HistoryProvider extends ChangeNotifier {
         }
       }
     }
-    return current > 0 ? current : 1;
+    return current;
   }
 
   /// Adherence over the last 7 days based on history_items.
@@ -240,7 +240,7 @@ class HistoryProvider extends ChangeNotifier {
         takenDoses += dayItems.where((h) => h.taken).length;
       }
     }
-    if (totalDoses == 0) return 100.0; // new user — no data yet
+    if (totalDoses == 0) return 0.0; // new user — no data yet
     return (takenDoses / totalDoses) * 100;
   }
 

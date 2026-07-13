@@ -112,14 +112,21 @@ class LocalNotificationService implements INotificationService {
         hour = 0;
       }
 
-      // Check if this is an "every other day" medication
+      // Check if this is an "every other day" medication and if it was already taken today
       bool isEveryOtherDay = false;
+      bool isTakenToday = false;
       try {
         final db = await DatabaseHelper.instance.database;
         final medRows = await db.query('medications', where: 'name = ?', whereArgs: [rule.med]);
         if (medRows.isNotEmpty) {
           final freq = medRows.first['freq'] as String? ?? '';
           isEveryOtherDay = freq.toLowerCase().contains('every other day');
+
+          final medId = medRows.first['id'] as int;
+          final todayRows = await db.query('today_meds', where: 'med_id = ?', whereArgs: [medId]);
+          if (todayRows.isNotEmpty) {
+            isTakenToday = todayRows.first['status'] == 'taken';
+          }
         }
       } catch (_) {}
 
@@ -138,7 +145,7 @@ class LocalNotificationService implements INotificationService {
 
       var scheduledTime = actualDoseTime.subtract(Duration(minutes: rule.advance));
 
-      if (scheduledTime.isBefore(now)) {
+      if (scheduledTime.isBefore(now) || isTakenToday) {
         // For every-other-day: skip to 2 days out instead of 1
         scheduledTime = scheduledTime.add(Duration(days: isEveryOtherDay ? 2 : 1));
       }
@@ -147,9 +154,19 @@ class LocalNotificationService implements INotificationService {
       final int notificationId = rule.id != null ? (rule.id! % 2147483647) : (DateTime.now().millisecondsSinceEpoch % 2147483647);
 
       // Read settings from DB
+      bool pushEnabled = true;
       bool loopAlarm = true;
       try {
         final db = await DatabaseHelper.instance.database;
+        final List<Map<String, dynamic>> pushSettings = await db.query(
+          'profile_toggles',
+          where: 'label = ?',
+          whereArgs: ['Push Notifications'],
+        );
+        if (pushSettings.isNotEmpty) {
+          pushEnabled = (pushSettings.first['value'] as int) == 1;
+        }
+
         final List<Map<String, dynamic>> alarmModeSettings = await db.query(
           'profile_toggles',
           where: 'label = ?',
@@ -159,6 +176,14 @@ class LocalNotificationService implements INotificationService {
           loopAlarm = (alarmModeSettings.first['value'] as int) == 1;
         }
       } catch (_) {}
+
+      if (!pushEnabled) {
+        debugPrint('Push notifications are disabled globally. Cancelling and skipping schedule for ${rule.med}.');
+        if (rule.id != null) {
+          await cancelReminder(rule.id!);
+        }
+        return;
+      }
 
       final AndroidNotificationDetails androidPlatformChannelSpecifics =
           AndroidNotificationDetails(
@@ -184,44 +209,48 @@ class LocalNotificationService implements INotificationService {
 
       final payloadStr = '${rule.id}|${rule.med}|${rule.dose}';
 
-      // Every-other-day: schedule as a one-shot absolute alarm (no repeat component).
-      // The app will reschedule it 2 days later on next open.
-      // Daily / twice / three times: use matchDateTimeComponents.time so it auto-repeats.
-      final DateTimeComponents? repeatComponents =
-          isEveryOtherDay ? null : DateTimeComponents.time;
+      final step = isEveryOtherDay ? 2 : 1;
+      final startDay = isTakenToday || scheduledTime.isBefore(now) ? step : 0;
 
-      try {
-        await _flutterLocalNotificationsPlugin.zonedSchedule(
-          notificationId,
-          'Medication Reminder',
-          'Time to take ${rule.med} ${rule.dose}',
-          scheduledTime,
-          platformChannelSpecifics,
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-          uiLocalNotificationDateInterpretation:
-              UILocalNotificationDateInterpretation.absoluteTime,
-          matchDateTimeComponents: repeatComponents,
-          payload: payloadStr,
-        );
-        debugPrint('Scheduled notification for ${rule.med} at $scheduledTime${isEveryOtherDay ? " (one-shot, every-other-day)" : " (daily repeat)"}');
-      } catch (e) {
-        debugPrint('Exact alarm scheduling failed, attempting inexact alarm: $e');
+      // Schedule 7 instances (e.g. today/tomorrow and next 6 scheduled days)
+      for (int i = 0; i < 7; i++) {
+        final dayOffset = startDay + (i * step);
+        final occurrenceTime = scheduledTime.add(Duration(days: dayOffset));
+        final int uniqueId = (notificationId + dayOffset * 100000) % 2147483647;
+
         try {
           await _flutterLocalNotificationsPlugin.zonedSchedule(
-            notificationId,
+            uniqueId,
             'Medication Reminder',
             'Time to take ${rule.med} ${rule.dose}',
-            scheduledTime,
+            occurrenceTime,
             platformChannelSpecifics,
-            androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+            androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
             uiLocalNotificationDateInterpretation:
                 UILocalNotificationDateInterpretation.absoluteTime,
-            matchDateTimeComponents: repeatComponents,
+            matchDateTimeComponents: null, // one-shot absolute alarm
             payload: payloadStr,
           );
-          debugPrint('Scheduled inexact notification for ${rule.med} at $scheduledTime');
-        } catch (innerErr) {
-          debugPrint('Inexact alarm scheduling failed: $innerErr');
+          debugPrint('Scheduled notification for ${rule.med} (instance $i) at $occurrenceTime');
+        } catch (e) {
+          debugPrint('Exact alarm scheduling failed for instance $i, attempting inexact alarm: $e');
+          try {
+            await _flutterLocalNotificationsPlugin.zonedSchedule(
+              uniqueId,
+              'Medication Reminder',
+              'Time to take ${rule.med} ${rule.dose}',
+              occurrenceTime,
+              platformChannelSpecifics,
+              androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+              uiLocalNotificationDateInterpretation:
+                  UILocalNotificationDateInterpretation.absoluteTime,
+              matchDateTimeComponents: null,
+              payload: payloadStr,
+            );
+            debugPrint('Scheduled inexact notification for ${rule.med} (instance $i) at $occurrenceTime');
+          } catch (innerErr) {
+            debugPrint('Inexact alarm scheduling failed for instance $i: $innerErr');
+          }
         }
       }
     } catch (e) {
@@ -232,8 +261,12 @@ class LocalNotificationService implements INotificationService {
   @override
   Future<void> cancelReminder(int ruleId) async {
     if (!_initialized) return;
-    await _flutterLocalNotificationsPlugin.cancel(ruleId % 2147483647);
-    await _flutterLocalNotificationsPlugin.cancel((ruleId + 5000) % 2147483647);
+    final int baseId = ruleId % 2147483647;
+    for (int i = 0; i < 15; i++) { // cancel today (0) and next 14 days
+      final int uniqueId = (baseId + i * 100000) % 2147483647;
+      await _flutterLocalNotificationsPlugin.cancel(uniqueId);
+      await _flutterLocalNotificationsPlugin.cancel((uniqueId + 5000) % 2147483647);
+    }
     debugPrint('Cancelled notification and snooze for rule ID $ruleId');
   }
 

@@ -21,7 +21,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 6,
+      version: 7,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -42,6 +42,10 @@ class DatabaseHelper {
         ''');
         await db.execute('INSERT INTO profile (id, name, dob, conditions) SELECT id, name, dob, conditions FROM profile_old');
         await db.execute('DROP TABLE profile_old');
+      }
+      if (oldVersion < 7) {
+        await db.execute('ALTER TABLE medications ADD COLUMN doctor TEXT');
+        await db.execute('ALTER TABLE medications ADD COLUMN notes TEXT');
       }
     } catch (e) {
       debugPrint("Migration error: $e");
@@ -70,7 +74,9 @@ class DatabaseHelper {
         refillDays INTEGER NOT NULL,
         description TEXT,
         drugClass TEXT,
-        sideEffects TEXT
+        sideEffects TEXT,
+        doctor TEXT,
+        notes TEXT
       )
     ''');
 

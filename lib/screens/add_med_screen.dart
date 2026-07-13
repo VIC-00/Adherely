@@ -20,7 +20,7 @@ const _categories = [
   {'label': 'Thyroid', 'icon': '⚕️', 'color': Color(0xFF3B82F6)},
   {'label': 'Other', 'icon': '📦', 'color': Color(0xFF6B7280)},
 ];
-const _stepLabels = ['Med Info', 'Schedule', 'Reminders'];
+const _stepLabels = ['Med Info', 'Schedule', 'Details', 'Reminders'];
 
 class AddMedScreen extends StatefulWidget {
   const AddMedScreen({super.key});
@@ -80,6 +80,8 @@ class _AddMedScreenState extends State<AddMedScreen> {
   final _nameController = TextEditingController();
   final _doseController = TextEditingController();
   final _supplyController = TextEditingController(text: '30');
+  final _doctorController = TextEditingController();
+  final _notesController = TextEditingController();
   String _form = 'Tablet';
 
   @override
@@ -87,6 +89,8 @@ class _AddMedScreenState extends State<AddMedScreen> {
     _nameController.dispose();
     _doseController.dispose();
     _supplyController.dispose();
+    _doctorController.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
@@ -150,12 +154,12 @@ class _AddMedScreenState extends State<AddMedScreen> {
                   ),
                   const SizedBox(height: 12),
                   Row(
-                    children: List.generate(3, (i) {
+                    children: List.generate(4, (i) {
                       final s = i + 1;
                       return Expanded(
                         child: Container(
                           height: 4,
-                          margin: EdgeInsets.only(right: i < 2 ? 4 : 0),
+                          margin: EdgeInsets.only(right: i < 3 ? 4 : 0),
                           decoration: BoxDecoration(
                             color: s <= _step
                                 ? const Color(0xFF2563EB)
@@ -171,7 +175,7 @@ class _AddMedScreenState extends State<AddMedScreen> {
                   const SizedBox(height: 5),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: List.generate(3, (i) {
+                    children: List.generate(4, (i) {
                       final active = i + 1 <= _step;
                       return Text(_stepLabels[i],
                           style: TextStyle(
@@ -193,7 +197,8 @@ class _AddMedScreenState extends State<AddMedScreen> {
                 child: switch (_step) {
                   1 => _buildStep1(),
                   2 => _buildStep2(),
-                  _ => _buildStep3(),
+                  3 => _buildStep3(),
+                  _ => _buildStep4(),
                 },
               ),
             ),
@@ -230,7 +235,7 @@ class _AddMedScreenState extends State<AddMedScreen> {
                     flex: 2,
                     child: ElevatedButton(
                       onPressed: () {
-                        if (_step < 3) {
+                        if (_step < 4) {
                           setState(() => _step += 1);
                         } else {
                           final name = _nameController.text.trim();
@@ -261,6 +266,8 @@ class _AddMedScreenState extends State<AddMedScreen> {
                           final freq = '$_freq · ${_selectedTimes.join(', ')}';
                           final supply =
                               int.tryParse(_supplyController.text.trim()) ?? 30;
+                          final doctor = _doctorController.text.trim();
+                          final notes = _notesController.text.trim();
 
                           Color color = AppColors.medBlue;
                           if (_category == 'Blood Pressure') {
@@ -290,6 +297,8 @@ class _AddMedScreenState extends State<AddMedScreen> {
                               freq: freq,
                               color: color,
                               refillDays: supply,
+                              doctor: doctor.isNotEmpty ? doctor : null,
+                              notes: notes.isNotEmpty ? notes : null,
                             ),
                             types: alertTypes,
                             advanceMinutes: 0,
@@ -307,7 +316,7 @@ class _AddMedScreenState extends State<AddMedScreen> {
                         elevation: 0,
                       ),
                       child: Text(
-                          _step == 3 ? 'Add Medication ✓' : 'Continue →',
+                          _step == 4 ? 'Add Medication ✓' : 'Continue →',
                           style: const TextStyle(
                               fontSize: 15, fontWeight: FontWeight.w700)),
                     ),
@@ -677,6 +686,70 @@ class _AddMedScreenState extends State<AddMedScreen> {
   }
 
   Widget _buildStep3() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _FormField(
+          label: 'Prescribing Doctor / Pharmacy (Optional)',
+          child: TextFormField(
+            controller: _doctorController,
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: AppColors.ink900),
+            decoration: InputDecoration(
+              hintText: 'e.g. Dr. Smith / Walgreens',
+              filled: true,
+              fillColor: AppColors.isDark ? AppColors.cardBg : Colors.white,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: AppColors.border, width: 1.5)),
+              enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: AppColors.border, width: 1.5)),
+              focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide:
+                      const BorderSide(color: Color(0xFF2563EB), width: 1.5)),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        _FormField(
+          label: 'Notes / Instructions (Optional)',
+          child: TextFormField(
+            controller: _notesController,
+            maxLines: 4,
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: AppColors.ink900),
+            decoration: InputDecoration(
+              hintText: 'e.g. Take with food, avoid drinking alcohol...',
+              filled: true,
+              fillColor: AppColors.isDark ? AppColors.cardBg : Colors.white,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: AppColors.border, width: 1.5)),
+              enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: AppColors.border, width: 1.5)),
+              focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide:
+                      const BorderSide(color: Color(0xFF2563EB), width: 1.5)),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStep4() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

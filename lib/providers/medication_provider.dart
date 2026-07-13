@@ -42,6 +42,8 @@ class MedicationProvider extends ChangeNotifier {
       description: m['description'] as String?,
       drugClass: m['drugClass'] as String?,
       sideEffects: m['sideEffects'] as String?,
+      doctor: m['doctor'] as String?,
+      notes: m['notes'] as String?,
     )));
 
     _rules.clear();
@@ -87,10 +89,10 @@ class MedicationProvider extends ChangeNotifier {
     notifyListeners();
   }
   Future<void> addMedication(Medication m, {List<AlertType>? types, int? advanceMinutes}) async {
-    final libraryDetails = MedicationLibrary.getDetails(m.name) ?? {
+    final Map<String, String?> libraryDetails = MedicationLibrary.getDetails(m.name) ?? <String, String?>{
       'drugClass': 'General Medication',
       'description': 'Used to treat symptoms as directed by your healthcare provider. Please consult your physician or pharmacist for specific instructions and details about this medication.',
-      'sideEffects': 'Nausea, Drowsiness, Headache, Mild dizziness'
+      'sideEffects': null
     };
 
     int medId;
@@ -106,6 +108,8 @@ class MedicationProvider extends ChangeNotifier {
           'description': m.description ?? libraryDetails['description'],
           'drugClass': m.drugClass ?? libraryDetails['drugClass'],
           'sideEffects': m.sideEffects ?? libraryDetails['sideEffects'],
+          'doctor': m.doctor,
+          'notes': m.notes,
         });
 
         await db.insert('today_meds', {
@@ -130,6 +134,8 @@ class MedicationProvider extends ChangeNotifier {
       description: m.description ?? libraryDetails['description'],
       drugClass: m.drugClass ?? libraryDetails['drugClass'],
       sideEffects: m.sideEffects ?? libraryDetails['sideEffects'],
+      doctor: m.doctor,
+      notes: m.notes,
     );
     
     _meds.add(medWithId);
@@ -253,6 +259,8 @@ class MedicationProvider extends ChangeNotifier {
             'description': newMed.description,
             'drugClass': newMed.drugClass,
             'sideEffects': newMed.sideEffects,
+            'doctor': newMed.doctor,
+            'notes': newMed.notes,
           }, where: 'id = ?', whereArgs: [medId]);
         } catch (e) {
           debugPrint('DB updateMedication error: $e');
@@ -304,6 +312,21 @@ class MedicationProvider extends ChangeNotifier {
       await db.update('today_meds', {
         'status': status.toString().split('.').last,
       }, where: 'med_id = ?', whereArgs: [medId]);
+
+      // Cancel and reschedule alarms for this medication based on the new taken status
+      final medList = _meds.where((m) => m.id == medId);
+      if (medList.isNotEmpty) {
+        final med = medList.first;
+        final medRules = _rules.where((r) => r.med.toLowerCase() == med.name.toLowerCase());
+        for (final rule in medRules) {
+          if (rule.id != null) {
+            await _notificationService.cancelReminder(rule.id!);
+            if (rule.active) {
+              await _notificationService.scheduleReminderNotification(rule);
+            }
+          }
+        }
+      }
     } catch(e) {
       debugPrint("DB Write Error: $e");
     }
@@ -482,7 +505,7 @@ class MedicationProvider extends ChangeNotifier {
   }
   
   double calculateAdherence() {
-    if (_todayMeds.isEmpty) return 100.0;
+    if (_todayMeds.isEmpty) return 0.0;
     final takenCount = _todayMeds.values.where((v) => v == MedCardVariant.taken).length;
     return (takenCount / _todayMeds.length) * 100;
   }

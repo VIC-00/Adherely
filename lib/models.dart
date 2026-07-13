@@ -13,6 +13,8 @@ class Medication {
   final String? description;
   final String? drugClass;
   final String? sideEffects;
+  final String? doctor;
+  final String? notes;
 
   const Medication({
     this.id,
@@ -24,6 +26,8 @@ class Medication {
     this.description,
     this.drugClass,
     this.sideEffects,
+    this.doctor,
+    this.notes,
   });
 }
 

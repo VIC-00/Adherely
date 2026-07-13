@@ -7,6 +7,7 @@ import 'add_med_screen.dart';
 import 'reminders_screen.dart';
 import '../database_helper.dart';
 import '../notification_service.dart';
+import '../widgets/success_overlay.dart';
 
 void _showEditMedDialog(
     BuildContext context, SettingsProvider settingsState, Medication med) {
@@ -65,10 +66,7 @@ void _showEditMedDialog(
                 ),
               );
               Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                    content: Text('Medication updated successfully!')),
-              );
+              SuccessOverlay.showMedicationUpdated(context, medName: name);
             }
           },
           child: const Text('Save'),
@@ -96,9 +94,7 @@ void _showDeleteMedDialog(
           onPressed: () {
             medState.removeMedication(med.id!);
             Navigator.of(context).pop();
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('${med.name} deleted successfully.')),
-            );
+            SuccessOverlay.showMedicationDeleted(context, medName: med.name);
           },
           style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.medRed, foregroundColor: Colors.white),
@@ -188,7 +184,7 @@ class ProfileScreen extends StatelessWidget {
       child: SafeArea(
         bottom: false,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 24),
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -679,50 +675,82 @@ class ProfileScreen extends StatelessWidget {
                 onAction: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const RemindersScreen())),
                 child: Column(
-                  children: [
-                    for (int i = 0;
+                  children: [                    for (int i = 0;
                         i < settingsState.notificationToggles.length;
                         i++)
-                      GestureDetector(
-                        onTap: () => settingsState.toggleNotificationToggle(i),
-                        behavior: HitTestBehavior.opaque,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            border: Border(
-                                bottom: BorderSide(color: AppColors.hairline)),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                        settingsState
-                                            .notificationToggles[i].label,
-                                        style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: AppColors.ink900)),
-                                    Text(
-                                        settingsState
-                                            .notificationToggles[i].sub,
-                                        style: TextStyle(
-                                            fontSize: 11,
-                                            color: AppColors.ink400)),
-                                  ],
-                                ),
+                      Builder(builder: (context) {
+                        final t = settingsState.notificationToggles[i];
+                        final isVoice = t.label == 'Voice Reminders';
+                        return Opacity(
+                          opacity: isVoice ? 0.45 : 1.0,
+                          child: GestureDetector(
+                            onTap: isVoice
+                                ? null
+                                : () async {
+                                    final medProvider = context.read<MedicationProvider>();
+                                    await settingsState.toggleNotificationToggle(i);
+                                    for (final rule in medProvider.rules) {
+                                      if (rule.active) {
+                                        await LocalNotificationService().scheduleReminderNotification(rule);
+                                      }
+                                    }
+                                  },
+                            behavior: HitTestBehavior.opaque,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              decoration: BoxDecoration(
+                                border: Border(
+                                    bottom: BorderSide(color: AppColors.hairline)),
                               ),
-                              _MiniSwitch(
-                                  on: settingsState.notificationToggles[i].on,
-                                  color: settingsState
-                                          .notificationToggles[i].color ??
-                                      AppColors.medGreen),
-                            ],
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Text(t.label,
+                                                style: TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: AppColors.ink900)),
+                                            if (isVoice) ...[
+                                              const SizedBox(width: 6),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.isDark
+                                                      ? const Color(0xFF374151)
+                                                      : const Color(0xFFF3F4F6),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                child: Text('Soon',
+                                                    style: TextStyle(
+                                                        fontSize: 9,
+                                                        fontWeight: FontWeight.w700,
+                                                        color: AppColors.ink400)),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                        Text(t.sub,
+                                            style: TextStyle(
+                                                fontSize: 11,
+                                                color: AppColors.ink400)),
+                                      ],
+                                    ),
+                                  ),
+                                  _MiniSwitch(
+                                      on: isVoice ? false : t.on,
+                                      color: t.color ?? AppColors.medGreen),
+                                ],
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
+                        );
+                      }),
+
 
                     // Snooze Duration dropdown
                     Container(

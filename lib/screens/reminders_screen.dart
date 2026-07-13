@@ -3,6 +3,8 @@ import '../models.dart';
 import 'package:provider/provider.dart';
 import '../providers/index.dart';
 import '../theme/app_colors.dart';
+import '../notification_service.dart';
+import '../widgets/success_overlay.dart';
 
 const Map<AlertType, AlertInfo> _alertIcons = {
   AlertType.push: AlertInfo('🔔', 'Push', AppColors.medBlue),
@@ -82,49 +84,51 @@ class _RemindersScreenState extends State<RemindersScreen> {
                     const Text('Notification Hub', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.6)),
                     Text('${medState.activeRuleCount} active rules · ${medState.activeMedCount} medications', style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.75))),
                     const SizedBox(height: 14),
-                    // Show Push active count and Snooze duration
-                    ...() {
+                    // Push count + Snooze stats row
+                    Builder(builder: (context) {
                       final pushCount = rules.where((r) => r.active && r.types.contains(AlertType.push)).length;
                       final snoozeSetting = settingsState.notificationToggles
                           .firstWhere((t) => t.label == 'Snooze Duration', orElse: () => const ToggleItem(label: 'Snooze Duration', sub: '5 minutes', on: true));
-                      final snoozeLabel = snoozeSetting.sub.split(' ').first; // "5"
-                      return [
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
-                              child: Column(
-                                children: [
-                                  const Text('🔔', style: TextStyle(fontSize: 16)),
-                                  const SizedBox(height: 2),
-                                  Text('$pushCount', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
-                                  Text('Push', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.65), letterSpacing: 0.5)),
-                                ],
+                      final snoozeLabel = snoozeSetting.sub.split(' ').first;
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+                                child: Column(
+                                  children: [
+                                    const Text('🔔', style: TextStyle(fontSize: 16)),
+                                    const SizedBox(height: 2),
+                                    Text('$pushCount', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
+                                    Text('Push', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.65), letterSpacing: 0.5)),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
-                              child: Column(
-                                children: [
-                                  const Text('⏱️', style: TextStyle(fontSize: 16)),
-                                  const SizedBox(height: 2),
-                                  Text('${snoozeLabel}m', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
-                                  Text('Snooze', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.65), letterSpacing: 0.5)),
-                                ],
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+                                child: Column(
+                                  children: [
+                                    const Text('⏱️', style: TextStyle(fontSize: 16)),
+                                    const SizedBox(height: 2),
+                                    Text('${snoozeLabel}m', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
+                                    Text('Snooze', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.65), letterSpacing: 0.5)),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ];
-                    }(),
+                        ],
+                      );
+                    }),
                   ],
                 ),
               ),
@@ -279,9 +283,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
                                     active: true,
                                   ));
                                   Navigator.of(context).pop();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Added reminder for $med!')),
-                                  );
+                                  SuccessOverlay.showReminderAdded(context, medName: med, time: time.isNotEmpty ? time : '8:00 AM');
                                 }
                               },
                               child: const Text('Add'),
@@ -324,30 +326,68 @@ class _RemindersScreenState extends State<RemindersScreen> {
                       child: Column(
                         children: [
                           for (int i = 0; i < settingsState.notificationToggles.length; i++)
-                            GestureDetector(
-                              onTap: () => settingsState.toggleNotificationToggle(i),
-                              behavior: HitTestBehavior.opaque,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-                                decoration: BoxDecoration(
-                                  border: i < settingsState.notificationToggles.length - 1 ? Border(bottom: BorderSide(color: AppColors.hairline)) : null,
-                                ),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(settingsState.notificationToggles[i].label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.ink900)),
-                                          Text(settingsState.notificationToggles[i].sub, style: TextStyle(fontSize: 11, color: AppColors.ink400)),
-                                        ],
-                                      ),
+                            Builder(builder: (context) {
+                              final t = settingsState.notificationToggles[i];
+                              final isVoice = t.label == 'Voice Reminders';
+                              return Opacity(
+                                opacity: isVoice ? 0.45 : 1.0,
+                                child: GestureDetector(
+                                  onTap: isVoice
+                                      ? null
+                                      : () async {
+                                          final medProvider = context.read<MedicationProvider>();
+                                          await settingsState.toggleNotificationToggle(i);
+                                          for (final rule in medProvider.rules) {
+                                            if (rule.active) {
+                                              await LocalNotificationService().scheduleReminderNotification(rule);
+                                            }
+                                          }
+                                        },
+                                  behavior: HitTestBehavior.opaque,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+                                    decoration: BoxDecoration(
+                                      border: i < settingsState.notificationToggles.length - 1 ? Border(bottom: BorderSide(color: AppColors.hairline)) : null,
                                     ),
-                                    _StaticSwitch(on: settingsState.notificationToggles[i].on, color: settingsState.notificationToggles[i].color!),
-                                  ],
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Text(t.label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.ink900)),
+                                                  if (isVoice) ...[
+                                                    const SizedBox(width: 6),
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                                      decoration: BoxDecoration(
+                                                        color: AppColors.isDark
+                                                            ? const Color(0xFF374151)
+                                                            : const Color(0xFFF3F4F6),
+                                                        borderRadius: BorderRadius.circular(4),
+                                                      ),
+                                                      child: Text('Soon',
+                                                          style: TextStyle(
+                                                              fontSize: 9,
+                                                              fontWeight: FontWeight.w700,
+                                                              color: AppColors.ink400)),
+                                                    ),
+                                                  ],
+                                                ],
+                                              ),
+                                              Text(t.sub, style: TextStyle(fontSize: 11, color: AppColors.ink400)),
+                                            ],
+                                          ),
+                                        ),
+                                        _StaticSwitch(on: isVoice ? false : t.on, color: t.color!),
+                                      ],
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
+                              );
+                            }),
                         ],
                       ),
                     ),

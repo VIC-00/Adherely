@@ -4,6 +4,7 @@ import '../models.dart';
 import 'package:provider/provider.dart';
 import '../providers/index.dart';
 import '../theme/app_colors.dart';
+import '../widgets/success_overlay.dart';
 
 
 
@@ -115,7 +116,7 @@ class _MedDetailScreenState extends State<MedDetailScreen> {
                               const SizedBox(width: 10),
                               _StatPill(val: '${historyState.calculateStreak(medState.todayMeds)} days', label: 'Streak'),
                               const SizedBox(width: 10),
-                              _StatPill(val: '${medState.calculateAdherence()}%', label: 'Adherence'),
+                              _StatPill(val: '${medState.calculateAdherence().toStringAsFixed(0)}%', label: 'Adherence'),
                             ],
                           ),
                         ],
@@ -194,9 +195,9 @@ class _MedDetailScreenState extends State<MedDetailScreen> {
                       ? null
                       : () {
                           medState.logMedication(widget.medication.id!, MedCardVariant.taken);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('${widget.medication.name} marked as taken!')),
-                          );
+                          SuccessOverlay.showDoseLogged(context,
+                              medName: widget.medication.name,
+                              dose: widget.medication.dose);
                         },
                   icon: const Icon(Icons.check_rounded, size: 16),
                   label: Text(
@@ -337,6 +338,65 @@ class _OverviewTab extends StatelessWidget {
           title: definitionTitle,
           child: description,
         ),
+        if (medication.doctor != null || medication.notes != null) ...[
+          const SizedBox(height: 14),
+          _InfoCard(
+            title: 'Prescribing Info & Notes',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (medication.doctor != null) ...[
+                  Row(
+                    children: [
+                      const Icon(Icons.local_hospital_rounded, size: 16, color: AppColors.medBlue),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Doctor / Pharmacy:',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.ink900),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 24),
+                    child: Text(
+                      medication.doctor!,
+                      style: TextStyle(fontSize: 13, color: AppColors.ink700),
+                    ),
+                  ),
+                ],
+                if (medication.doctor != null && medication.notes != null)
+                  const SizedBox(height: 12),
+                if (medication.notes != null) ...[
+                  Row(
+                    children: [
+                      const Icon(Icons.notes_rounded, size: 16, color: AppColors.medBlue),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Instructions & Notes:',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.ink900),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 24),
+                    child: Text(
+                      medication.notes!,
+                      style: TextStyle(fontSize: 13, color: AppColors.ink700, height: 1.4),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 14),
         _InfoCard(
           title: 'This Week',
@@ -679,12 +739,7 @@ class _RefillsTab extends StatelessWidget {
                         );
                         context.read<MedicationProvider>().editMedication(medication.id!, newMed);
                         Navigator.of(context).pop();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                                'Logged refill successfully! ${medication.name} supply is reset to 30 days.'),
-                          ),
-                        );
+                        SuccessOverlay.showRefillLogged(context, medName: medication.name);
                       },
                       child: const Text('Confirm'),
                     ),

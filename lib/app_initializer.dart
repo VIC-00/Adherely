@@ -102,17 +102,12 @@ class _MedAdhereAppState extends State<MedAdhereApp> {
       await _historyProvider.load(historyData);
       await _historyProvider.loadPersonalBest();
 
-      // Re-arm every-other-day alarms on each app open (they are one-shot and expire after firing).
-      // For all other frequencies this is a no-op since matchDateTimeComponents auto-repeats them.
+      // Refresh the rolling window of 7 one-shot alarms for all active rules on app open.
       final notifService = LocalNotificationService();
       await notifService.initialize();
       for (final rule in _medicationProvider.rules) {
-        final medList = _medicationProvider.meds.where((m) => m.name == rule.med);
-        if (medList.isNotEmpty) {
-          final freq = medList.first.freq.toLowerCase();
-          if (freq.contains('every other day')) {
-            await notifService.scheduleReminderNotification(rule);
-          }
+        if (rule.active) {
+          await notifService.scheduleReminderNotification(rule);
         }
       }
       

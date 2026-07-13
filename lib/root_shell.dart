@@ -9,6 +9,7 @@ import 'screens/reminders_screen.dart';
 import 'screens/add_med_screen.dart';
 import 'widgets/bottom_nav.dart';
 import 'widgets/alarm_overlay_dialog.dart';
+import 'widgets/success_overlay.dart';
 import 'notification_service.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -90,9 +91,7 @@ class _RootShellState extends State<RootShell> {
           taken: true,
           note: 'Logged from notification bar',
         ));
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${med.name} marked as taken!')),
-        );
+        SuccessOverlay.showDoseLogged(context, medName: med.name, dose: med.dose);
       } else if (action == 'snooze') {
         // Retrieve snooze duration
         int snoozeMinutes = 5;
@@ -117,9 +116,7 @@ class _RootShellState extends State<RootShell> {
 
         await medState.rescheduleRule(med.id!, oldTime, snoozeTimeStr);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${med.name} snoozed for $snoozeMinutes mins (new time: $snoozeTimeStr)')),
-          );
+          SuccessOverlay.showSnoozed(context, minutes: snoozeMinutes);
         }
       }
     }
@@ -193,6 +190,137 @@ class _RootShellState extends State<RootShell> {
                 backgroundColor: const Color(0xFF2563EB),
                 elevation: 4,
                 child: const Icon(Icons.add_rounded, color: Colors.white),
+              ),
+            ),
+          if (_tab == NavTab.health)
+            Positioned(
+              right: 24,
+              bottom: navClearance + 8,
+              child: FloatingActionButton.extended(
+                heroTag: 'root_log_vitals_fab',
+                onPressed: () {
+                  final vitalsState = context.read<VitalsProvider>();
+                  showDialog(
+                    context: context,
+                    builder: (context) {
+                      String selectedVital = 'Blood Pressure';
+                      final sysController = TextEditingController(text: '120');
+                      final diaController = TextEditingController(text: '80');
+                      final singleValController = TextEditingController();
+
+                      return StatefulBuilder(
+                        builder: (context, setDialogState) => AlertDialog(
+                          title: const Text('Log Vitals'),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              DropdownButtonFormField<String>(
+                                initialValue: selectedVital,
+                                decoration:
+                                    const InputDecoration(labelText: 'Vital Type'),
+                                items: const [
+                                  'Blood Pressure',
+                                  'Heart Rate',
+                                  'Blood Sugar',
+                                  'Weight'
+                                ]
+                                    .map((v) =>
+                                        DropdownMenuItem(value: v, child: Text(v)))
+                                    .toList(),
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    setDialogState(() {
+                                      selectedVital = val;
+                                      if (val == 'Heart Rate') {
+                                        singleValController.text = '72';
+                                      } else if (val == 'Blood Sugar') {
+                                        singleValController.text = '95';
+                                      } else if (val == 'Weight') {
+                                        singleValController.text = '165.0';
+                                      }
+                                    });
+                                  }
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              if (selectedVital == 'Blood Pressure') ...[
+                                TextField(
+                                  controller: sysController,
+                                  keyboardType: TextInputType.number,
+                                  decoration: const InputDecoration(
+                                      labelText: 'Systolic (mmHg)',
+                                      hintText: 'e.g. 120'),
+                                ),
+                                const SizedBox(height: 10),
+                                TextField(
+                                  controller: diaController,
+                                  keyboardType: TextInputType.number,
+                                  decoration: const InputDecoration(
+                                      labelText: 'Diastolic (mmHg)',
+                                      hintText: 'e.g. 80'),
+                                ),
+                              ] else ...[
+                                TextField(
+                                  controller: singleValController,
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                          decimal: true),
+                                  decoration: InputDecoration(
+                                    labelText: selectedVital == 'Heart Rate'
+                                        ? 'Heart Rate (bpm)'
+                                        : selectedVital == 'Blood Sugar'
+                                            ? 'Blood Sugar (mg/dL)'
+                                            : 'Weight (lbs)',
+                                    hintText: selectedVital == 'Weight'
+                                        ? 'e.g. 165.4'
+                                        : 'e.g. 80',
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              child: const Text('Cancel'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                if (selectedVital == 'Blood Pressure') {
+                                  final sys =
+                                      int.tryParse(sysController.text) ?? 120;
+                                  final dia =
+                                      int.tryParse(diaController.text) ?? 80;
+                                  vitalsState.addBpReading(sys, dia);
+                                } else if (selectedVital == 'Heart Rate') {
+                                  final hr = singleValController.text.trim();
+                                  vitalsState.updateVital(
+                                      'Heart Rate', hr.isNotEmpty ? hr : '72');
+                                } else if (selectedVital == 'Blood Sugar') {
+                                  final bs = singleValController.text.trim();
+                                  vitalsState.updateVital(
+                                      'Blood Sugar', bs.isNotEmpty ? bs : '98');
+                                } else if (selectedVital == 'Weight') {
+                                  final w = singleValController.text.trim();
+                                  vitalsState.updateVital(
+                                      'Weight', w.isNotEmpty ? w : '168.4');
+                                }
+                                Navigator.of(context).pop();
+                                SuccessOverlay.showVitalsLogged(context, vitalType: selectedVital);
+                              },
+                              child: const Text('Log'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
+                backgroundColor: const Color(0xFF0F766E),
+                icon: const Icon(Icons.add_chart_rounded, color: Colors.white),
+                label: const Text('Log Vitals',
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.w700)),
               ),
             ),
         ],
