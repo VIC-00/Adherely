@@ -197,99 +197,288 @@ class _RemindersScreenState extends State<RemindersScreen> {
                   child: OutlinedButton.icon(
                     onPressed: () {
                       final medController = TextEditingController();
-                      final doseController = TextEditingController();
+                      final intakeController = TextEditingController(text: '1');
+                      final supplyController = TextEditingController(text: '30');
                       final timeController = TextEditingController(text: '8:00 AM');
                       showDialog(
                         context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Add Custom Reminder'),
-                          content: SingleChildScrollView(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                TextField(
-                                  controller: medController,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Medication Name',
-                                    hintText: 'e.g. Metformin',
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                TextField(
-                                  controller: doseController,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Dosage',
-                                    hintText: 'e.g. 500mg',
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                TextField(
-                                  controller: timeController,
-                                  readOnly: true,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Time',
-                                    hintText: 'e.g. 8:00 AM',
-                                  ),
-                                  onTap: () async {
-                                    final TimeOfDay? picked = await showTimePicker(
-                                      context: context,
-                                      initialTime: TimeOfDay.now(),
-                                      builder: (context, child) {
-                                        final mediaQuery = MediaQuery.of(context);
-                                        return MediaQuery(
-                                          data: mediaQuery.copyWith(
-                                            size: Size(mediaQuery.size.width, mediaQuery.size.height < 600.0 ? 800.0 : mediaQuery.size.height),
-                                            viewInsets: mediaQuery.viewInsets.copyWith(bottom: 0),
-                                            textScaler: TextScaler.noScaling,
+                        builder: (context) {
+                          final hasMeds = medState.meds.isNotEmpty;
+                          String? selectedMed = hasMeds ? medState.meds.first.name : null;
+                          bool isNew = !hasMeds;
+
+                          String customForm = 'Tablet';
+                          double customIntake = 1.0;
+                          double customSupply = 30.0;
+
+                          if (hasMeds && selectedMed != null) {
+                            medController.text = selectedMed;
+                          }
+
+                          return StatefulBuilder(
+                            builder: (context, setState) {
+                              return AlertDialog(
+                                backgroundColor: AppColors.cardBg,
+                                title: Text('Add Custom Reminder', style: TextStyle(color: AppColors.ink900, fontWeight: FontWeight.bold)),
+                                content: SingleChildScrollView(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      if (hasMeds) ...[
+                                        Text('Select Medication', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.ink700)),
+                                        const SizedBox(height: 6),
+                                        DropdownButtonFormField<String>(
+                                          initialValue: isNew ? '__new__' : selectedMed,
+                                          dropdownColor: AppColors.isDark ? AppColors.cardBg : Colors.white,
+                                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.ink900),
+                                          decoration: InputDecoration(
+                                            filled: true,
+                                            fillColor: AppColors.isDark ? AppColors.cardBg : Colors.white,
+                                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: AppColors.border)),
+                                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: AppColors.border)),
+                                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF2563EB))),
                                           ),
-                                          child: OverflowBox(
-                                            minHeight: 340.0,
-                                            maxHeight: 800.0,
-                                            child: child!,
+                                          items: [
+                                            ...medState.meds.map((m) => DropdownMenuItem(value: m.name, child: Text(m.name))),
+                                            const DropdownMenuItem(value: '__new__', child: Text('+ Add New Medication...')),
+                                          ],
+                                          onChanged: (val) {
+                                            setState(() {
+                                              if (val == '__new__') {
+                                                isNew = true;
+                                                medController.text = '';
+                                              } else {
+                                                isNew = false;
+                                                selectedMed = val;
+                                                medController.text = val ?? '';
+                                              }
+                                            });
+                                          },
+                                        ),
+                                        const SizedBox(height: 14),
+                                      ],
+                                      if (isNew) ...[
+                                        Text('New Medication Name', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.ink700)),
+                                        const SizedBox(height: 6),
+                                        TextField(
+                                          controller: medController,
+                                          style: TextStyle(fontSize: 13, color: AppColors.ink900),
+                                          decoration: InputDecoration(
+                                            hintText: 'e.g. Metformin',
+                                            filled: true,
+                                            fillColor: AppColors.isDark ? AppColors.cardBg : Colors.white,
+                                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: AppColors.border)),
+                                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: AppColors.border)),
+                                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF2563EB))),
                                           ),
-                                        );
-                                      },
-                                    );
-                                    if (picked != null) {
-                                      final hour = picked.hourOfPeriod == 0 ? 12 : picked.hourOfPeriod;
-                                      final minute = picked.minute.toString().padLeft(2, '0');
-                                      final period = picked.period == DayPeriod.am ? 'AM' : 'PM';
-                                      timeController.text = '$hour:$minute $period';
-                                    }
-                                  },
+                                        ),
+                                        const SizedBox(height: 14),
+                                        Text('Form', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.ink700)),
+                                        const SizedBox(height: 6),
+                                        DropdownButtonFormField<String>(
+                                          initialValue: customForm,
+                                          dropdownColor: AppColors.isDark ? AppColors.cardBg : Colors.white,
+                                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.ink900),
+                                          decoration: InputDecoration(
+                                            filled: true,
+                                            fillColor: AppColors.isDark ? AppColors.cardBg : Colors.white,
+                                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: AppColors.border)),
+                                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: AppColors.border)),
+                                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF2563EB))),
+                                          ),
+                                          items: const ['Tablet', 'Capsule', 'Liquid', 'Injection']
+                                              .map((o) => DropdownMenuItem(value: o, child: Text(o)))
+                                              .toList(),
+                                          onChanged: (v) {
+                                            setState(() {
+                                              customForm = v ?? 'Tablet';
+                                            });
+                                          },
+                                        ),
+                                        const SizedBox(height: 14),
+                                        Text('Intake Amount (per dose)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.ink700)),
+                                        const SizedBox(height: 6),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: TextField(
+                                                controller: intakeController,
+                                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                                style: TextStyle(fontSize: 13, color: AppColors.ink900),
+                                                decoration: InputDecoration(
+                                                  hintText: 'e.g. 1',
+                                                  filled: true,
+                                                  fillColor: AppColors.isDark ? AppColors.cardBg : Colors.white,
+                                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: AppColors.border)),
+                                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: AppColors.border)),
+                                                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF2563EB))),
+                                                ),
+                                                onChanged: (val) {
+                                                  setState(() {
+                                                    customIntake = double.tryParse(val) ?? 1.0;
+                                                  });
+                                                },
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              (() {
+                                                final f = customForm.toLowerCase();
+                                                if (f.contains('tablet')) return customIntake == 1.0 ? 'tablet' : 'tablets';
+                                                if (f.contains('capsule')) return customIntake == 1.0 ? 'capsule' : 'capsules';
+                                                if (f.contains('liquid')) return 'ml';
+                                                if (f.contains('injection')) return customIntake == 1.0 ? 'injection' : 'injections';
+                                                return 'units';
+                                              })(),
+                                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.ink700),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 14),
+                                        Text(
+                                          (() {
+                                            final f = customForm.toLowerCase();
+                                            if (f.contains('liquid')) return 'Liquid volume in supply (ml)';
+                                            if (f.contains('tablet')) return 'Tablets in supply';
+                                            if (f.contains('capsule')) return 'Capsules in supply';
+                                            if (f.contains('injection')) return 'Injections in supply';
+                                            return 'Units in supply';
+                                          })(),
+                                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.ink700),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        TextField(
+                                          controller: supplyController,
+                                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                          style: TextStyle(fontSize: 13, color: AppColors.ink900),
+                                          decoration: InputDecoration(
+                                            hintText: 'e.g. 30',
+                                            filled: true,
+                                            fillColor: AppColors.isDark ? AppColors.cardBg : Colors.white,
+                                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: AppColors.border)),
+                                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: AppColors.border)),
+                                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF2563EB))),
+                                          ),
+                                          onChanged: (val) {
+                                            setState(() {
+                                              customSupply = double.tryParse(val) ?? 30.0;
+                                            });
+                                          },
+                                        ),
+                                        const SizedBox(height: 14),
+                                      ],
+                                      Text('Reminder Time', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.ink700)),
+                                      const SizedBox(height: 6),
+                                      TextField(
+                                        controller: timeController,
+                                        readOnly: true,
+                                        style: TextStyle(fontSize: 13, color: AppColors.ink900),
+                                        decoration: InputDecoration(
+                                          hintText: 'e.g. 8:00 AM',
+                                          filled: true,
+                                          fillColor: AppColors.isDark ? AppColors.cardBg : Colors.white,
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: AppColors.border)),
+                                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: AppColors.border)),
+                                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF2563EB))),
+                                        ),
+                                        onTap: () async {
+                                          final TimeOfDay? picked = await showTimePicker(
+                                            context: context,
+                                            initialTime: TimeOfDay.now(),
+                                            builder: (context, child) {
+                                              final mediaQuery = MediaQuery.of(context);
+                                              return MediaQuery(
+                                                data: mediaQuery.copyWith(
+                                                  size: Size(mediaQuery.size.width, mediaQuery.size.height < 600.0 ? 800.0 : mediaQuery.size.height),
+                                                  viewInsets: mediaQuery.viewInsets.copyWith(bottom: 0),
+                                                  textScaler: TextScaler.noScaling,
+                                                ),
+                                                child: OverflowBox(
+                                                  minHeight: 340.0,
+                                                  maxHeight: 800.0,
+                                                  child: child!,
+                                                ),
+                                              );
+                                            },
+                                          );
+                                          if (picked != null) {
+                                            final hour = picked.hourOfPeriod == 0 ? 12 : picked.hourOfPeriod;
+                                            final minute = picked.minute.toString().padLeft(2, '0');
+                                            final period = picked.period == DayPeriod.am ? 'AM' : 'PM';
+                                            setState(() {
+                                              timeController.text = '$hour:$minute $period';
+                                            });
+                                          }
+                                        },
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ],
-                            ),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(),
-                              child: const Text('Cancel'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () {
-                                final med = medController.text.trim();
-                                final dose = doseController.text.trim();
-                                final time = timeController.text.trim();
-                                if (med.isNotEmpty) {
-                                  medState.addRule(ReminderRule(
-                                    id: null, // let DB auto-assign a safe integer ID
-                                    med: med,
-                                    dose: dose.isNotEmpty ? dose : '1 pill',
-                                    time: time.isNotEmpty ? time : '8:00 AM',
-                                    types: [AlertType.push],
-                                    advance: 0,
-                                    color: AppColors.medBlue,
-                                    active: true,
-                                  ));
-                                  Navigator.of(context).pop();
-                                  SuccessOverlay.showReminderAdded(context, medName: med, time: time.isNotEmpty ? time : '8:00 AM');
-                                }
-                              },
-                              child: const Text('Add'),
-                            ),
-                          ],
-                        ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.of(context).pop(),
+                                    child: Text('Cancel', style: TextStyle(color: AppColors.ink500)),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      final medName = medController.text.trim();
+                                      final time = timeController.text.trim();
+                                      if (medName.isNotEmpty) {
+                                        if (isNew) {
+                                          medState.addRule(
+                                            ReminderRule(
+                                              id: null,
+                                              med: medName,
+                                              dose: '', // dosage is optional/empty
+                                              time: time.isNotEmpty ? time : '8:00 AM',
+                                              types: [AlertType.push],
+                                              advance: 0,
+                                              color: AppColors.medBlue,
+                                              active: true,
+                                            ),
+                                            form: customForm,
+                                            intakeQty: customIntake,
+                                            supplyQty: customSupply,
+                                            initialSupply: customSupply,
+                                          );
+                                        } else {
+                                          final matchingMed = medState.meds.firstWhere((m) => m.name == selectedMed);
+                                          medState.addRule(
+                                            ReminderRule(
+                                              id: null,
+                                              med: medName,
+                                              dose: matchingMed.dose,
+                                              time: time.isNotEmpty ? time : '8:00 AM',
+                                              types: [AlertType.push],
+                                              advance: 0,
+                                              color: matchingMed.color,
+                                              active: true,
+                                            ),
+                                          );
+                                        }
+                                        Navigator.of(context).pop();
+                                        SuccessOverlay.showReminderAdded(context, medName: medName, time: time.isNotEmpty ? time : '8:00 AM');
+                                      }
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: isNew ? AppColors.medBlue : (medState.meds.firstWhere((m) => m.name == selectedMed).color),
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    ),
+                                    child: const Text('Add'),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        },
                       );
                     },
                     icon: Icon(Icons.add_rounded,

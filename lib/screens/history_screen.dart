@@ -35,43 +35,73 @@ class HistoryScreen extends StatelessWidget {
               // Header
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Color(0xFF1D4ED8), Color(0xFF2563EB)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFF1E3A8A),
+                      Color(0xFF2563EB),
+                      Color(0xFF60A5FA),
+                    ],
+                    stops: [0, 0.6, 1],
                   ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('ADHERENCE HISTORY',
-                        style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 1,
-                            color: Colors.white.withValues(alpha: 0.65))),
-                    const SizedBox(height: 4),
-                    Text(historyState.currentHistoryMonthLabel,
-                        style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                            letterSpacing: -0.6)),
-                    const SizedBox(height: 12),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('ADHERENCE HISTORY',
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 1,
+                                      color: Colors.white.withValues(alpha: 0.65))),
+                              const SizedBox(height: 4),
+                              Text(historyState.currentHistoryMonthLabel,
+                                  style: const TextStyle(
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white,
+                                      letterSpacing: -0.6)),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.25),
+                                width: 1.5),
+                          ),
+                          child: const Icon(Icons.history_toggle_off_rounded,
+                              color: Colors.white, size: 22),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
                     Row(
                       children: [
                         _HeaderStat(
                             v: '${historyState.calculateWeeklyAdherence(medState.rules, medState.dynamicTodayMeds, medState.meds).toStringAsFixed(0)}%',
                             l: 'Adherence'),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: 24),
                         _HeaderStat(
                             v: '${historyState.calculateStreak(medState.dynamicTodayMeds)}',
                             l: 'Day Streak'),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: 24),
                         _HeaderStat(
-                            v: '${historyState.missedDoses}', l: 'Missed'),
+                            v: '${historyState.getMissedDosesCount(medState.rules, medState.meds)}', l: 'Missed'),
                       ],
                     ),
                   ],
@@ -400,7 +430,8 @@ class HistoryScreen extends StatelessWidget {
 
   void _showDayDosesDialog(
       BuildContext context, HistoryProvider historyState, int day, List<ReminderRule> rules, List<Medication> meds) {
-    final doses = historyState.getDosesForDay(day, rules, meds);
+    final date = DateTime(historyState.currentHistoryMonth.year, historyState.currentHistoryMonth.month, day);
+    final doses = historyState.getDosesForDay(date, rules, meds);
 
     showDialog(
       context: context,

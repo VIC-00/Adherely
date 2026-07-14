@@ -51,6 +51,7 @@ class MedicationProvider extends ChangeNotifier {
       intakeQty: (m['intakeQty'] as num?)?.toDouble() ?? 1.0,
       supplyQty: (m['supplyQty'] as num?)?.toDouble() ?? 0.0,
       initialSupply: (m['initialSupply'] as num?)?.toDouble() ?? 0.0,
+      createdAt: m['createdAt'] as int?,
     )));
 
     _rules.clear();
@@ -118,11 +119,12 @@ class MedicationProvider extends ChangeNotifier {
       'sideEffects': null
     };
 
-    int medId;
+    final medId = DateTime.now().millisecondsSinceEpoch;
     if (_dbEnabled) {
       try {
         final db = await DatabaseHelper.instance.database;
-        medId = await db.insert('medications', {
+        await db.insert('medications', {
+          'id': medId,
           'name': m.name,
           'dose': m.dose,
           'freq': m.freq,
@@ -137,6 +139,7 @@ class MedicationProvider extends ChangeNotifier {
           'intakeQty': m.intakeQty,
           'supplyQty': m.supplyQty,
           'initialSupply': m.initialSupply,
+          'createdAt': medId,
         });
 
         await db.insert('today_meds', {
@@ -145,10 +148,7 @@ class MedicationProvider extends ChangeNotifier {
         });
       } catch (e) {
         debugPrint("DB write error: $e");
-        medId = DateTime.now().millisecondsSinceEpoch;
       }
-    } else {
-      medId = DateTime.now().millisecondsSinceEpoch;
     }
 
     final medWithId = Medication(
@@ -167,6 +167,7 @@ class MedicationProvider extends ChangeNotifier {
       intakeQty: m.intakeQty,
       supplyQty: m.supplyQty,
       initialSupply: m.initialSupply,
+      createdAt: medId,
     );
     
     _meds.add(medWithId);
@@ -276,28 +277,50 @@ class MedicationProvider extends ChangeNotifier {
   Future<void> editMedication(int medId, Medication newMed) async {
     final idx = _meds.indexWhere((m) => m.id == medId);
     if (idx != -1) {
-      final oldName = _meds[idx].name;
-      _meds[idx] = newMed;
+      final oldMed = _meds[idx];
+      final oldName = oldMed.name;
+      
+      final finalMed = Medication(
+        id: newMed.id,
+        name: newMed.name,
+        dose: newMed.dose,
+        freq: newMed.freq,
+        color: newMed.color,
+        refillDays: newMed.refillDays,
+        description: newMed.description,
+        drugClass: newMed.drugClass,
+        sideEffects: newMed.sideEffects,
+        doctor: newMed.doctor,
+        notes: newMed.notes,
+        form: newMed.form,
+        intakeQty: newMed.intakeQty,
+        supplyQty: newMed.supplyQty,
+        initialSupply: newMed.initialSupply,
+        createdAt: newMed.createdAt ?? oldMed.createdAt,
+      );
+      
+      _meds[idx] = finalMed;
       notifyListeners();
 
       if (_dbEnabled) {
         try {
           final db = await DatabaseHelper.instance.database;
           await db.update('medications', {
-            'name': newMed.name,
-            'dose': newMed.dose,
-            'freq': newMed.freq,
-            'color': newMed.color.toARGB32(),
-            'refillDays': newMed.refillDays,
-            'description': newMed.description,
-            'drugClass': newMed.drugClass,
-            'sideEffects': newMed.sideEffects,
-            'doctor': newMed.doctor,
-            'notes': newMed.notes,
-            'form': newMed.form,
-            'intakeQty': newMed.intakeQty,
-            'supplyQty': newMed.supplyQty,
-            'initialSupply': newMed.initialSupply,
+            'name': finalMed.name,
+            'dose': finalMed.dose,
+            'freq': finalMed.freq,
+            'color': finalMed.color.toARGB32(),
+            'refillDays': finalMed.refillDays,
+            'description': finalMed.description,
+            'drugClass': finalMed.drugClass,
+            'sideEffects': finalMed.sideEffects,
+            'doctor': finalMed.doctor,
+            'notes': finalMed.notes,
+            'form': finalMed.form,
+            'intakeQty': finalMed.intakeQty,
+            'supplyQty': finalMed.supplyQty,
+            'initialSupply': finalMed.initialSupply,
+            'createdAt': finalMed.createdAt,
           }, where: 'id = ?', whereArgs: [medId]);
         } catch (e) {
           debugPrint('DB updateMedication error: $e');
@@ -406,7 +429,13 @@ class MedicationProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> addRule(ReminderRule rule) async {
+  Future<void> addRule(
+    ReminderRule rule, {
+    String? form,
+    double intakeQty = 1.0,
+    double supplyQty = 0.0,
+    double initialSupply = 0.0,
+  }) async {
     final exists = _meds.any((m) => m.name.toLowerCase() == rule.med.toLowerCase());
     if (!exists) {
       final newMedId = DateTime.now().millisecondsSinceEpoch;
@@ -417,6 +446,11 @@ class MedicationProvider extends ChangeNotifier {
         freq: 'Once daily · ${rule.time}',
         color: rule.color,
         refillDays: 30,
+        form: form,
+        intakeQty: intakeQty,
+        supplyQty: supplyQty,
+        initialSupply: initialSupply,
+        createdAt: newMedId,
       );
       _meds.add(med);
       _todayMeds[newMedId] = MedCardVariant.upcoming;
@@ -427,11 +461,17 @@ class MedicationProvider extends ChangeNotifier {
         try {
           final db = await DatabaseHelper.instance.database;
           final insertedMedId = await db.insert('medications', {
+            'id': med.id,
             'name': med.name,
             'dose': med.dose,
             'freq': med.freq,
             'color': med.color.toARGB32(),
             'refillDays': med.refillDays,
+            'form': med.form,
+            'intakeQty': med.intakeQty,
+            'supplyQty': med.supplyQty,
+            'initialSupply': med.initialSupply,
+            'createdAt': med.createdAt,
           });
           await db.insert('today_meds', {
             'med_id': insertedMedId,
@@ -578,6 +618,21 @@ class MedicationProvider extends ChangeNotifier {
     }
   }
   
+  bool isRuleBeforeCreation(ReminderRule r, Medication med) {
+    final createdMs = med.createdAt ?? med.id;
+    if (createdMs == null || createdMs < 1000000000000) return false;
+    final creationDate = DateTime.fromMillisecondsSinceEpoch(createdMs);
+    final now = DateTime.now();
+    
+    final today = DateTime(now.year, now.month, now.day);
+    final creationDateOnly = DateTime(creationDate.year, creationDate.month, creationDate.day);
+    
+    if (today.isBefore(creationDateOnly)) {
+      return true;
+    }
+    return false;
+  }
+
   double calculateAdherence() {
     int totalPassed = 0;
     int totalTaken = 0;
@@ -587,7 +642,10 @@ class MedicationProvider extends ChangeNotifier {
 
     for (final med in uniqueMeds) {
       final medRules = _rules.where((r) => r.med.toLowerCase() == med.name.toLowerCase() && r.active).toList();
-      final passedRulesCount = medRules.where((r) => _hasTimePassed(r.time)).length;
+      final passedRulesCount = medRules.where((r) {
+        if (isRuleBeforeCreation(r, med)) return false;
+        return _hasTimePassed(r.time);
+      }).length;
       final takenCount = _todayTakenCounts[med.id!] ?? 0;
 
       totalPassed += passedRulesCount;
@@ -614,7 +672,10 @@ class MedicationProvider extends ChangeNotifier {
 
     final takenCount = _todayTakenCounts[med.id!] ?? 0;
     final totalRules = medRules.length;
-    final passedRules = medRules.where((r) => _hasTimePassed(r.time)).toList();
+    final passedRules = medRules.where((r) {
+      if (isRuleBeforeCreation(r, med)) return false;
+      return _hasTimePassed(r.time);
+    }).toList();
 
     if (takenCount >= totalRules) {
       return MedCardVariant.taken;
@@ -660,7 +721,10 @@ class MedicationProvider extends ChangeNotifier {
     if (medRules.isEmpty) return med.freq;
     medRules.sort((a, b) => _parseTimeToDouble(a.time).compareTo(_parseTimeToDouble(b.time)));
     final takenCount = _todayTakenCounts[med.id!] ?? 0;
-    final passedRules = medRules.where((r) => _hasTimePassed(r.time)).toList();
+    final passedRules = medRules.where((r) {
+      if (isRuleBeforeCreation(r, med)) return false;
+      return _hasTimePassed(r.time);
+    }).toList();
 
     if (takenCount < passedRules.length) {
       return passedRules[takenCount].time;

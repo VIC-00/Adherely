@@ -8,6 +8,7 @@ import 'reminders_screen.dart';
 import '../database_helper.dart';
 import '../notification_service.dart';
 import '../widgets/success_overlay.dart';
+import 'settings_screen.dart';
 
 void _showEditMedDialog(
     BuildContext context, SettingsProvider settingsState, Medication med) {
@@ -63,6 +64,15 @@ void _showEditMedDialog(
                   freq: med.freq,
                   color: med.color,
                   refillDays: refillDays,
+                  description: med.description,
+                  drugClass: med.drugClass,
+                  sideEffects: med.sideEffects,
+                  doctor: med.doctor,
+                  notes: med.notes,
+                  form: med.form,
+                  intakeQty: med.intakeQty,
+                  supplyQty: med.supplyQty,
+                  initialSupply: med.initialSupply,
                 ),
               );
               Navigator.of(context).pop();
@@ -191,7 +201,7 @@ class ProfileScreen extends StatelessWidget {
               // Hero
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
@@ -248,6 +258,14 @@ class ProfileScreen extends StatelessWidget {
                             ],
                           ),
                         ),
+                        IconButton(
+                          icon: const Icon(Icons.settings_rounded, color: Colors.white, size: 24),
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                            );
+                          },
+                        ),
                       ],
                     ),
                     // Split on comma (how onboarding stores them)
@@ -281,6 +299,63 @@ class ProfileScreen extends StatelessWidget {
                                     style: const TextStyle(
                                         fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white)),
                               ),
+                        ],
+                      );
+                    }),
+                    const SizedBox(height: 18),
+                    Builder(builder: (context) {
+                      final historyState = context.watch<HistoryProvider>();
+                      final weeklyAdherence = historyState.calculateWeeklyAdherence(
+                          medState.rules, medState.dynamicTodayMeds, medState.meds);
+                      return Row(
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('${medState.meds.length}',
+                                  style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white)),
+                              Text('Active Meds',
+                                  style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.white.withValues(alpha: 0.65),
+                                      fontWeight: FontWeight.w500)),
+                            ],
+                          ),
+                          const SizedBox(width: 24),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('${settingsState.caregivers.length}',
+                                  style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white)),
+                              Text('Caregivers',
+                                  style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.white.withValues(alpha: 0.65),
+                                      fontWeight: FontWeight.w500)),
+                            ],
+                          ),
+                          const SizedBox(width: 24),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('${weeklyAdherence.toStringAsFixed(0)}%',
+                                  style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white)),
+                              Text('Adherence',
+                                  style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.white.withValues(alpha: 0.65),
+                                      fontWeight: FontWeight.w500)),
+                            ],
+                          ),
                         ],
                       );
                     }),
@@ -362,11 +437,11 @@ class ProfileScreen extends StatelessWidget {
                                       Column(
                                         crossAxisAlignment: CrossAxisAlignment.end,
                                         children: [
-                                          Text('${m.refillDays}d left',
+                                          Text('${m.calculatedDaysRemaining}d left',
                                               style: TextStyle(
                                                   fontSize: 11,
                                                   fontWeight: FontWeight.w700,
-                                                  color: m.refillDays <= 7
+                                                  color: m.calculatedDaysRemaining <= 7
                                                       ? AppColors.medRed
                                                       : AppColors.medGreen)),
                                           Text('refill',

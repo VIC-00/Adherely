@@ -20,6 +20,7 @@ class Medication {
   final double intakeQty;
   final double supplyQty;
   final double initialSupply;
+  final int? createdAt;
 
   const Medication({
     this.id,
@@ -37,7 +38,15 @@ class Medication {
     this.intakeQty = 1.0,
     this.supplyQty = 0.0,
     this.initialSupply = 0.0,
+    this.createdAt,
   });
+
+  int get calculatedDaysRemaining {
+    final timesStr = freq.contains('·') ? freq.split('·').last : '';
+    final timesCount = timesStr.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).length;
+    final dailyIntake = intakeQty * (timesCount > 0 ? timesCount : 1);
+    return dailyIntake > 0 ? (supplyQty / dailyIntake).ceil() : 0;
+  }
 }
 
 class Caregiver {

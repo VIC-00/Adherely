@@ -26,6 +26,12 @@ class _MedDetailScreenState extends State<MedDetailScreen> {
     AppColors.isDark = Theme.of(context).brightness == Brightness.dark;
     final medState = context.watch<MedicationProvider>();
     final historyState = context.watch<HistoryProvider>();
+
+    final med = medState.meds.firstWhere(
+      (m) => m.id == widget.medication.id,
+      orElse: () => widget.medication,
+    );
+
     return Scaffold(
       backgroundColor: AppColors.screenBg,
       body: SafeArea(
@@ -46,12 +52,12 @@ class _MedDetailScreenState extends State<MedDetailScreen> {
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                           colors: [
-                            HSLColor.fromColor(widget.medication.color)
-                                .withLightness((HSLColor.fromColor(widget.medication.color).lightness * 0.75).clamp(0.0, 1.0))
+                            HSLColor.fromColor(med.color)
+                                .withLightness((HSLColor.fromColor(med.color).lightness * 0.75).clamp(0.0, 1.0))
                                 .toColor(),
-                            widget.medication.color,
-                            HSLColor.fromColor(widget.medication.color)
-                                .withLightness((HSLColor.fromColor(widget.medication.color).lightness * 1.25).clamp(0.0, 1.0))
+                            med.color,
+                            HSLColor.fromColor(med.color)
+                                .withLightness((HSLColor.fromColor(med.color).lightness * 1.25).clamp(0.0, 1.0))
                                 .toColor(),
                           ],
                           stops: const [0, 0.7, 1],
@@ -75,14 +81,47 @@ class _MedDetailScreenState extends State<MedDetailScreen> {
                                 ),
                               ),
                               const Spacer(),
-                              Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(10)),
-                                child: const Icon(Icons.more_horiz_rounded,
-                                    size: 18, color: Colors.white),
+                              PopupMenuButton<String>(
+                                tooltip: 'Medication actions',
+                                color: AppColors.isDark ? AppColors.cardBg : Colors.white,
+                                onSelected: (value) {
+                                  if (value == 'edit') {
+                                    _showEditMedDialog(context, med);
+                                  } else if (value == 'delete') {
+                                    _showDeleteMedDialog(context, med);
+                                  }
+                                },
+                                itemBuilder: (context) => [
+                                  PopupMenuItem(
+                                    value: 'edit',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.edit_rounded, size: 18, color: AppColors.ink700),
+                                        const SizedBox(width: 8),
+                                        Text('Edit Medication', style: TextStyle(fontSize: 13, color: AppColors.ink900)),
+                                      ],
+                                    ),
+                                  ),
+                                  const PopupMenuItem(
+                                    value: 'delete',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.delete_rounded, size: 18, color: AppColors.medRed),
+                                        SizedBox(width: 8),
+                                        Text('Delete Medication', style: TextStyle(fontSize: 13, color: AppColors.medRed, fontWeight: FontWeight.w600)),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                                child: Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(10)),
+                                  child: const Icon(Icons.more_horiz_rounded,
+                                      size: 18, color: Colors.white),
+                                ),
                               ),
                             ],
                           ),
@@ -101,7 +140,7 @@ class _MedDetailScreenState extends State<MedDetailScreen> {
                                 size: 26, color: Colors.white),
                           ),
                           const SizedBox(height: 12),
-                           Text(widget.medication.name,
+                           Text(med.name,
                               style: const TextStyle(
                                   fontSize: 26,
                                   fontWeight: FontWeight.w800,
@@ -109,9 +148,9 @@ class _MedDetailScreenState extends State<MedDetailScreen> {
                                   letterSpacing: -0.6)),
                           Text(
                             (() {
-                              final med = widget.medication;
-                              final qty = med.intakeQty;
-                              final formLower = (med.form ?? 'tablet').toLowerCase();
+                              final m = med;
+                              final qty = m.intakeQty;
+                              final formLower = (m.form ?? 'tablet').toLowerCase();
                               String unit = 'pill';
                               if (formLower.contains('tablet')) {
                                 unit = qty == 1.0 ? 'tablet' : 'tablets';
@@ -126,14 +165,14 @@ class _MedDetailScreenState extends State<MedDetailScreen> {
                               }
                               final qtyStr = qty.toStringAsFixed(qty == qty.toInt() ? 0 : 1);
                               String doseSpec = '';
-                              if (med.dose.isNotEmpty) {
+                              if (m.dose.isNotEmpty) {
                                 if (qty > 1.0) {
-                                  doseSpec = ' (${med.dose} each)';
+                                  doseSpec = ' (${m.dose} each)';
                                 } else {
-                                  doseSpec = ' (${med.dose})';
+                                  doseSpec = ' (${m.dose})';
                                 }
                               }
-                              return '$qtyStr $unit$doseSpec · ${med.drugClass ?? "Medication"}';
+                              return '$qtyStr $unit$doseSpec · ${m.drugClass ?? "Medication"}';
                             })(),
                             style: TextStyle(
                                 fontSize: 14,
@@ -141,16 +180,16 @@ class _MedDetailScreenState extends State<MedDetailScreen> {
                           ),
                           const SizedBox(height: 14), Builder(
                              builder: (context) {
-                               final timeStr = widget.medication.freq.contains('·') ? widget.medication.freq.split('·').last.trim() : widget.medication.freq;
+                               final timeStr = med.freq.contains('·') ? med.freq.split('·').last.trim() : med.freq;
                                final timesCount = timeStr.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty).toList().length;
                                final scheduleVal = timesCount > 1 ? '${timesCount}x daily' : timeStr;
                                return Row(
                                  children: [
                                    _StatPill(val: scheduleVal, label: 'Schedule'),
                                    const SizedBox(width: 10),
-                                   _StatPill(val: '${historyState.calculateStreakForMed(widget.medication.name, medState.dynamicTodayMeds, widget.medication)} days', label: 'Streak'),
+                                   _StatPill(val: '${historyState.calculateStreakForMed(med.name, medState.dynamicTodayMeds, med)} days', label: 'Streak'),
                                    const SizedBox(width: 10),
-                                   _StatPill(val: '${historyState.getMedicationAdherence(widget.medication.name)}%', label: 'Adherence'),
+                                   _StatPill(val: '${historyState.getMedicationAdherence(med.name)}%', label: 'Adherence'),
                                  ],
                                );
                              }
@@ -179,7 +218,7 @@ class _MedDetailScreenState extends State<MedDetailScreen> {
                                   border: Border(
                                       bottom: BorderSide(
                                           color: active
-                                              ? widget.medication.color
+                                              ? med.color
                                               : Colors.transparent,
                                           width: 2)),
                                 ),
@@ -193,7 +232,7 @@ class _MedDetailScreenState extends State<MedDetailScreen> {
                                         ? FontWeight.w700
                                         : FontWeight.w500,
                                     color: active
-                                        ? widget.medication.color
+                                        ? med.color
                                         : AppColors.ink400,
                                   ),
                                 ),
@@ -207,10 +246,10 @@ class _MedDetailScreenState extends State<MedDetailScreen> {
                     Padding(
                       padding: const EdgeInsets.all(16),
                       child: switch (_activeTab) {
-                        0 => _OverviewTab(medication: widget.medication),
-                        1 => _ScheduleTab(medication: widget.medication),
-                        2 => _SideEffectsTab(medication: widget.medication),
-                        _ => _RefillsTab(medication: widget.medication),
+                        0 => _OverviewTab(medication: med),
+                        1 => _ScheduleTab(medication: med),
+                        2 => _SideEffectsTab(medication: med),
+                        _ => _RefillsTab(medication: med),
                       },
                     ),
                   ],
@@ -227,30 +266,30 @@ class _MedDetailScreenState extends State<MedDetailScreen> {
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: medState.getTodayMedStatus(widget.medication) == MedCardVariant.taken
+                  onPressed: medState.getTodayMedStatus(med) == MedCardVariant.taken
                       ? null
                       : () {
-                          final medRules = medState.rules.where((r) => r.med.toLowerCase() == widget.medication.name.toLowerCase() && r.active).toList();
-                          final takenCount = medState.todayTakenCounts[widget.medication.id!] ?? 0;
+                          final medRules = medState.rules.where((r) => r.med.toLowerCase() == med.name.toLowerCase() && r.active).toList();
+                          final takenCount = medState.todayTakenCounts[med.id!] ?? 0;
 
                           void logDose(ReminderRule rule) {
-                            medState.logMedication(widget.medication.id!, MedCardVariant.taken);
+                            medState.logMedication(med.id!, MedCardVariant.taken);
                             final timeStr = DateFormat('h:mm a').format(DateTime.now());
                             historyState.logHistory(HistoryItem(
-                              med: '${widget.medication.name} ${widget.medication.dose}',
+                              med: '${med.name} ${med.dose}',
                               date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
                               time: timeStr,
                               taken: true,
                               note: 'Took ${rule.time} dose',
                             ));
-                            SuccessOverlay.showDoseLogged(context, medName: widget.medication.name, dose: widget.medication.dose);
+                            SuccessOverlay.showDoseLogged(context, medName: med.name, dose: med.dose);
                           }
 
                           if (medRules.length > 1) {
                             _showDoseSelector(
                               context: context,
                               title: 'Log which dose?',
-                              med: widget.medication,
+                              med: med,
                               rules: medState.rules,
                               takenCount: takenCount,
                               onSelected: logDose,
@@ -261,12 +300,12 @@ class _MedDetailScreenState extends State<MedDetailScreen> {
                         },
                   icon: const Icon(Icons.check_rounded, size: 16),
                   label: Text(
-                      medState.getTodayMedStatus(widget.medication) == MedCardVariant.taken
+                      medState.getTodayMedStatus(med) == MedCardVariant.taken
                           ? 'Completed'
-                          : 'Take Now · ${medState.getNextDoseTime(widget.medication)}',
+                          : 'Take Now · ${medState.getNextDoseTime(med)}',
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: widget.medication.color,
+                    backgroundColor: med.color,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 15),
                     shape: RoundedRectangleBorder(
@@ -278,6 +317,152 @@ class _MedDetailScreenState extends State<MedDetailScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showEditMedDialog(BuildContext context, Medication med) {
+    final medState = context.read<MedicationProvider>();
+    final nameController = TextEditingController(text: med.name);
+    final doseController = TextEditingController(text: med.dose);
+    final intakeController = TextEditingController(text: med.intakeQty.toStringAsFixed(med.intakeQty == med.intakeQty.toInt() ? 0 : 1));
+    final supplyController = TextEditingController(text: med.supplyQty.toStringAsFixed(med.supplyQty == med.supplyQty.toInt() ? 0 : 1));
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.cardBg,
+        title: Text('Edit Medication', style: TextStyle(color: AppColors.ink900, fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                style: TextStyle(color: AppColors.ink900),
+                decoration: InputDecoration(
+                  labelText: 'Name',
+                  labelStyle: TextStyle(color: AppColors.ink500),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.border)),
+                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: med.color)),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: doseController,
+                style: TextStyle(color: AppColors.ink900),
+                decoration: InputDecoration(
+                  labelText: 'Dosage (Optional)',
+                  labelStyle: TextStyle(color: AppColors.ink500),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.border)),
+                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: med.color)),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: intakeController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                style: TextStyle(color: AppColors.ink900),
+                decoration: InputDecoration(
+                  labelText: 'Intake Amount (per dose)',
+                  labelStyle: TextStyle(color: AppColors.ink500),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.border)),
+                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: med.color)),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: supplyController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                style: TextStyle(color: AppColors.ink900),
+                decoration: InputDecoration(
+                  labelText: 'Remaining Supply',
+                  labelStyle: TextStyle(color: AppColors.ink500),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.border)),
+                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: med.color)),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Cancel', style: TextStyle(color: AppColors.ink500)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final name = nameController.text.trim();
+              final dose = doseController.text.trim();
+              final intake = double.tryParse(intakeController.text) ?? med.intakeQty;
+              final supply = double.tryParse(supplyController.text) ?? med.supplyQty;
+
+              if (name.isNotEmpty) {
+                final newMed = Medication(
+                  id: med.id,
+                  name: name,
+                  dose: dose,
+                  freq: med.freq,
+                  color: med.color,
+                  refillDays: med.refillDays,
+                  description: med.description,
+                  drugClass: med.drugClass,
+                  sideEffects: med.sideEffects,
+                  doctor: med.doctor,
+                  notes: med.notes,
+                  form: med.form,
+                  intakeQty: intake,
+                  supplyQty: supply,
+                  initialSupply: med.initialSupply < supply ? supply : med.initialSupply,
+                );
+                medState.editMedication(med.id!, newMed);
+                Navigator.of(context).pop();
+                SuccessOverlay.showMedicationUpdated(context, medName: name);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: med.color,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteMedDialog(BuildContext context, Medication med) {
+    final medState = context.read<MedicationProvider>();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.cardBg,
+        title: Text('Delete Medication', style: TextStyle(color: AppColors.ink900, fontWeight: FontWeight.bold)),
+        content: Text(
+          'Are you sure you want to delete ${med.name}? All associated alert rules will also be removed.',
+          style: TextStyle(color: AppColors.ink700),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Cancel', style: TextStyle(color: AppColors.ink500)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              medState.removeMedication(med.id!);
+              Navigator.of(context).pop(); // Close dialog
+              Navigator.of(context).pop(); // Close detail screen
+              SuccessOverlay.showMedicationDeleted(context, medName: med.name);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.medRed,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
       ),
     );
   }

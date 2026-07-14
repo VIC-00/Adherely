@@ -21,7 +21,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 8,
+      version: 9,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -75,6 +75,14 @@ class DatabaseHelper {
           await db.execute('ALTER TABLE medications ADD COLUMN initialSupply REAL DEFAULT 0.0');
         }
       }
+      if (oldVersion < 9) {
+        final columns = await db.rawQuery('PRAGMA table_info(medications)');
+        final hasCreatedAt = columns.any((column) => column['name'] == 'createdAt');
+        if (!hasCreatedAt) {
+          final nowMs = DateTime.now().millisecondsSinceEpoch;
+          await db.execute('ALTER TABLE medications ADD COLUMN createdAt INTEGER DEFAULT $nowMs');
+        }
+      }
     } catch (e) {
       debugPrint("Migration error: $e");
       await db.execute('DROP TABLE IF EXISTS medications');
@@ -108,7 +116,8 @@ class DatabaseHelper {
         form TEXT,
         intakeQty REAL,
         supplyQty REAL,
-        initialSupply REAL
+        initialSupply REAL,
+        createdAt INTEGER
       )
     ''');
 

@@ -403,7 +403,7 @@ class DashboardScreen extends StatelessWidget {
                             intakeQty: med.intakeQty,
                             form: med.form,
                             time: med.freq.contains('·') ? med.freq.split('·').last.trim() : med.freq,
-                            refillDays: med.refillDays,
+                            refillDays: med.calculatedDaysRemaining,
                             color: med.color,
                             takenCount: medState.todayTakenCounts[med.id!] ?? 0,
                             onTakeNow: () {

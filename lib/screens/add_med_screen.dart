@@ -419,77 +419,120 @@ class _AddMedScreenState extends State<AddMedScreen> {
         ),
         const SizedBox(height: 16),
         Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Expanded(
-              child: _FormField(
-                label: 'Dosage (Optional)',
-                description: 'Strength of a single unit (e.g. 500mg, 10mg, or 100 units/ml).',
-                required: false,
-                child: TextFormField(
-                  controller: _doseController,
+              child: RichText(
+                text: TextSpan(
                   style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.ink900),
-                  decoration: InputDecoration(
-                    hintText: 'e.g. 10mg',
-                    filled: true,
-                    fillColor:
-                        AppColors.isDark ? AppColors.cardBg : Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 13, vertical: 11),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                            BorderSide(color: AppColors.border, width: 1.5)),
-                    enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                            BorderSide(color: AppColors.border, width: 1.5)),
-                    focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(
-                            color: Color(0xFF2563EB), width: 1.5)),
-                  ),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.ink700),
+                  children: const [
+                    TextSpan(text: 'Form'),
+                  ],
                 ),
               ),
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: _FormField(
-                label: 'Form',
+              child: RichText(
+                text: TextSpan(
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.ink700),
+                  children: const [
+                    TextSpan(text: 'Intake Amount (per dose)'),
+                    TextSpan(
+                        text: ' *', style: TextStyle(color: AppColors.medRed)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 48,
                 child: DropdownButtonFormField<String>(
                   initialValue: _form,
-                  dropdownColor:
-                      AppColors.isDark ? AppColors.cardBg : Colors.white,
-                  style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.ink900),
+                  dropdownColor: AppColors.isDark ? AppColors.cardBg : Colors.white,
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.ink900),
                   decoration: InputDecoration(
                     filled: true,
-                    fillColor:
-                        AppColors.isDark ? AppColors.cardBg : Colors.white,
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 13, vertical: 4),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                            BorderSide(color: AppColors.border, width: 1.5)),
-                    enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                            BorderSide(color: AppColors.border, width: 1.5)),
-                    focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(
-                            color: Color(0xFF2563EB), width: 1.5)),
+                    isDense: true,
+                    fillColor: AppColors.isDark ? AppColors.cardBg : Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5)),
                   ),
                   items: const ['Tablet', 'Capsule', 'Liquid', 'Injection']
                       .map((o) => DropdownMenuItem(value: o, child: Text(o)))
                       .toList(),
                   onChanged: (v) => setState(() => _form = v ?? _form),
                 ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    height: 48,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            initialValue: _intakeQty.toStringAsFixed(_intakeQty == _intakeQty.toInt() ? 0 : 1),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.ink900),
+                            decoration: InputDecoration(
+                              hintText: 'e.g. 1',
+                              filled: true,
+                              isDense: true,
+                              fillColor: AppColors.isDark ? AppColors.cardBg : Colors.white,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 13),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
+                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5)),
+                            ),
+                            onChanged: (val) {
+                              setState(() {
+                                _intakeQty = double.tryParse(val) ?? 1.0;
+                              });
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _getIntakeUnit(),
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.ink700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _getIntakeDescription(),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: AppColors.ink400,
+                      fontWeight: FontWeight.w500,
+                      height: 1.2,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -542,42 +585,35 @@ class _AddMedScreenState extends State<AddMedScreen> {
         ),
         const SizedBox(height: 16),
         _FormField(
-          label: 'Intake Amount (per dose)',
-          description: _getIntakeDescription(),
-          required: true,
-          child: Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  initialValue: _intakeQty.toStringAsFixed(_intakeQty == _intakeQty.toInt() ? 0 : 1),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.ink900),
-                  decoration: InputDecoration(
-                    hintText: 'e.g. 1',
-                    filled: true,
-                    fillColor: AppColors.isDark ? AppColors.cardBg : Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.border, width: 1.5)),
-                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5)),
-                  ),
-                  onChanged: (val) {
-                    setState(() {
-                      _intakeQty = double.tryParse(val) ?? 1.0;
-                    });
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                _getIntakeUnit(),
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.ink700,
-                ),
-              ),
-            ],
+          label: 'Dosage (Optional)',
+          description: 'Strength of a single unit (e.g. 500mg, 10mg, or 100 units/ml).',
+          required: false,
+          child: TextFormField(
+            controller: _doseController,
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: AppColors.ink900),
+            decoration: InputDecoration(
+              hintText: 'e.g. 10mg',
+              filled: true,
+              fillColor:
+                  AppColors.isDark ? AppColors.cardBg : Colors.white,
+              contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 13, vertical: 11),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide:
+                      BorderSide(color: AppColors.border, width: 1.5)),
+              enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide:
+                      BorderSide(color: AppColors.border, width: 1.5)),
+              focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(
+                      color: Color(0xFF2563EB), width: 1.5)),
+            ),
           ),
         ),
       ],

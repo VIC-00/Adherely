@@ -53,7 +53,7 @@ class HistoryProvider extends ChangeNotifier {
       DayStatus status = DayStatus.future;
       
       if (!cellDate.isAfter(today)) {
-        final dayItems = getDosesForDay(day, rules, meds);
+        final dayItems = getDosesForDay(cellDate, rules, meds);
         if (dayItems.isEmpty) {
           status = DayStatus.future; // stays white
         } else {
@@ -81,6 +81,17 @@ class HistoryProvider extends ChangeNotifier {
       rows.add(currentRow);
     }
     return rows;
+  }
+
+  int getMissedDosesCount(List<ReminderRule> rules, List<Medication> meds) {
+    final daysInMonth = DateTime(_currentHistoryMonth.year, _currentHistoryMonth.month + 1, 0).day;
+    int count = 0;
+    for (int day = 1; day <= daysInMonth; day++) {
+      final cellDate = DateTime(_currentHistoryMonth.year, _currentHistoryMonth.month, day);
+      final dayItems = getDosesForDay(cellDate, rules, meds);
+      count += dayItems.where((h) => !h.taken).length;
+    }
+    return count;
   }
 
   int getMedicationAdherence(String medName) {
@@ -145,7 +156,6 @@ class HistoryProvider extends ChangeNotifier {
         'taken': item.taken ? 1 : 0,
         'note': item.note,
       });
-      // Optionally update the local item with the inserted ID
       final idx = _historyItems.indexOf(item);
       if (idx != -1) {
         _historyItems[idx] = HistoryItem(
@@ -162,25 +172,46 @@ class HistoryProvider extends ChangeNotifier {
     }
   }
 
-  List<HistoryItem> getDosesForDay(int day, List<ReminderRule> rules, List<Medication> meds) {
-    final checkDate = DateTime(_currentHistoryMonth.year, _currentHistoryMonth.month, day);
-    final now = DateTime.now();
-    final isToday = checkDate.year == now.year &&
-        checkDate.month == now.month &&
-        checkDate.day == now.day;
+  bool isRuleBeforeCreation(ReminderRule r, Medication med, DateTime checkDate) {
+    final createdMs = med.createdAt ?? med.id;
+    if (createdMs == null || createdMs < 1000000000000) return false;
+    final creationDate = DateTime.fromMillisecondsSinceEpoch(createdMs);
+    
+    final checkDateOnly = DateTime(checkDate.year, checkDate.month, checkDate.day);
+    final creationDateOnly = DateTime(creationDate.year, creationDate.month, creationDate.day);
 
-    final actualItems = _historyItems.where((h) => historyDateMatchesDay(h.date, checkDate)).toList();
-
-    if (!isToday) {
-      return actualItems;
+    if (checkDateOnly.isBefore(creationDateOnly)) {
+      return true;
     }
+    
+    return false;
+  }
+
+  List<HistoryItem> getDosesForDay(DateTime checkDate, List<ReminderRule> rules, List<Medication> meds) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final checkDateOnly = DateTime(checkDate.year, checkDate.month, checkDate.day);
+    
+    if (checkDateOnly.isAfter(today)) {
+      return [];
+    }
+
+    final isToday = checkDateOnly.year == now.year &&
+        checkDateOnly.month == now.month &&
+        checkDateOnly.day == now.day;
+
+    final actualItems = _historyItems.where((h) => historyDateMatchesDay(h.date, checkDateOnly)).toList();
 
     final Map<String, List<ReminderRule>> groupedRules = {};
     for (final r in rules) {
       if (!r.active) continue;
-      final medMatch = meds.firstWhere((m) => m.name.toLowerCase() == r.med.toLowerCase(), orElse: () => const Medication(name: '', dose: '', freq: '', color: Colors.blue, refillDays: 0));
+      final medMatch = meds.firstWhere(
+        (m) => m.name.toLowerCase() == r.med.toLowerCase(),
+        orElse: () => const Medication(name: '', dose: '', freq: '', color: Colors.blue, refillDays: 0),
+      );
       if (medMatch.freq.toLowerCase().contains('as needed')) continue;
-      if (isOffDay(medMatch, checkDate)) continue;
+      if (isOffDay(medMatch, checkDateOnly)) continue;
+      if (isRuleBeforeCreation(r, medMatch, checkDateOnly)) continue;
 
       final key = '${r.med} ${r.dose}'.trim().toLowerCase();
       groupedRules[key] = (groupedRules[key] ?? [])..add(r);
@@ -200,7 +231,10 @@ class HistoryProvider extends ChangeNotifier {
       final key = entry.key;
       final medRules = entry.value;
 
-      final passedRules = medRules.where((r) => _hasTimePassed(r.time)).toList();
+      final passedRules = isToday 
+          ? medRules.where((r) => _hasTimePassed(r.time)).toList()
+          : medRules;
+          
       final takenCount = takenCounts[key] ?? 0;
 
       if (takenCount < passedRules.length) {
@@ -210,11 +244,12 @@ class HistoryProvider extends ChangeNotifier {
         final medDose = ruleMatch.dose;
 
         for (int i = 0; i < missedCount; i++) {
+          final ruleTime = i < passedRules.length ? passedRules[i].time : 'Unknown Time';
           result.add(HistoryItem(
             id: null,
             med: '$medName $medDose',
-            date: DateFormat('yyyy-MM-dd').format(now),
-            time: passedRules[i].time,
+            date: DateFormat('yyyy-MM-dd').format(checkDateOnly),
+            time: ruleTime,
             taken: false,
             note: 'Missed dose',
           ));
@@ -227,7 +262,7 @@ class HistoryProvider extends ChangeNotifier {
 
   List<HistoryItem> getDoseLog(List<ReminderRule> rules, List<Medication> meds) {
     final now = DateTime.now();
-    final todayDoses = getDosesForDay(now.day, rules, meds);
+    final todayDoses = getDosesForDay(now, rules, meds);
     final pastItems = _historyItems.where((h) => !historyDateMatchesDay(h.date, now)).toList();
 
     final List<HistoryItem> combined = [];
@@ -263,29 +298,23 @@ class HistoryProvider extends ChangeNotifier {
     for (int i = 0; i <= 365; i++) {
       final checkDate = DateTime.now().subtract(Duration(days: i));
       if (i == 0) {
-        // Today: only count if at least one med was taken.
-        // If the day isn't fully resolved yet (some still upcoming) we skip
-        // today without breaking the streak — the user still has time.
         final anyTaken = todayMeds.values.any((s) => s == MedCardVariant.taken);
         final allResolved = todayMeds.values.isNotEmpty &&
             todayMeds.values.every((s) => s == MedCardVariant.taken || s == MedCardVariant.missed);
         if (anyTaken) {
           current++;
         } else if (allResolved) {
-          // All meds were missed today — streak is broken
           break;
         }
-        // else: day not done yet, don't count but don't break → continue
       } else {
         final dayItems = _historyItems.where((h) => historyDateMatchesDay(h.date, checkDate)).toList();
         if (dayItems.isEmpty) {
-          // No record for this past day = missed entirely → streak breaks
           break;
         } else {
           if (dayItems.any((h) => h.taken)) {
             current++;
           } else {
-            break; // recorded but all doses were missed
+            break;
           }
         }
       }
@@ -322,37 +351,34 @@ class HistoryProvider extends ChangeNotifier {
     return current;
   }
 
-  /// Adherence over the last 7 days based on history_items.
-  /// Returns a value from 0.0 to 100.0.
   double calculateWeeklyAdherence(List<ReminderRule> rules, Map<int, MedCardVariant> todayMeds, List<Medication> meds) {
     final now = DateTime.now();
     int totalDoses = 0;
     int takenDoses = 0;
 
-    // Past 6 days (yesterday and older)
     for (int i = 1; i < 7; i++) {
       final day = now.subtract(Duration(days: i));
-      final dayItems = _historyItems
-          .where((h) {
-            if (!historyDateMatchesDay(h.date, day)) return false;
-            final isPrn = meds.any((m) => h.med.toLowerCase().contains(m.name.toLowerCase()) && m.freq.toLowerCase().contains('as needed'));
-            return !isPrn;
-          })
-          .toList();
-      if (dayItems.isNotEmpty) {
-        totalDoses += dayItems.length;
-        takenDoses += dayItems.where((h) => h.taken).length;
+      final dayItems = getDosesForDay(day, rules, meds);
+      
+      final nonPrnItems = dayItems.where((h) {
+        final isPrn = meds.any((m) => h.med.toLowerCase().contains(m.name.toLowerCase()) && m.freq.toLowerCase().contains('as needed'));
+        return !isPrn;
+      }).toList();
+
+      if (nonPrnItems.isNotEmpty) {
+        totalDoses += nonPrnItems.length;
+        takenDoses += nonPrnItems.where((h) => h.taken).length;
       }
     }
 
-    // Today (i == 0)
     for (final rule in rules) {
       if (!rule.active) continue;
       final medMatch = meds.firstWhere((m) => m.name.toLowerCase() == rule.med.toLowerCase(), orElse: () => const Medication(name: '', dose: '', freq: '', color: Colors.blue, refillDays: 0));
       if (medMatch.freq.toLowerCase().contains('as needed')) continue;
       if (isOffDay(medMatch, now)) continue;
+      if (isRuleBeforeCreation(rule, medMatch, now)) continue;
 
-      final status = todayMeds[rule.id];
+      final status = todayMeds[medMatch.id];
       if (status == MedCardVariant.taken) {
         totalDoses++;
         takenDoses++;
