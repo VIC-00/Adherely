@@ -5,7 +5,6 @@ import 'screens/dashboard_screen.dart';
 import 'screens/health_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/profile_screen.dart';
-import 'screens/reminders_screen.dart';
 import 'screens/add_med_screen.dart';
 import 'widgets/bottom_nav.dart';
 import 'widgets/alarm_overlay_dialog.dart';
@@ -158,9 +157,7 @@ class _RootShellState extends State<RootShell> {
               _PaddedTab(
                 bottomPad: navClearance,
                 child: DashboardScreen(
-                  onOpenReminders: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const RemindersScreen()),
-                  ),
+                  onOpenProfile: () => setState(() => _tab = NavTab.profile),
                 ),
               ),
               _PaddedTab(bottomPad: navClearance, child: const HistoryScreen()),

@@ -10,8 +10,8 @@ import 'med_detail_screen.dart';
 import 'add_med_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
-  final VoidCallback? onOpenReminders;
-  const DashboardScreen({super.key, this.onOpenReminders});
+  final VoidCallback? onOpenProfile;
+  const DashboardScreen({super.key, this.onOpenProfile});
   @override
   Widget build(BuildContext context) {
     AppColors.isDark = Theme.of(context).brightness == Brightness.dark;
@@ -87,7 +87,7 @@ class DashboardScreen extends StatelessWidget {
                       ),
                     ),
                     GestureDetector(
-                      onTap: onOpenReminders,
+                      onTap: onOpenProfile,
                       child: Stack(
                         clipBehavior: Clip.none,
                         children: [

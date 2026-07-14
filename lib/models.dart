@@ -177,6 +177,7 @@ class ReminderRule {
   });
 }
 
+// Profile model definition
 class Profile {
   final int? id;
   final String name;

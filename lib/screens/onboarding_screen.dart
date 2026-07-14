@@ -171,7 +171,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       color: AppColors.cardBg,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: AppColors.isDark ? 0.3 : 0.06),
+                          color: Colors.black
+                              .withValues(alpha: AppColors.isDark ? 0.3 : 0.06),
                           blurRadius: 20,
                           offset: const Offset(0, 8),
                         )
@@ -465,7 +466,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               border: Border.all(color: AppColors.border, width: 1.5),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: AppColors.isDark ? 0.2 : 0.04),
+                  color: Colors.black
+                      .withValues(alpha: AppColors.isDark ? 0.2 : 0.04),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 )
@@ -644,7 +646,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.skip_next_rounded, size: 14, color: AppColors.medBlue),
+                    Icon(Icons.skip_next_rounded,
+                        size: 14, color: AppColors.medBlue),
                     SizedBox(width: 4),
                     Text(
                       'Skip intro',
