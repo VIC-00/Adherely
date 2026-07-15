@@ -87,9 +87,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
                     // Push count + Snooze stats row
                     Builder(builder: (context) {
                       final pushCount = rules.where((r) => r.active && r.types.contains(AlertType.push)).length;
-                      final snoozeSetting = settingsState.notificationToggles
-                          .firstWhere((t) => t.label == 'Snooze Duration', orElse: () => const ToggleItem(label: 'Snooze Duration', sub: '5 minutes', on: true));
-                      final snoozeLabel = snoozeSetting.sub.split(' ').first;
+                      final snoozeMinutes = settingsState.snoozeDuration;
                       return Row(
                         children: [
                           Expanded(
@@ -100,7 +98,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
                                 decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
                                 child: Column(
                                   children: [
-                                    const Text('🔔', style: TextStyle(fontSize: 16)),
+                                    const Icon(Icons.notifications_rounded, size: 16, color: Colors.white),
                                     const SizedBox(height: 2),
                                     Text('$pushCount', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
                                     Text('Push', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.65), letterSpacing: 0.5)),
@@ -117,9 +115,9 @@ class _RemindersScreenState extends State<RemindersScreen> {
                                 decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
                                 child: Column(
                                   children: [
-                                    const Text('⏱️', style: TextStyle(fontSize: 16)),
+                                    const Icon(Icons.snooze_rounded, size: 16, color: Colors.white),
                                     const SizedBox(height: 2),
-                                    Text('${snoozeLabel}m', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
+                                    Text('${snoozeMinutes}m', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
                                     Text('Snooze', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.65), letterSpacing: 0.5)),
                                   ],
                                 ),

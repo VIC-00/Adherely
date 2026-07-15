@@ -115,6 +115,7 @@ class LocalNotificationService implements INotificationService {
       // Check if this is an "every other day" medication and if it was already taken today
       bool isEveryOtherDay = false;
       bool isTakenToday = false;
+      int? createdMs;
       try {
         final db = await DatabaseHelper.instance.database;
         final medRows = await db.query('medications', where: 'name = ?', whereArgs: [rule.med]);
@@ -123,6 +124,7 @@ class LocalNotificationService implements INotificationService {
           isEveryOtherDay = freq.toLowerCase().contains('every other day');
 
           final medId = medRows.first['id'] as int;
+          createdMs = medRows.first['createdAt'] as int?;
           final todayRows = await db.query('today_meds', where: 'med_id = ?', whereArgs: [medId]);
           if (todayRows.isNotEmpty) {
             isTakenToday = todayRows.first['status'] == 'taken';
@@ -133,11 +135,16 @@ class LocalNotificationService implements INotificationService {
       final now = tz.TZDateTime.now(tz.local);
       debugPrint('Notification timezone time: $now');
 
+      DateTime baseDate = DateTime.now();
+      if (createdMs != null && createdMs > now.millisecondsSinceEpoch) {
+        baseDate = DateTime.fromMillisecondsSinceEpoch(createdMs);
+      }
+
       final tz.TZDateTime actualDoseTime = tz.TZDateTime(
         tz.local,
-        now.year,
-        now.month,
-        now.day,
+        baseDate.year,
+        baseDate.month,
+        baseDate.day,
         hour,
         minute,
         0,
@@ -210,11 +217,10 @@ class LocalNotificationService implements INotificationService {
       final payloadStr = '${rule.id}|${rule.med}|${rule.dose}';
 
       final step = isEveryOtherDay ? 2 : 1;
-      final startDay = isTakenToday || scheduledTime.isBefore(now) ? step : 0;
 
       // Schedule 7 instances (e.g. today/tomorrow and next 6 scheduled days)
       for (int i = 0; i < 7; i++) {
-        final dayOffset = startDay + (i * step);
+        final dayOffset = i * step;
         final occurrenceTime = scheduledTime.add(Duration(days: dayOffset));
         final int uniqueId = (notificationId + dayOffset * 100000) % 2147483647;
 

@@ -21,12 +21,34 @@ class DashboardScreen extends StatelessWidget {
     final profileInitial = profileName.isNotEmpty ? profileName[0].toUpperCase() : 'U';
     final historyState = context.watch<HistoryProvider>();
     final meds = medState.meds;
+    final todayOnly = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    bool isFutureMed(Medication m) {
+      final createdMs = m.createdAt ?? m.id;
+      if (createdMs != null && createdMs >= 1000000000000) {
+        final creationDate = DateTime.fromMillisecondsSinceEpoch(createdMs);
+        final creationDateOnly = DateTime(creationDate.year, creationDate.month, creationDate.day);
+        if (todayOnly.isBefore(creationDateOnly)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     final activeMeds = meds.where((m) {
       if (m.freq.toLowerCase().contains('as needed')) return false;
+      if (isFutureMed(m)) return false;
       if (historyState.isOffDay(m, DateTime.now())) return false;
       return true;
     }).toList();
-    final prnMeds = meds.where((m) => m.freq.toLowerCase().contains('as needed')).toList();
+
+    final prnMeds = meds.where((m) {
+      if (!m.freq.toLowerCase().contains('as needed')) return false;
+      if (isFutureMed(m)) return false;
+      return true;
+    }).toList();
+
+    final futureMeds = meds.where((m) => isFutureMed(m)).toList();
+
     final total = activeMeds.length;
     final taken =
         activeMeds.where((m) => medState.getTodayMedStatus(m) == MedCardVariant.taken).length;
@@ -558,6 +580,10 @@ class DashboardScreen extends StatelessWidget {
                           ),
                           margin: const EdgeInsets.only(bottom: 10),
                           child: ListTile(
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                  builder: (_) => MedDetailScreen(medication: med)),
+                            ),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                             leading: Container(
                               width: 36,
@@ -603,6 +629,45 @@ class DashboardScreen extends StatelessWidget {
                                 elevation: 0,
                               ),
                               child: const Text('Log Intake', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+                if (futureMeds.isNotEmpty) ...[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+                    child: Text(
+                      'Upcoming Tracking Schedule',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.ink900,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Column(
+                      children: futureMeds.map((med) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: MedicationCard(
+                            variant: MedCardVariant.future,
+                            compact: true,
+                            name: med.name,
+                            dose: med.dose,
+                            intakeQty: med.intakeQty,
+                            form: med.form,
+                            time: med.freq.contains('·') ? med.freq.split('·').last.trim() : med.freq,
+                            refillDays: med.calculatedDaysRemaining,
+                            color: med.color,
+                            createdAt: med.createdAt,
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                  builder: (_) => MedDetailScreen(medication: med)),
                             ),
                           ),
                         );

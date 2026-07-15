@@ -7,6 +7,10 @@
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
         android:enableOnBackInvokedCallback="true">
+        <!-- Disable Impeller to prevent Gralloc buffer allocation driver crashes on Transsion/MediaTek GPU drivers -->
+        <meta-data
+            android:name="io.flutter.embedding.android.EnableImpeller"
+            android:value="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

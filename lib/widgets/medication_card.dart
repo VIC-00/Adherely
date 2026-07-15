@@ -18,6 +18,7 @@ class MedicationCard extends StatefulWidget {
   final int? refillDays;
   final Color? color;
   final int takenCount;
+  final int? createdAt;
 
   const MedicationCard({
     super.key,
@@ -35,6 +36,7 @@ class MedicationCard extends StatefulWidget {
     this.refillDays,
     this.color,
     this.takenCount = 0,
+    this.createdAt,
   });
 
   @override
@@ -80,6 +82,17 @@ class _MedicationCardState extends State<MedicationCard> {
           takenCount: widget.takenCount,
           onTaken: widget.onLogTaken ?? () {},
           onReschedule: widget.onReschedule ?? () {},
+        ),
+      MedCardVariant.future => _FutureCard(
+          compact: widget.compact,
+          name: widget.name,
+          dose: widget.dose,
+          intakeQty: widget.intakeQty,
+          form: widget.form,
+          time: widget.time,
+          refillDays: widget.refillDays,
+          color: widget.color,
+          createdAt: widget.createdAt,
         ),
     };
 
@@ -778,4 +791,176 @@ String _getIntakeText(double qty, String? form) {
     unit = qty == 1.0 ? 'unit' : 'units';
   }
   return '$qtyStr $unit';
+}
+
+class _FutureCard extends StatelessWidget {
+  final bool compact;
+  final String name;
+  final String dose;
+  final double intakeQty;
+  final String? form;
+  final String time;
+  final int? refillDays;
+  final Color? color;
+  final int? createdAt;
+
+  const _FutureCard({
+    required this.compact,
+    required this.name,
+    required this.dose,
+    required this.intakeQty,
+    this.form,
+    required this.time,
+    this.refillDays,
+    this.color,
+    this.createdAt,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = compact ? 14.0 : 18.0;
+    
+    final formattedDate = createdAt != null
+        ? DateFormat('MMMM dd, yyyy').format(DateTime.fromMillisecondsSinceEpoch(createdAt!))
+        : 'Future Date';
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardBg,
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: AppColors.border, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: compact ? 14 : 20,
+              vertical: compact ? 12 : 16,
+            ),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: AppColors.isDark
+                    ? [const Color(0xFF374151), const Color(0xFF4B5563)]
+                    : [const Color(0xFFE5E7EB), const Color(0xFFF3F4F6)],
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'FUTURE TRACKING',
+                            style: TextStyle(
+                              fontSize: compact ? 9 : 10,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                              letterSpacing: 1.1,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Icon(
+                            Icons.calendar_today_rounded,
+                            size: 10,
+                            color: AppColors.isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        name,
+                        style: TextStyle(
+                          color: AppColors.ink900,
+                          fontSize: compact ? 16 : 20,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.4,
+                        ),
+                      ),
+                      const SizedBox(height: 1),
+                      Text(
+                        _getIntakeText(intakeQty, form),
+                        style: TextStyle(
+                          color: AppColors.ink500,
+                          fontSize: compact ? 12 : 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 155),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.isDark ? const Color(0xFF1F2937) : Colors.white,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Text(
+                          time,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.ink700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Body
+          Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: compact ? 14 : 20,
+              vertical: compact ? 12 : 16,
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline_rounded,
+                  size: 16,
+                  color: AppColors.isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Starts tracking on $formattedDate',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

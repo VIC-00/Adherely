@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum MedCardVariant { upcoming, taken, missed }
+enum MedCardVariant { upcoming, taken, missed, future }
 
 class Medication {
   final int? id;

@@ -63,7 +63,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _finishOnboarding() async {
-    if (!_formKey.currentState!.validate()) {
+    if (_formKey.currentState != null && !_formKey.currentState!.validate()) {
       _pageController.animateToPage(1,
           duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
       return;
@@ -595,9 +595,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ElevatedButton(
                     onPressed: () {
                       if (_currentPage < 2) {
-                        if (_currentPage == 1 &&
-                            !_formKey.currentState!.validate()) {
-                          return;
+                        if (_currentPage == 1) {
+                          if (!_formKey.currentState!.validate()) {
+                            return;
+                          }
+                          FocusScope.of(context).unfocus();
                         }
                         _pageController.nextPage(
                           duration: const Duration(milliseconds: 300),

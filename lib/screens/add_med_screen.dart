@@ -35,6 +35,7 @@ class _AddMedScreenState extends State<AddMedScreen> {
   List<String> _selectedTimes = ['8:00 AM'];
   String _category = 'Blood Pressure';
   bool _reminder = true;
+  DateTime _startDate = DateTime.now();
 
   void _onFreqChanged(String f) {
     setState(() {
@@ -354,6 +355,7 @@ class _AddMedScreenState extends State<AddMedScreen> {
                               intakeQty: _intakeQty,
                               supplyQty: supply,
                               initialSupply: supply,
+                              createdAt: _startDate.millisecondsSinceEpoch,
                             ),
                             types: alertTypes,
                             advanceMinutes: 0,
@@ -811,6 +813,64 @@ class _AddMedScreenState extends State<AddMedScreen> {
                 ),
               ),
             ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        _FormField(
+          label: 'Track Start Date (Optional)',
+          description: 'Choose when the app should start monitoring and triggering alarms for this medication (defaults to Today).',
+          child: GestureDetector(
+            onTap: () async {
+              final DateTime? picked = await showDatePicker(
+                context: context,
+                initialDate: _startDate,
+                firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                lastDate: DateTime.now().add(const Duration(days: 365)),
+                builder: (context, child) {
+                  return Theme(
+                    data: Theme.of(context).copyWith(
+                      colorScheme: ColorScheme.light(
+                        primary: AppColors.medBlue,
+                        onPrimary: Colors.white,
+                        onSurface: AppColors.ink900,
+                      ),
+                    ),
+                    child: child!,
+                  );
+                },
+              );
+              if (picked != null) {
+                setState(() {
+                  _startDate = picked;
+                });
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+              decoration: BoxDecoration(
+                color: AppColors.isDark ? AppColors.cardBg : Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.border, width: 1.5),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    DateFormat('MMMM dd, yyyy').format(_startDate),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.ink900,
+                    ),
+                  ),
+                  const Icon(
+                    Icons.calendar_today_rounded,
+                    size: 16,
+                    color: AppColors.medBlue,
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ],

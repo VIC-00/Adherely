@@ -120,6 +120,7 @@ class MedicationProvider extends ChangeNotifier {
     };
 
     final medId = DateTime.now().millisecondsSinceEpoch;
+    final customCreatedAt = m.createdAt ?? medId;
     if (_dbEnabled) {
       try {
         final db = await DatabaseHelper.instance.database;
@@ -139,7 +140,7 @@ class MedicationProvider extends ChangeNotifier {
           'intakeQty': m.intakeQty,
           'supplyQty': m.supplyQty,
           'initialSupply': m.initialSupply,
-          'createdAt': medId,
+          'createdAt': customCreatedAt,
         });
 
         await db.insert('today_meds', {
@@ -167,7 +168,7 @@ class MedicationProvider extends ChangeNotifier {
       intakeQty: m.intakeQty,
       supplyQty: m.supplyQty,
       initialSupply: m.initialSupply,
-      createdAt: medId,
+      createdAt: customCreatedAt,
     );
     
     _meds.add(medWithId);
@@ -665,6 +666,18 @@ class MedicationProvider extends ChangeNotifier {
 
   MedCardVariant getTodayMedStatus(Medication med) {
     if (med.id == null) return MedCardVariant.upcoming;
+
+    final createdMs = med.createdAt ?? med.id;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    if (createdMs != null && createdMs >= 1000000000000) {
+      final creationDate = DateTime.fromMillisecondsSinceEpoch(createdMs);
+      final creationDateOnly = DateTime(creationDate.year, creationDate.month, creationDate.day);
+      if (today.isBefore(creationDateOnly)) {
+        return MedCardVariant.future;
+      }
+    }
+
     final medRules = _rules.where((r) => r.med.toLowerCase() == med.name.toLowerCase() && r.active).toList();
     if (medRules.isEmpty) return MedCardVariant.upcoming;
 

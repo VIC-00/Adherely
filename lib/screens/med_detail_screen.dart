@@ -672,11 +672,23 @@ class _OverviewTab extends StatelessWidget {
       final day = startOfWeek.add(Duration(days: index));
       final days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
       
-      // Determine if taken on this day from history
+      final todayOnly = DateTime(today.year, today.month, today.day);
+      final dayOnly = DateTime(day.year, day.month, day.day);
+      
+      bool isBeforeStart = false;
+      final createdMs = medication.createdAt ?? medication.id;
+      if (createdMs != null && createdMs >= 1000000000000) {
+        final creationDate = DateTime.fromMillisecondsSinceEpoch(createdMs);
+        final creationDateOnly = DateTime(creationDate.year, creationDate.month, creationDate.day);
+        if (dayOnly.isBefore(creationDateOnly)) {
+          isBeforeStart = true;
+        }
+      }
+
       bool taken = false;
-      if (day.isAfter(today)) {
+      if (dayOnly.isAfter(todayOnly)) {
         taken = false;
-      } else if (day.year == today.year && day.month == today.month && day.day == today.day) {
+      } else if (dayOnly.isAtSameMomentAs(todayOnly)) {
         taken = medState.todayMeds[medication.id!] == MedCardVariant.taken;
       } else {
         final dayItems = historyState.historyItems.where((h) {
@@ -686,13 +698,20 @@ class _OverviewTab extends StatelessWidget {
         taken = dayItems.isNotEmpty && dayItems.any((h) => h.taken);
       }
       
+      String status;
+      if (isBeforeStart) {
+        status = 'beforeStart';
+      } else if (dayOnly.isAfter(todayOnly)) {
+        status = 'future';
+      } else {
+        status = taken ? 'taken' : 'missed';
+      }
+
       return {
         'day': days[index],
-        'taken': taken,
+        'status': status,
       };
     });
-
-
 
     return Column(
       children: [
@@ -765,24 +784,39 @@ class _OverviewTab extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: computedWeeklyData.map((d) {
-              final taken = d['taken'] as bool;
+              final status = d['status'] as String;
+              
+              Color bg;
+              Color iconColor;
+              IconData icon;
+              
+              if (status == 'taken') {
+                bg = AppColors.medGreen;
+                iconColor = Colors.white;
+                icon = Icons.check_rounded;
+              } else if (status == 'beforeStart' || status == 'future') {
+                bg = AppColors.isDark ? const Color(0xFF374151) : const Color(0xFFF3F4F6);
+                iconColor = AppColors.ink400;
+                icon = status == 'future' ? Icons.remove_rounded : Icons.horizontal_rule_rounded;
+              } else { // missed
+                bg = AppColors.isDark ? const Color(0xFF450A0A) : const Color(0xFFFEE2E2);
+                iconColor = AppColors.isDark ? const Color(0xFFFCA5A5) : AppColors.medRed;
+                icon = Icons.close_rounded;
+              }
+              
               return Column(
                 children: [
                   Container(
                     width: 28,
                     height: 28,
                     decoration: BoxDecoration(
-                      color: taken
-                          ? AppColors.medGreen
-                          : (AppColors.isDark ? const Color(0xFF450A0A) : const Color(0xFFFEE2E2)),
+                      color: bg,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
-                        taken ? Icons.check_rounded : Icons.close_rounded,
+                        icon,
                         size: 14,
-                        color: taken
-                            ? Colors.white
-                            : (AppColors.isDark ? const Color(0xFFFCA5A5) : AppColors.medRed)),
+                        color: iconColor),
                   ),
                   const SizedBox(height: 5),
                   Text(d['day'] as String,
@@ -846,6 +880,18 @@ class _ScheduleTab extends StatelessWidget {
     final times = rawTimeStr.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty).toList();
     times.sort((a, b) => _parseTimeToDouble(a).compareTo(_parseTimeToDouble(b)));
 
+    final createdMs = medication.createdAt ?? medication.id;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    bool isFutureStart = false;
+    if (createdMs != null && createdMs >= 1000000000000) {
+      final creationDate = DateTime.fromMillisecondsSinceEpoch(createdMs);
+      final creationDateOnly = DateTime(creationDate.year, creationDate.month, creationDate.day);
+      if (today.isBefore(creationDateOnly)) {
+        isFutureStart = true;
+      }
+    }
+
     final todayTakenCount = medState.todayTakenCounts[medication.id!] ?? 0;
 
     String instructions = medication.description ?? 'Take as directed by your physician. Best taken at the same time each day.';
@@ -867,7 +913,15 @@ class _ScheduleTab extends StatelessWidget {
             IconData statusIcon;
             Color iconColor;
 
-            if (isTaken) {
+            if (isFutureStart) {
+              final startDate = DateTime.fromMillisecondsSinceEpoch(createdMs!);
+              statusText = 'Starts tracking on ${DateFormat('MMM dd, yyyy').format(startDate)}';
+              statusColor = AppColors.ink500;
+              cardBg = AppColors.screenBg;
+              cardBorder = AppColors.border;
+              statusIcon = Icons.calendar_today_rounded;
+              iconColor = AppColors.ink400;
+            } else if (isTaken) {
               final todayItems = historyState.historyItems.where((h) =>
                   h.med.toLowerCase().contains(medication.name.toLowerCase()) &&
                   historyState.historyDateMatchesDay(h.date, DateTime.now()) &&
@@ -1173,7 +1227,7 @@ class _RefillsTab extends StatelessWidget {
                           dose: med.dose,
                           freq: med.freq,
                           color: med.color,
-                          refillDays: daysRemaining,
+                          refillDays: med.refillDays,
                           description: med.description,
                           drugClass: med.drugClass,
                           sideEffects: med.sideEffects,
