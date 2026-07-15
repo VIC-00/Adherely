@@ -53,13 +53,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
       builder: (context, child) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: const Color(0xFF7C3AED), // purple matching profile theme
-              onPrimary: Colors.white,
-              onSurface: AppColors.ink900,
-            ),
+            colorScheme: isDark
+                ? ColorScheme.dark(
+                    primary: const Color(0xFF7C3AED),
+                    onPrimary: Colors.white,
+                    surface: AppColors.cardBg,
+                    onSurface: Colors.white,
+                  )
+                : ColorScheme.light(
+                    primary: const Color(0xFF7C3AED),
+                    onPrimary: Colors.white,
+                    onSurface: AppColors.ink900,
+                  ),
           ),
           child: child!,
         );

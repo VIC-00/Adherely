@@ -59,7 +59,7 @@ class LocalNotificationService implements INotificationService {
     }
 
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('ic_notification');
 
     const DarwinInitializationSettings initializationSettingsDarwin =
         DarwinInitializationSettings(
@@ -200,6 +200,8 @@ class LocalNotificationService implements INotificationService {
         importance: Importance.max,
         priority: Priority.high,
         showWhen: true,
+        largeIcon: const DrawableResourceAndroidBitmap('launcher_icon'),
+        color: const Color(0xFF1D4ED8),
         audioAttributesUsage: loopAlarm ? AudioAttributesUsage.alarm : AudioAttributesUsage.notification,
         category: loopAlarm ? AndroidNotificationCategory.alarm : null,
         ongoing: loopAlarm,
@@ -388,6 +390,8 @@ Future<void> _handleSnoozeActionInBackground(int ruleId, String med, String dose
       importance: Importance.max,
       priority: Priority.high,
       showWhen: true,
+      largeIcon: const DrawableResourceAndroidBitmap('launcher_icon'),
+      color: const Color(0xFF1D4ED8),
       audioAttributesUsage: loopAlarm ? AudioAttributesUsage.alarm : AudioAttributesUsage.notification,
       category: loopAlarm ? AndroidNotificationCategory.alarm : null,
       ongoing: loopAlarm,

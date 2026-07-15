@@ -827,13 +827,21 @@ class _AddMedScreenState extends State<AddMedScreen> {
                 firstDate: DateTime.now().subtract(const Duration(days: 365)),
                 lastDate: DateTime.now().add(const Duration(days: 365)),
                 builder: (context, child) {
+                  final isDark = Theme.of(context).brightness == Brightness.dark;
                   return Theme(
                     data: Theme.of(context).copyWith(
-                      colorScheme: ColorScheme.light(
-                        primary: AppColors.medBlue,
-                        onPrimary: Colors.white,
-                        onSurface: AppColors.ink900,
-                      ),
+                      colorScheme: isDark
+                          ? ColorScheme.dark(
+                              primary: AppColors.medBlue,
+                              onPrimary: Colors.white,
+                              surface: AppColors.cardBg,
+                              onSurface: Colors.white,
+                            )
+                          : ColorScheme.light(
+                              primary: AppColors.medBlue,
+                              onPrimary: Colors.white,
+                              onSurface: AppColors.ink900,
+                            ),
                     ),
                     child: child!,
                   );
