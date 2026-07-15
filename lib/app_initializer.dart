@@ -156,10 +156,78 @@ class _MedAdhereAppState extends State<MedAdhereApp> {
   @override
   Widget build(BuildContext context) {
     if (!_initialized) {
-      return const MaterialApp(
+      return MaterialApp(
         debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
         home: Scaffold(
-          body: Center(child: CircularProgressIndicator()),
+          body: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFF1D4ED8), // medBlueDark
+                  Color(0xFF8B5CF6), // medPurple
+                ],
+              ),
+            ),
+            child: SafeArea(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.15),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.25),
+                          width: 2,
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.healing_rounded,
+                        size: 72,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Adherely',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        letterSpacing: -0.8,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Track your medications with ease',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white.withValues(alpha: 0.85),
+                      ),
+                    ),
+                    const Spacer(),
+                    const SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 3,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    ),
+                    const SizedBox(height: 48),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
       );
     }
