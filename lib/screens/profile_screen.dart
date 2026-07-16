@@ -9,6 +9,7 @@ import '../database_helper.dart';
 import '../notification_service.dart';
 import '../widgets/success_overlay.dart';
 import 'settings_screen.dart';
+import 'onboarding_screen.dart';
 
 void _showEditMedDialog(
     BuildContext context, SettingsProvider settingsState, Medication med) {
@@ -937,9 +938,10 @@ class ProfileScreen extends StatelessWidget {
                                     await historyProvider.loadPersonalBest();
 
                                     if (context.mounted) {
-                                      // Navigate all the way back to root and let
-                                      // app_initializer redirect to OnboardingScreen
-                                      Navigator.of(context).popUntil((route) => route.isFirst);
+                                      Navigator.of(context).pushAndRemoveUntil(
+                                        MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+                                        (route) => false,
+                                      );
                                     }
                                   },
                                   style: ElevatedButton.styleFrom(

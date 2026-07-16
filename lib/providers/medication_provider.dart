@@ -844,6 +844,13 @@ class MedicationProvider extends ChangeNotifier {
         description: med.description,
         drugClass: med.drugClass,
         sideEffects: med.sideEffects,
+        doctor: med.doctor,
+        notes: med.notes,
+        form: med.form,
+        intakeQty: med.intakeQty,
+        supplyQty: med.supplyQty,
+        initialSupply: med.initialSupply,
+        createdAt: med.createdAt,
       );
       
       if (_dbEnabled) {
