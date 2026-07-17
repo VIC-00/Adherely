@@ -1,44 +1,63 @@
-# MedAdhere — Flutter App
+# Adherely — Medication Adherence Dashboard
 
-A pixel-faithful Flutter port of the "Mobile Medication Adherence Dashboard" Figma Make design (React/TSX source).
+Adherely is a premium, offline-first medication tracking application built in Flutter. It is designed to be highly reliable, fully persistent, and includes native background services for alarm reminders and notifications.
 
-## What's included
+---
 
-7 screens, matching the original design 1:1 in colors, gradients, spacing, and copy:
+## 📱 Features & Screens
 
-- **Dashboard** (`screens/dashboard_screen.dart`) — greeting, streak badge, weekly progress, quick stats, today's medication cards
-- **History** (`screens/history_screen.dart`) — adherence summary header, monthly calendar heat-grid, dose log
-- **Health & Vitals** (`screens/health_screen.dart`) — vitals grid, blood pressure bar chart, medication impact cards
-- **Profile** (`screens/profile_screen.dart`) — patient hero, active medications, care network, notification settings
-- **Medication Detail** (`screens/med_detail_screen.dart`) — tabbed view (Overview / Schedule / Side Effects / Refills)
-- **Add Medication** (`screens/add_med_screen.dart`) — 3-step form flow with progress indicator
-- **Reminders & Alerts** (`screens/reminders_screen.dart`) — notification hub, timeline of alert rules, global settings
+Adherely comprises 7 fully interactive screens matching premium typography, colors, and layout guidelines:
 
-Shared components:
-- `widgets/medication_card.dart` — the 3-state MedicationCard (upcoming / taken / missed)
-- `widgets/bottom_nav.dart` — bottom tab bar (Home / History / Health / Profile)
+1. **Dashboard** (`lib/screens/dashboard_screen.dart`)
+   * Current streaks, weekly progress heat-maps, and daily medication cards (upcoming, taken, or future tracking).
+   * Tap-navigation to medication details and notifications hub.
+2. **History & Analytics** (`lib/screens/history_screen.dart`)
+   * Adherence summary headers showing weekly performance rates.
+   * Monthly calendar grid with color-coded status states (taken, partial, missed, empty).
+   * Interactive calendar cells allowing users to inspect dose logs for any past day.
+3. **Health & Vitals** (`lib/screens/health_screen.dart`)
+   * Logging and tracking for Blood Pressure, Blood Sugar, Heart Rate, and Weight.
+   * Dynamic double-bar chart representing Systolic and Diastolic Blood Pressure readings.
+   * Custom medication adherence impact metrics.
+4. **Patient Profile** (`lib/screens/profile_screen.dart`)
+   * Managing active medication list, adding/editing caregiver networks, and notification settings (Push, Voice, Snooze duration, Continuous alarms).
+   * Reset App Data action with safe route stack replacement.
+5. **Medication Detail** (`lib/screens/med_detail_screen.dart`)
+   * Tabbed interface: **Overview** (weekly status calendar), **Schedule** (dose times), **Side Effects**, and **Refills** (current supply indicators, refill reminders, and supply logging).
+6. **Add Medication** (`lib/screens/add_med_screen.dart`)
+   * 4-step wizard form to define name, dose, frequency (daily times or PRN), start tracking date (back-dated, today, or future), initial supply, and refill thresholds.
+7. **Notification Hub** (`lib/screens/reminders_screen.dart`)
+   * Overview list showing all scheduled reminder rules with exact calendar times and quick-switch notifications.
 
-## Navigation
+---
 
-- `root_shell.dart` hosts the 4 main tabs in an `IndexedStack` behind the bottom nav.
-- Tapping any medication card on the Dashboard pushes **Medication Detail**.
-- The "+ Add" action on Profile → Active Medications pushes **Add Medication**.
-- The "Manage" action on Profile → Notification Settings, and the avatar bell on Dashboard, push **Reminders & Alerts**.
+## 🛠️ Architecture & Technical Stack
 
-## Design tokens
+* **State Management:** Fully dynamic state tracking utilizing the **Provider** design pattern. All providers (`MedicationProvider`, `VitalsProvider`, `SettingsProvider`, `HistoryProvider`) are synchronized dynamically.
+* **Storage & Persistence:** Offline-first architecture powered by **SQLite** (`sqflite`). Schema migrations are configured for automatic app resets and table initializations.
+* **Notification Engine:** Uses `flutter_local_notifications` integrated with a background dispatcher isolate. Supports quick notification drawer actions (`Take` or `Snooze`), custom sound channels, and automatic rolling alarm scheduling.
+* **GPU Driver Fallback (Impeller Opt-Out):** Configured with custom Android manifest metadata to force fallback to Skia GLES engine, bypassing format allocation crashes (Gralloc format 56) common on MediaTek Mali chipsets.
+* **R8/ProGuard Minification Rules:** Custom [`proguard-rules.pro`](file:///home/vic/Documents/Projects/Mobile%20dev/medadhere_flutter/android/app/proguard-rules.pro) configuration keeping generic serialization types intact for background notifications.
 
-All colors/spacing are centralized in `theme/app_colors.dart` (mirrors the original `index.css` CSS variables) and `theme/app_theme.dart`. Font is **Inter**, loaded via `google_fonts` (matches the original `@import` of Inter from Google Fonts).
+---
 
-## Running it
+## 🚀 Running the App
+
+Restore dependencies and launch the application:
 
 ```bash
+# Clean cache files
+flutter clean
+
+# Restore packages
 flutter pub get
+
+# Launch in Debug Mode
 flutter run
+
+# Launch/Compile in Release Mode (Optimized)
+flutter run --release
+flutter build apk
 ```
 
-Requires Flutter 3.19+ / Dart 3.3+ (uses Dart 3 switch expressions).
-
-## Notes
-
-- All data is currently static/mock (matching the original design's mock data) — wire up state management (Provider/Riverpod/Bloc) and an API/local DB layer when ready.
-- `google_fonts` fetches the Inter font at runtime; for offline/production builds consider bundling the font files locally instead.
+Requires Flutter 3.19+ / Dart 3.3+. Runs fully offline and strictly stores all data local to the device for maximum privacy.
