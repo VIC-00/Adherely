@@ -81,7 +81,7 @@ class _RootShellState extends State<RootShell> {
     if (medIndex != -1) {
       final med = medState.meds[medIndex];
       if (action == 'take') {
-        medState.logMedication(med.id!, MedCardVariant.taken);
+        await medState.logMedication(med.id!, MedCardVariant.taken);
         final timeStr = DateFormat('h:mm a').format(DateTime.now());
         historyState.logHistory(HistoryItem(
           med: '${med.name} ${med.dose}',
@@ -90,6 +90,7 @@ class _RootShellState extends State<RootShell> {
           taken: true,
           note: 'Logged from notification bar',
         ));
+        if (!mounted) return;
         SuccessOverlay.showDoseLogged(context, medName: med.name, dose: med.dose);
       } else if (action == 'snooze') {
         // Retrieve snooze duration

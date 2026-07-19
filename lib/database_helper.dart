@@ -212,10 +212,6 @@ class DatabaseHelper {
     ''');
 
     // Seed default data (blank vitals + settings toggles)
-    await _seedDefaultData(db);
-  }
-
-  Future<void> _seedDefaultData(Database db) async {
     await _seedData(db);
   }
 
@@ -261,6 +257,6 @@ class DatabaseHelper {
   Future<void> resetToDefaults() async {
     await clearDatabase();
     final db = await database;
-    await _seedDefaultData(db);
+    await _seedData(db);
   }
 }

@@ -19,7 +19,11 @@ class HistoryProvider extends ChangeNotifier {
   }
 
   void nextHistoryMonth() {
-    _currentHistoryMonth = DateTime(_currentHistoryMonth.year, _currentHistoryMonth.month + 1, 1);
+    final now = DateTime.now();
+    final currentMonth = DateTime(now.year, now.month);
+    final next = DateTime(_currentHistoryMonth.year, _currentHistoryMonth.month + 1, 1);
+    if (next.isAfter(currentMonth)) return; // don't go past the current month
+    _currentHistoryMonth = next;
     notifyListeners();
   }
 
