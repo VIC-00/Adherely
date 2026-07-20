@@ -674,7 +674,7 @@ class ProfileScreen extends StatelessWidget {
                                                 ElevatedButton(
                                                   onPressed: () {
                                                     settingsState
-                                                        .removeCaregiver(c.name);
+                                                        .removeCaregiver(c.id!);
                                                     Navigator.of(context).pop();
                                                   },
                                                   child: const Text('Remove'),

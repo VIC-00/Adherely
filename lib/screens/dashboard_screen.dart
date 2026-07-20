@@ -610,7 +610,10 @@ class DashboardScreen extends StatelessWidget {
                               ),
                             ),
                             trailing: ElevatedButton(
-                              onPressed: () {
+                              onPressed: () async {
+                                if (med.id != null) {
+                                  await medState.logMedication(med.id!, MedCardVariant.taken);
+                                }
                                 final timeStr = DateFormat('h:mm a').format(DateTime.now());
                                 historyState.logHistory(HistoryItem(
                                   med: '${med.name} ${med.dose}',
@@ -619,7 +622,9 @@ class DashboardScreen extends StatelessWidget {
                                   taken: true,
                                   note: 'Taken as needed',
                                 ));
-                                SuccessOverlay.showDoseLogged(context, medName: med.name, dose: med.dose);
+                                if (context.mounted) {
+                                  SuccessOverlay.showDoseLogged(context, medName: med.name, dose: med.dose);
+                                }
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF2563EB),

@@ -155,13 +155,13 @@ class SettingsProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> removeCaregiver(String name) async {
-    _caregivers.removeWhere((c) => c.name == name);
+  Future<void> removeCaregiver(int id) async {
+    _caregivers.removeWhere((c) => c.id == id);
     notifyListeners();
     if (!_dbEnabled) return;
     try {
       final db = await DatabaseHelper.instance.database;
-      await db.delete('caregivers', where: 'name = ?', whereArgs: [name]);
+      await db.delete('caregivers', where: 'id = ?', whereArgs: [id]);
     } catch(e) {
       debugPrint("DB error: $e");
     }
