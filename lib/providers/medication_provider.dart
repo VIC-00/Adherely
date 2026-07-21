@@ -786,6 +786,7 @@ class MedicationProvider extends ChangeNotifier {
     if (ruleIdx != -1) {
       final oldRule = _rules[ruleIdx];
       // Cancel old alarm
+      if (oldRule.id == null) return; // rule was never persisted; nothing to cancel
       await _notificationService.cancelReminder(oldRule.id!);
       
       // Update rule in memory

@@ -9,6 +9,9 @@ class SuccessOverlay extends StatefulWidget {
   final IconData icon;
   final List<Color> gradientColors;
   final Color titleColor;
+  /// Optional footer shown below the message card.
+  /// Pass `null` to hide the footer entirely (e.g. for delete/dismiss actions).
+  final String? footerMessage;
 
   const SuccessOverlay({
     super.key,
@@ -17,6 +20,7 @@ class SuccessOverlay extends StatefulWidget {
     required this.icon,
     required this.gradientColors,
     required this.titleColor,
+    this.footerMessage = 'Keep it up! You\'re staying on track.',
   });
 
   static void show({
@@ -26,6 +30,7 @@ class SuccessOverlay extends StatefulWidget {
     required IconData icon,
     required List<Color> gradientColors,
     required Color titleColor,
+    String? footerMessage = 'Keep it up! You\'re staying on track.',
   }) {
     showDialog(
       context: context,
@@ -36,6 +41,7 @@ class SuccessOverlay extends StatefulWidget {
         icon: icon,
         gradientColors: gradientColors,
         titleColor: titleColor,
+        footerMessage: footerMessage,
       ),
     );
   }
@@ -63,6 +69,7 @@ class SuccessOverlay extends StatefulWidget {
       icon: Icons.edit_calendar_rounded,
       gradientColors: [const Color(0xFF3B82F6), const Color(0xFF2563EB)],
       titleColor: const Color(0xFF2563EB),
+      footerMessage: 'Reminder updated — we\'ll alert you at the new time.',
     );
   }
 
@@ -85,6 +92,7 @@ class SuccessOverlay extends StatefulWidget {
       icon: Icons.snooze_rounded,
       gradientColors: [const Color(0xFFF59E0B), const Color(0xFFD97706)],
       titleColor: const Color(0xFFD97706),
+      footerMessage: null, // neutral action — no motivational footer
     );
   }
 
@@ -129,6 +137,7 @@ class SuccessOverlay extends StatefulWidget {
       icon: Icons.delete_sweep_rounded,
       gradientColors: [const Color(0xFFEF4444), const Color(0xFFDC2626)],
       titleColor: const Color(0xFFEF4444),
+      footerMessage: null, // deletion — no motivational footer
     );
   }
 
@@ -297,17 +306,20 @@ class _SuccessOverlayState extends State<SuccessOverlay>
                     ),
                     const SizedBox(height: 20),
 
-                    // Motivational line
-                    Text(
-                      'Keep it up! You\'re staying on track.',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
+                    // Motivational footer — only shown when footerMessage is provided
+                    if (widget.footerMessage != null) ...
+                      [
+                        Text(
+                          widget.footerMessage!,
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                   ],
                 ),
               ),
