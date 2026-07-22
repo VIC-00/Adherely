@@ -766,29 +766,35 @@ class DashboardScreen extends StatelessWidget {
                   statusIcon = Icons.cancel_rounded;
                 }
 
-                return ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(statusIcon, color: statusColor, size: 22),
-                  title: Text(
-                    rule.time,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.ink900,
+                return Opacity(
+                  opacity: isTaken ? 0.55 : 1.0,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(statusIcon, color: statusColor, size: 22),
+                    title: Text(
+                      rule.time,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.ink900,
+                      ),
                     ),
-                  ),
-                  subtitle: Text(
-                    statusText,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: statusColor,
+                    subtitle: Text(
+                      statusText,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: statusColor,
+                      ),
                     ),
+                    // Hide the chevron for taken doses — they are not tappable
+                    trailing: isTaken
+                        ? null
+                        : const Icon(Icons.chevron_right_rounded, size: 20),
+                    onTap: isTaken ? null : () {
+                      Navigator.of(context).pop();
+                      onSelected(rule);
+                    },
                   ),
-                  trailing: const Icon(Icons.chevron_right_rounded, size: 20),
-                  onTap: isTaken ? null : () {
-                    Navigator.of(context).pop();
-                    onSelected(rule);
-                  },
                 );
               },
             ),
