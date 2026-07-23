@@ -13,14 +13,9 @@ const Map<AlertType, AlertInfo> _alertIcons = {
 
 
 
-class RemindersScreen extends StatefulWidget {
+class RemindersScreen extends StatelessWidget {
   const RemindersScreen({super.key});
 
-  @override
-  State<RemindersScreen> createState() => _RemindersScreenState();
-}
-
-class _RemindersScreenState extends State<RemindersScreen> {
   @override
   Widget build(BuildContext context) {
     AppColors.isDark = Theme.of(context).brightness == Brightness.dark;
