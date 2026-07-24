@@ -59,7 +59,8 @@ class MedicationProvider extends ChangeNotifier {
       final typesStr = r['types'] as String;
       final typesList = typesStr.split(',')
           .where((t) => t.isNotEmpty)
-          .map((t) => AlertType.values.firstWhere((v) => v.toString().split('.').last == t))
+          .map((t) => AlertTypeCodec.fromString(t))
+          .whereType<AlertType>() // drops unknown/corrupt values gracefully
           .toList();
       return ReminderRule(
         id: r['id'] as int,
@@ -77,10 +78,7 @@ class MedicationProvider extends ChangeNotifier {
     for (final row in todayData) {
       final medId = row['med_id'] as int;
       final statusStr = row['status'] as String;
-      final status = MedCardVariant.values.firstWhere(
-        (v) => v.toString().split('.').last == statusStr,
-        orElse: () => MedCardVariant.upcoming,
-      );
+      final status = MedCardVariantCodec.fromString(statusStr);
       _todayMeds[medId] = status;
     }
 
@@ -145,7 +143,7 @@ class MedicationProvider extends ChangeNotifier {
 
         await db.insert('today_meds', {
           'med_id': medId,
-          'status': MedCardVariant.upcoming.toString().split('.').last,
+          'status': MedCardVariant.upcoming.toStorageString(),
         });
       } catch (e) {
         debugPrint("DB write error: $e");
@@ -195,7 +193,7 @@ class MedicationProvider extends ChangeNotifier {
               'med': rule.med,
               'dose': rule.dose,
               'time': rule.time,
-              'types': rule.types.map((e) => e.toString().split('.').last).join(','),
+              'types': rule.types.map((e) => e.toStorageString()).join(','),
               'advance': rule.advance,
               'color': rule.color.toARGB32(),
               'active': rule.active ? 1 : 0,
@@ -408,7 +406,7 @@ class MedicationProvider extends ChangeNotifier {
       }
 
       await db.update('today_meds', {
-        'status': status.toString().split('.').last,
+        'status': status.toStorageString(),
       }, where: 'med_id = ?', whereArgs: [medId]);
 
       // Cancel and reschedule alarms for this medication based on the new taken status
@@ -483,7 +481,7 @@ class MedicationProvider extends ChangeNotifier {
             'med': rule.med,
             'dose': rule.dose,
             'time': rule.time,
-            'types': rule.types.map((e) => e.toString().split('.').last).join(','),
+            'types': rule.types.map((e) => e.toStorageString()).join(','),
             'advance': rule.advance,
             'color': rule.color.toARGB32(),
             'active': rule.active ? 1 : 0,
@@ -538,7 +536,7 @@ class MedicationProvider extends ChangeNotifier {
             'med': rule.med,
             'dose': rule.dose,
             'time': rule.time,
-            'types': rule.types.map((e) => e.toString().split('.').last).join(','),
+            'types': rule.types.map((e) => e.toStorageString()).join(','),
             'advance': rule.advance,
             'color': rule.color.toARGB32(),
             'active': rule.active ? 1 : 0,

@@ -2,6 +2,31 @@ import 'package:flutter/material.dart';
 
 enum MedCardVariant { upcoming, taken, missed, future }
 
+/// Stable storage codec for [MedCardVariant].
+/// Update ONLY this map if a value is ever renamed — DB records stay valid.
+extension MedCardVariantCodec on MedCardVariant {
+  /// Returns the canonical DB string for this variant.
+  String toStorageString() {
+    switch (this) {
+      case MedCardVariant.upcoming: return 'upcoming';
+      case MedCardVariant.taken:    return 'taken';
+      case MedCardVariant.missed:   return 'missed';
+      case MedCardVariant.future:   return 'future';
+    }
+  }
+
+  /// Parses a DB string back to a [MedCardVariant].
+  /// Falls back to [MedCardVariant.upcoming] for unknown values.
+  static MedCardVariant fromString(String s) {
+    switch (s) {
+      case 'taken':   return MedCardVariant.taken;
+      case 'missed':  return MedCardVariant.missed;
+      case 'future':  return MedCardVariant.future;
+      default:        return MedCardVariant.upcoming;
+    }
+  }
+}
+
 class Medication {
   final int? id;
   final String name;
@@ -147,6 +172,28 @@ class MedImpact {
   });
 }
 enum AlertType { push, voice }
+
+/// Stable storage codec for [AlertType].
+/// Update ONLY this map if a value is ever renamed — DB records stay valid.
+extension AlertTypeCodec on AlertType {
+  /// Returns the canonical DB string for this alert type.
+  String toStorageString() {
+    switch (this) {
+      case AlertType.push:  return 'push';
+      case AlertType.voice: return 'voice';
+    }
+  }
+
+  /// Parses a DB string back to an [AlertType].
+  /// Returns null for unknown values so callers can skip bad entries.
+  static AlertType? fromString(String s) {
+    switch (s) {
+      case 'push':  return AlertType.push;
+      case 'voice': return AlertType.voice;
+      default:      return null;
+    }
+  }
+}
 
 class AlertInfo {
   final String icon;
