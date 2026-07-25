@@ -301,9 +301,10 @@ class _AddMedScreenState extends State<AddMedScreen> {
                           setState(() => _step += 1);
                         } else {
                           final name = _nameController.text.trim();
-                          final dose = _doseController.text.trim();
 
-                          // Validation
+                          // --- Validation ---
+
+                          // 1. Name required
                           if (name.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
@@ -315,9 +316,38 @@ class _AddMedScreenState extends State<AddMedScreen> {
                             return;
                           }
 
+                          // 2. Intake qty must be a positive number
+                          if (_intakeQty <= 0) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Intake amount per dose must be greater than zero.'),
+                                backgroundColor: Color(0xFFEF4444),
+                              ),
+                            );
+                            setState(() => _step = 1);
+                            return;
+                          }
+
+                          // 3. Supply must be a valid positive number
+                          final supplyRaw = _supplyController.text.trim();
+                          final supply = double.tryParse(supplyRaw);
+                          if (supply == null || supply <= 0) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  supply == null
+                                      ? 'Please enter a valid supply quantity.'
+                                      : 'Supply quantity must be greater than zero.',
+                                ),
+                                backgroundColor: const Color(0xFFEF4444),
+                              ),
+                            );
+                            setState(() => _step = 3);
+                            return;
+                          }
+
+                          final dose = _doseController.text.trim();
                           final freq = '$_freq · ${_selectedTimes.join(', ')}';
-                          final supply =
-                              double.tryParse(_supplyController.text.trim()) ?? 30.0;
                           final doctor = _doctorController.text.trim();
                           final notes = _notesController.text.trim();
 
