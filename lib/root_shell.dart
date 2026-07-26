@@ -202,8 +202,9 @@ class _RootShellState extends State<RootShell> {
                     context: context,
                     builder: (context) {
                       String selectedVital = 'Blood Pressure';
-                      final sysController = TextEditingController(text: '120');
-                      final diaController = TextEditingController(text: '80');
+                      // Start empty — hint text guides the user; no phantom defaults
+                      final sysController = TextEditingController();
+                      final diaController = TextEditingController();
                       final singleValController = TextEditingController();
 
                       return StatefulBuilder(
@@ -229,13 +230,9 @@ class _RootShellState extends State<RootShell> {
                                   if (val != null) {
                                     setDialogState(() {
                                       selectedVital = val;
-                                      if (val == 'Heart Rate') {
-                                        singleValController.text = '72';
-                                      } else if (val == 'Blood Sugar') {
-                                        singleValController.text = '95';
-                                      } else if (val == 'Weight') {
-                                        singleValController.text = '165.0';
-                                      }
+                                      // Clear the field when switching type
+                                      // so no stale value persists
+                                      singleValController.clear();
                                     });
                                   }
                                 },
@@ -284,28 +281,42 @@ class _RootShellState extends State<RootShell> {
                             ),
                             ElevatedButton(
                               onPressed: () {
-                                if (selectedVital == 'Blood Pressure') {
-                                  final sys =
-                                      int.tryParse(sysController.text) ?? 120;
-                                  final dia =
-                                      int.tryParse(diaController.text) ?? 80;
-                                  vitalsState.addBpReading(sys, dia);
-                                } else if (selectedVital == 'Heart Rate') {
-                                  final hr = singleValController.text.trim();
-                                  vitalsState.updateVital(
-                                      'Heart Rate', hr.isNotEmpty ? hr : '72');
-                                } else if (selectedVital == 'Blood Sugar') {
-                                  final bs = singleValController.text.trim();
-                                  vitalsState.updateVital(
-                                      'Blood Sugar', bs.isNotEmpty ? bs : '98');
-                                } else if (selectedVital == 'Weight') {
-                                  final w = singleValController.text.trim();
-                                  vitalsState.updateVital(
-                                      'Weight', w.isNotEmpty ? w : '168.4');
-                                }
-                                Navigator.of(context).pop();
-                                SuccessOverlay.showVitalsLogged(context, vitalType: selectedVital);
-                              },
+                                 if (selectedVital == 'Blood Pressure') {
+                                   final sys = int.tryParse(sysController.text.trim());
+                                   final dia = int.tryParse(diaController.text.trim());
+                                   if (sys == null || dia == null || sys <= 0 || dia <= 0) {
+                                     ScaffoldMessenger.of(context).showSnackBar(
+                                       const SnackBar(
+                                         content: Text('Please enter valid systolic and diastolic values.'),
+                                         backgroundColor: Color(0xFFEF4444),
+                                       ),
+                                     );
+                                     return;
+                                   }
+                                   vitalsState.addBpReading(sys, dia);
+                                 } else {
+                                   final raw = singleValController.text.trim();
+                                   final parsed = double.tryParse(raw);
+                                   if (raw.isEmpty || parsed == null || parsed <= 0) {
+                                     ScaffoldMessenger.of(context).showSnackBar(
+                                       SnackBar(
+                                         content: Text(
+                                           raw.isEmpty
+                                             ? 'Please enter a value before logging.'
+                                             : 'Please enter a valid positive number.',
+                                         ),
+                                         backgroundColor: const Color(0xFFEF4444),
+                                       ),
+                                     );
+                                     return;
+                                   }
+                                   vitalsState.updateVital(selectedVital, raw);
+                                 }
+                                 Navigator.of(context).pop();
+                                 if (context.mounted) {
+                                   SuccessOverlay.showVitalsLogged(context, vitalType: selectedVital);
+                                 }
+                               },
                               child: const Text('Log'),
                             ),
                           ],
