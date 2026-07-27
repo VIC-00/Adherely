@@ -24,18 +24,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    final settingsState = context.read<SettingsProvider>();
-    final profile = settingsState.profile;
-    
-    _nameController = TextEditingController(text: profile?.name ?? '');
-    _dobController = TextEditingController(text: profile?.dob ?? '');
-    _conditionsController = TextEditingController(text: profile?.conditions ?? '');
-    
-    if (profile?.dob != null && profile!.dob.isNotEmpty) {
-      try {
-        _selectedDate = DateFormat('MMM dd, yyyy').parse(profile.dob);
-      } catch (_) {}
-    }
+    // Use addPostFrameCallback so context.read is safe after the first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final profile = context.read<SettingsProvider>().profile;
+
+      _nameController.text = profile?.name ?? '';
+      _conditionsController.text = profile?.conditions ?? '';
+
+      if (profile?.dob != null && profile!.dob.isNotEmpty) {
+        // Try both the current canonical format and common legacy formats
+        final formats = [
+          DateFormat('MMM dd, yyyy'), // canonical
+          DateFormat('MMM d, yyyy'),  // no leading-zero day
+          DateFormat('yyyy-MM-dd'),   // ISO (possible old format)
+        ];
+        for (final fmt in formats) {
+          try {
+            final parsed = fmt.parse(profile.dob, true);
+            setState(() {
+              _selectedDate = parsed;
+              _dobController.text = DateFormat('MMM dd, yyyy').format(parsed);
+            });
+            break;
+          } catch (_) {}
+        }
+        // If none matched, keep the raw text so it's visible
+        // but _selectedDate stays null — the validator will reject a save
+        if (_selectedDate == null) {
+          _dobController.text = profile.dob;
+        }
+      }
+    });
+
+    _nameController = TextEditingController();
+    _dobController = TextEditingController();
+    _conditionsController = TextEditingController();
   }
 
   @override
@@ -195,7 +219,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     final updatedProfile = Profile(
                       id: 1,
                       name: _nameController.text.trim(),
-                      dob: _dobController.text.trim(),
+                      // Always derive from _selectedDate to guarantee
+                      // the format is canonical ('MMM dd, yyyy') on every save
+                      dob: _selectedDate != null
+                          ? DateFormat('MMM dd, yyyy').format(_selectedDate!)
+                          : _dobController.text.trim(),
                       conditions: _conditionsController.text.trim().isEmpty
                           ? 'None'
                           : _conditionsController.text.trim(),
