@@ -100,7 +100,25 @@ class _MedAdhereAppState extends State<MedAdhereApp> {
             }
           }
         }
-        await db.update('today_meds', {'status': 'upcoming'});
+        // Only reset scheduled meds (those with active reminder rules)
+        // that are not future-start medications (createdAt <= today midnight).
+        // PRN meds (no rules) and future meds are left untouched.
+        final todayMidnight = DateTime(
+          DateTime.now().year,
+          DateTime.now().month,
+          DateTime.now().day,
+        ).millisecondsSinceEpoch;
+        await db.rawUpdate('''
+          UPDATE today_meds
+          SET status = 'upcoming'
+          WHERE med_id IN (
+            SELECT m.id
+            FROM medications m
+            INNER JOIN reminder_rules r ON r.med = m.name
+            WHERE r.active = 1
+              AND (m.createdAt IS NULL OR m.createdAt <= ?)
+          )
+        ''', [todayMidnight]);
         await prefs.setString('last_run_date', today);
         final resetTodayData = await db.query('today_meds');
         await _medicationProvider.load(medsData, rulesData, resetTodayData, historyData);
