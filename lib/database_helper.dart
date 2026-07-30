@@ -83,18 +83,12 @@ class DatabaseHelper {
           await db.execute('ALTER TABLE medications ADD COLUMN createdAt INTEGER DEFAULT $nowMs');
         }
       }
-    } catch (e) {
-      debugPrint("Migration error: $e");
-      await db.execute('DROP TABLE IF EXISTS medications');
-      await db.execute('DROP TABLE IF EXISTS today_meds');
-      await db.execute('DROP TABLE IF EXISTS reminder_rules');
-      await db.execute('DROP TABLE IF EXISTS caregivers');
-      await db.execute('DROP TABLE IF EXISTS vitals');
-      await db.execute('DROP TABLE IF EXISTS history_items');
-      await db.execute('DROP TABLE IF EXISTS profile_toggles');
-      await db.execute('DROP TABLE IF EXISTS profile');
-      await db.execute('DROP TABLE IF EXISTS bp_readings');
-      await _createDB(db, newVersion);
+    } catch (e, stack) {
+      // Do NOT drop tables here — that would destroy user data.
+      // Rethrow so the caller (_initApp) can catch it and fall back
+      // to in-memory mode gracefully.
+      debugPrint('DB migration error (v$oldVersion → v$newVersion): $e\n$stack');
+      rethrow;
     }
   }
 
