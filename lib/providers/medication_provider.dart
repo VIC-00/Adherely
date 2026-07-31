@@ -326,37 +326,60 @@ class MedicationProvider extends ChangeNotifier {
         }
       }
 
+      // Extract the individual time slots from the new freq string —
+      // same logic as addMedication so the two stay in sync.
+      final freqTimePart = newMed.freq.contains('·')
+          ? newMed.freq.split('·').last.trim()
+          : newMed.freq;
+      final newTimes = freqTimePart
+          .split(',')
+          .map((t) => t.trim())
+          .where((t) => t.isNotEmpty)
+          .toList();
+
+      // Collect the existing rules that belong to this medication (in order)
+      // so we can pair rule[i] → newTimes[i].
+      final matchingRuleIndices = <int>[];
       for (int i = 0; i < _rules.length; i++) {
+        if (_rules[i].med == oldName) matchingRuleIndices.add(i);
+      }
+
+      for (int j = 0; j < matchingRuleIndices.length; j++) {
+        final i = matchingRuleIndices[j];
         final rule = _rules[i];
-        if (rule.med == oldName) {
-          final newRule = ReminderRule(
-            id: rule.id,
-            med: newMed.name,
-            dose: newMed.dose,
-            time: newMed.freq.contains('·') ? newMed.freq.split('·').last.trim() : newMed.freq,
-            types: rule.types,
-            advance: rule.advance,
-            color: newMed.color,
-            active: rule.active,
-          );
-          _rules[i] = newRule;
-          
-          if (_dbEnabled) {
-            try {
-              final db = await DatabaseHelper.instance.database;
-              await db.update('reminder_rules', {
-                'med': newRule.med,
-                'dose': newRule.dose,
-                'time': newRule.time,
-                'color': newRule.color.toARGB32(),
-              }, where: 'id = ?', whereArgs: [rule.id]);
-            } catch (e) {
-              debugPrint('DB updateRule error: $e');
-            }
+        // If freq changed from twice-daily to once-daily (or vice-versa), the
+        // counts may not match — fall back to the last available time slot.
+        final assignedTime = newTimes.isNotEmpty
+            ? newTimes[j.clamp(0, newTimes.length - 1)]
+            : rule.time;
+
+        final newRule = ReminderRule(
+          id: rule.id,
+          med: newMed.name,
+          dose: newMed.dose,
+          time: assignedTime,
+          types: rule.types,
+          advance: rule.advance,
+          color: newMed.color,
+          active: rule.active,
+        );
+        _rules[i] = newRule;
+
+        if (_dbEnabled) {
+          try {
+            final db = await DatabaseHelper.instance.database;
+            await db.update('reminder_rules', {
+              'med': newRule.med,
+              'dose': newRule.dose,
+              'time': newRule.time,
+              'color': newRule.color.toARGB32(),
+            }, where: 'id = ?', whereArgs: [rule.id]);
+          } catch (e) {
+            debugPrint('DB updateRule error: $e');
           }
-          if (newRule.active && newRule.id != null) {
-            _notificationService.scheduleReminderNotification(newRule);
-          }
+        }
+        if (newRule.active && newRule.id != null) {
+          _notificationService.scheduleReminderNotification(newRule);
         }
       }
     }
