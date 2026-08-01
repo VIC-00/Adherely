@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models.dart';
 import '../database_helper.dart';
+import '../utils/time_utils.dart';
 
 class HistoryProvider extends ChangeNotifier {
   DateTime _currentHistoryMonth = DateTime.now();
@@ -189,29 +190,9 @@ class HistoryProvider extends ChangeNotifier {
     }
     
     if (checkDateOnly.isAtSameMomentAs(creationDateOnly)) {
-      try {
-        final timeStr = r.time;
-        final parts = timeStr.split(' ');
-        final hm = parts[0].split(':');
-        int hour = int.parse(hm[0]);
-        final minute = int.parse(hm[1]);
-        if (parts.length > 1 && parts[1].toUpperCase() == 'PM' && hour < 12) {
-          hour += 12;
-        }
-        if (parts.length > 1 && parts[1].toUpperCase() == 'AM' && hour == 12) {
-          hour = 0;
-        }
-        final ruleDateTime = DateTime(
-          checkDateOnly.year,
-          checkDateOnly.month,
-          checkDateOnly.day,
-          hour,
-          minute,
-        );
-        return ruleDateTime.isBefore(creationDate);
-      } catch (_) {
-        return false;
-      }
+      final ruleDateTime = TimeUtils.toDateTime(r.time, checkDateOnly);
+      if (ruleDateTime == null) return false;
+      return ruleDateTime.isBefore(creationDate);
     }
     
     return false;

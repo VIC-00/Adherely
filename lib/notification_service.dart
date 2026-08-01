@@ -9,6 +9,7 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:sqflite/sqflite.dart';
 import 'models.dart';
 import 'database_helper.dart';
+import 'utils/time_utils.dart';
 
 abstract class INotificationService {
   Future<void> initialize();
@@ -96,21 +97,9 @@ class LocalNotificationService implements INotificationService {
     if (!_initialized) await initialize();
 
     try {
-      // Parse the time string, e.g. "8:00 AM" or "2:00 PM"
-      final parts = rule.time.split(' ');
-      if (parts.length != 2) return;
-      
-      final timeParts = parts[0].split(':');
-      if (timeParts.length != 2) return;
-      
-      int hour = int.parse(timeParts[0]);
-      final int minute = int.parse(timeParts[1]);
-      
-      if (parts[1].toUpperCase() == 'PM' && hour < 12) {
-        hour += 12;
-      } else if (parts[1].toUpperCase() == 'AM' && hour == 12) {
-        hour = 0;
-      }
+      final tod = TimeUtils.toTimeOfDay(rule.time);
+      final int hour = tod.hour;
+      final int minute = tod.minute;
 
       // Check if this is an "every other day" medication and if it was already taken today
       bool isEveryOtherDay = false;

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../providers/index.dart';
 import '../theme/app_colors.dart';
+import '../utils/time_utils.dart';
 import '../widgets/medication_card.dart';
 import '../widgets/success_overlay.dart';
 import 'med_detail_screen.dart';
@@ -696,24 +697,7 @@ class DashboardScreen extends StatelessWidget {
     required Function(ReminderRule rule) onSelected,
   }) {
     final medRules = rules.where((r) => r.med.toLowerCase() == med.name.toLowerCase() && r.active).toList();
-    double parseTime(String timeStr) {
-      try {
-        final parts = timeStr.split(' ');
-        if (parts.length != 2) return 0.0;
-        final timeParts = parts[0].split(':');
-        int hour = int.parse(timeParts[0]);
-        final int minute = int.parse(timeParts[1]);
-        if (parts[1].toUpperCase() == 'PM' && hour < 12) {
-          hour += 12;
-        } else if (parts[1].toUpperCase() == 'AM' && hour == 12) {
-          hour = 0;
-        }
-        return hour + (minute / 60.0);
-      } catch (_) {
-        return 0.0;
-      }
-    }
-    medRules.sort((a, b) => parseTime(a.time).compareTo(parseTime(b.time)));
+    medRules.sort((a, b) => TimeUtils.toDouble(a.time).compareTo(TimeUtils.toDouble(b.time)));
 
     showDialog(
       context: context,

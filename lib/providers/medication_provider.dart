@@ -4,6 +4,7 @@ import '../database_helper.dart';
 import '../notification_service.dart';
 import 'package:intl/intl.dart';
 import '../utils/medication_library.dart';
+import '../utils/time_utils.dart';
 
 class MedicationProvider extends ChangeNotifier {
   final INotificationService _notificationService;
@@ -702,7 +703,7 @@ class MedicationProvider extends ChangeNotifier {
     final medRules = _rules.where((r) => r.med.toLowerCase() == med.name.toLowerCase() && r.active).toList();
     if (medRules.isEmpty) return MedCardVariant.upcoming;
 
-    medRules.sort((a, b) => _parseTimeToDouble(a.time).compareTo(_parseTimeToDouble(b.time)));
+    medRules.sort((a, b) => TimeUtils.toDouble(a.time).compareTo(TimeUtils.toDouble(b.time)));
 
     final takenCount = _todayTakenCounts[med.id!] ?? 0;
     final totalRules = medRules.length;
@@ -720,29 +721,11 @@ class MedicationProvider extends ChangeNotifier {
     }
   }
 
-  double _parseTimeToDouble(String timeStr) {
-    try {
-      final parts = timeStr.split(' ');
-      if (parts.length != 2) return 0.0;
-      final timeParts = parts[0].split(':');
-      if (timeParts.length != 2) return 0.0;
-      int hour = int.parse(timeParts[0]);
-      final int minute = int.parse(timeParts[1]);
-      if (parts[1].toUpperCase() == 'PM' && hour < 12) {
-        hour += 12;
-      } else if (parts[1].toUpperCase() == 'AM' && hour == 12) {
-        hour = 0;
-      }
-      return hour + (minute / 60.0);
-    } catch (_) {
-      return 0.0;
-    }
-  }
 
   String getNextDoseTime(Medication med) {
     final medRules = _rules.where((r) => r.med.toLowerCase() == med.name.toLowerCase() && r.active).toList();
     if (medRules.isEmpty) return med.freq;
-    medRules.sort((a, b) => _parseTimeToDouble(a.time).compareTo(_parseTimeToDouble(b.time)));
+    medRules.sort((a, b) => TimeUtils.toDouble(a.time).compareTo(TimeUtils.toDouble(b.time)));
     final takenCount = _todayTakenCounts[med.id!] ?? 0;
     if (takenCount < medRules.length) {
       return medRules[takenCount].time;
@@ -753,7 +736,7 @@ class MedicationProvider extends ChangeNotifier {
   String getNextMissedDoseTime(Medication med) {
     final medRules = _rules.where((r) => r.med.toLowerCase() == med.name.toLowerCase() && r.active).toList();
     if (medRules.isEmpty) return med.freq;
-    medRules.sort((a, b) => _parseTimeToDouble(a.time).compareTo(_parseTimeToDouble(b.time)));
+    medRules.sort((a, b) => TimeUtils.toDouble(a.time).compareTo(TimeUtils.toDouble(b.time)));
     final takenCount = _todayTakenCounts[med.id!] ?? 0;
     final passedRules = medRules.where((r) {
       if (isRuleBeforeCreation(r, med)) return false;

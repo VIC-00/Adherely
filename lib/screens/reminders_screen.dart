@@ -3,6 +3,7 @@ import '../models.dart';
 import 'package:provider/provider.dart';
 import '../providers/index.dart';
 import '../theme/app_colors.dart';
+import '../utils/time_utils.dart';
 import '../notification_service.dart';
 import '../widgets/success_overlay.dart';
 
@@ -24,17 +25,8 @@ class RemindersScreen extends StatelessWidget {
     // Sort rules chronologically by their time string
     final rules = [...medState.rules]..sort((a, b) {
       try {
-        TimeOfDay parseTime(String t) {
-          final parts = t.split(' ');
-          final hm = parts[0].split(':');
-          int h = int.parse(hm[0]);
-          final m = int.parse(hm[1]);
-          if (parts[1].toUpperCase() == 'PM' && h < 12) h += 12;
-          if (parts[1].toUpperCase() == 'AM' && h == 12) h = 0;
-          return TimeOfDay(hour: h, minute: m);
-        }
-        final ta = parseTime(a.time);
-        final tb = parseTime(b.time);
+        final ta = TimeUtils.toTimeOfDay(a.time);
+        final tb = TimeUtils.toTimeOfDay(b.time);
         return (ta.hour * 60 + ta.minute).compareTo(tb.hour * 60 + tb.minute);
       } catch (_) {
         return 0;
