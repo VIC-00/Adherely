@@ -118,13 +118,16 @@ class MedicationProvider extends ChangeNotifier {
       'sideEffects': null
     };
 
-    final medId = DateTime.now().millisecondsSinceEpoch;
-    final customCreatedAt = m.createdAt ?? medId;
+    // In DB mode, let SQLite's AUTOINCREMENT assign the ID and read it back.
+    // In in-memory mode only, fall back to a timestamp as a local surrogate.
+    int medId;
+    final customCreatedAt = m.createdAt ?? DateTime.now().millisecondsSinceEpoch;
+
     if (_dbEnabled) {
       try {
         final db = await DatabaseHelper.instance.database;
-        await db.insert('medications', {
-          'id': medId,
+        // No 'id' field — SQLite AUTOINCREMENT assigns it.
+        medId = await db.insert('medications', {
           'name': m.name,
           'dose': m.dose,
           'freq': m.freq,
@@ -148,7 +151,12 @@ class MedicationProvider extends ChangeNotifier {
         });
       } catch (e) {
         debugPrint("DB write error: $e");
+        // Fall back to timestamp surrogate so the med is still usable in-memory.
+        medId = DateTime.now().millisecondsSinceEpoch;
       }
+    } else {
+      // In-memory mode: no DB, use timestamp as a local surrogate key.
+      medId = DateTime.now().millisecondsSinceEpoch;
     }
 
     final medWithId = Medication(
