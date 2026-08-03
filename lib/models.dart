@@ -72,6 +72,45 @@ class Medication {
     final dailyIntake = intakeQty * (timesCount > 0 ? timesCount : 1);
     return dailyIntake > 0 ? (supplyQty / dailyIntake).ceil() : 0;
   }
+
+  /// Returns a copy of this [Medication] with only the specified fields replaced.
+  Medication copyWith({
+    int? id,
+    String? name,
+    String? dose,
+    String? freq,
+    Color? color,
+    int? refillDays,
+    String? description,
+    String? drugClass,
+    String? sideEffects,
+    String? doctor,
+    String? notes,
+    String? form,
+    double? intakeQty,
+    double? supplyQty,
+    double? initialSupply,
+    int? createdAt,
+  }) {
+    return Medication(
+      id:            id            ?? this.id,
+      name:          name          ?? this.name,
+      dose:          dose          ?? this.dose,
+      freq:          freq          ?? this.freq,
+      color:         color         ?? this.color,
+      refillDays:    refillDays    ?? this.refillDays,
+      description:   description   ?? this.description,
+      drugClass:     drugClass     ?? this.drugClass,
+      sideEffects:   sideEffects   ?? this.sideEffects,
+      doctor:        doctor        ?? this.doctor,
+      notes:         notes         ?? this.notes,
+      form:          form          ?? this.form,
+      intakeQty:     intakeQty     ?? this.intakeQty,
+      supplyQty:     supplyQty     ?? this.supplyQty,
+      initialSupply: initialSupply ?? this.initialSupply,
+      createdAt:     createdAt     ?? this.createdAt,
+    );
+  }
 }
 
 class Caregiver {
@@ -222,6 +261,29 @@ class ReminderRule {
     required this.color,
     required this.active,
   });
+
+  /// Returns a copy of this [ReminderRule] with only the specified fields replaced.
+  ReminderRule copyWith({
+    int? id,
+    String? med,
+    String? dose,
+    String? time,
+    List<AlertType>? types,
+    int? advance,
+    Color? color,
+    bool? active,
+  }) {
+    return ReminderRule(
+      id:      id      ?? this.id,
+      med:     med     ?? this.med,
+      dose:    dose    ?? this.dose,
+      time:    time    ?? this.time,
+      types:   types   ?? this.types,
+      advance: advance ?? this.advance,
+      color:   color   ?? this.color,
+      active:  active  ?? this.active,
+    );
+  }
 }
 
 // Profile model definition

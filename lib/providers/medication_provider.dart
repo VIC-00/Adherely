@@ -288,22 +288,8 @@ class MedicationProvider extends ChangeNotifier {
       final oldMed = _meds[idx];
       final oldName = oldMed.name;
       
-      final finalMed = Medication(
-        id: newMed.id,
-        name: newMed.name,
-        dose: newMed.dose,
-        freq: newMed.freq,
-        color: newMed.color,
-        refillDays: newMed.refillDays,
-        description: newMed.description,
-        drugClass: newMed.drugClass,
-        sideEffects: newMed.sideEffects,
-        doctor: newMed.doctor,
-        notes: newMed.notes,
-        form: newMed.form,
-        intakeQty: newMed.intakeQty,
-        supplyQty: newMed.supplyQty,
-        initialSupply: newMed.initialSupply,
+      // Preserve createdAt from the existing record if the incoming edit doesn't set one.
+      final finalMed = newMed.copyWith(
         createdAt: newMed.createdAt ?? oldMed.createdAt,
       );
       
@@ -403,23 +389,7 @@ class MedicationProvider extends ChangeNotifier {
       if (medIdx != -1) {
         final med = _meds[medIdx];
         final newSupply = (med.supplyQty - med.intakeQty).clamp(0.0, double.infinity);
-        _meds[medIdx] = Medication(
-          id: med.id,
-          name: med.name,
-          dose: med.dose,
-          freq: med.freq,
-          color: med.color,
-          refillDays: med.refillDays,
-          description: med.description,
-          drugClass: med.drugClass,
-          sideEffects: med.sideEffects,
-          doctor: med.doctor,
-          notes: med.notes,
-          form: med.form,
-          intakeQty: med.intakeQty,
-          supplyQty: newSupply,
-          initialSupply: med.initialSupply,
-        );
+        _meds[medIdx] = med.copyWith(supplyQty: newSupply);
       }
     }
     notifyListeners();
@@ -847,24 +817,7 @@ class MedicationProvider extends ChangeNotifier {
       }
       final newFreq = '$baseFreq · ${times.join(', ')}';
       
-      _meds[medIdx] = Medication(
-        id: med.id,
-        name: med.name,
-        dose: med.dose,
-        freq: newFreq,
-        color: med.color,
-        refillDays: med.refillDays,
-        description: med.description,
-        drugClass: med.drugClass,
-        sideEffects: med.sideEffects,
-        doctor: med.doctor,
-        notes: med.notes,
-        form: med.form,
-        intakeQty: med.intakeQty,
-        supplyQty: med.supplyQty,
-        initialSupply: med.initialSupply,
-        createdAt: med.createdAt,
-      );
+      _meds[medIdx] = med.copyWith(freq: newFreq);
       
       if (_dbEnabled) {
         try {
