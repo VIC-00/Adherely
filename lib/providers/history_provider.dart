@@ -99,13 +99,24 @@ class HistoryProvider extends ChangeNotifier {
     return count;
   }
 
+  /// Cache of per-medication adherence percentages.
+  /// Cleared whenever [_historyItems] changes (load / logHistory).
+  final Map<String, int> _adherenceCache = {};
+
   int getMedicationAdherence(String medName) {
+    final key = medName.toLowerCase();
+    if (_adherenceCache.containsKey(key)) return _adherenceCache[key]!;
     final medLogs = _historyItems
-        .where((h) => h.med.toLowerCase().contains(medName.toLowerCase()))
+        .where((h) => h.med.toLowerCase().contains(key))
         .toList();
-    if (medLogs.isEmpty) return 0;
+    if (medLogs.isEmpty) {
+      _adherenceCache[key] = 0;
+      return 0;
+    }
     final takenCount = medLogs.where((h) => h.taken).length;
-    return ((takenCount / medLogs.length) * 100).toInt();
+    final result = ((takenCount / medLogs.length) * 100).toInt();
+    _adherenceCache[key] = result;
+    return result;
   }
 
   final List<HistoryItem> _historyItems = [];
@@ -123,6 +134,7 @@ class HistoryProvider extends ChangeNotifier {
       taken: h['taken'] == 1,
       note: h['note'] as String,
     )));
+    _adherenceCache.clear(); // invalidate stale cached values
     notifyListeners();
   }
   
@@ -150,6 +162,7 @@ class HistoryProvider extends ChangeNotifier {
 
   Future<void> logHistory(HistoryItem item) async {
     _historyItems.insert(0, item);
+    _adherenceCache.clear(); // new dose changes adherence for this medication
     notifyListeners();
     if (!_dbEnabled) return;
     try {
