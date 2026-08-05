@@ -134,7 +134,8 @@ class HistoryProvider extends ChangeNotifier {
       taken: h['taken'] == 1,
       note: h['note'] as String,
     )));
-    _adherenceCache.clear(); // invalidate stale cached values
+    _adherenceCache.clear();      // invalidate stale cached adherence values
+    _weeklyAdherenceCache = null; // invalidate stale weekly adherence
     notifyListeners();
   }
   
@@ -162,7 +163,8 @@ class HistoryProvider extends ChangeNotifier {
 
   Future<void> logHistory(HistoryItem item) async {
     _historyItems.insert(0, item);
-    _adherenceCache.clear(); // new dose changes adherence for this medication
+    _adherenceCache.clear();      // new dose changes adherence for this medication
+    _weeklyAdherenceCache = null; // new dose may shift this week's rate
     notifyListeners();
     if (!_dbEnabled) return;
     try {
@@ -375,7 +377,18 @@ class HistoryProvider extends ChangeNotifier {
     return current;
   }
 
-  double calculateWeeklyAdherence(List<ReminderRule> rules, Map<int, MedCardVariant> todayMeds, List<Medication> meds) {
+  /// Cached result of [calculateWeeklyAdherence].
+  /// Set dirty by any mutation to [_historyItems] so it is recomputed lazily
+  /// on the next call rather than on every widget rebuild.
+  double? _weeklyAdherenceCache;
+
+  double calculateWeeklyAdherence(
+    List<ReminderRule> rules,
+    Map<int, MedCardVariant> todayMeds,
+    List<Medication> meds,
+  ) {
+    if (_weeklyAdherenceCache != null) return _weeklyAdherenceCache!;
+
     final now = DateTime.now();
     int totalDoses = 0;
     int takenDoses = 0;
@@ -383,7 +396,7 @@ class HistoryProvider extends ChangeNotifier {
     for (int i = 1; i < 7; i++) {
       final day = now.subtract(Duration(days: i));
       final dayItems = getDosesForDay(day, rules, meds);
-      
+
       final nonPrnItems = dayItems.where((h) {
         final isPrn = meds.any((m) => h.med.toLowerCase().contains(m.name.toLowerCase()) && m.freq.toLowerCase().contains('as needed'));
         return !isPrn;
@@ -397,7 +410,10 @@ class HistoryProvider extends ChangeNotifier {
 
     for (final rule in rules) {
       if (!rule.active) continue;
-      final medMatch = meds.firstWhere((m) => m.name.toLowerCase() == rule.med.toLowerCase(), orElse: () => const Medication(name: '', dose: '', freq: '', color: Colors.blue, refillDays: 0));
+      final medMatch = meds.firstWhere(
+        (m) => m.name.toLowerCase() == rule.med.toLowerCase(),
+        orElse: () => const Medication(name: '', dose: '', freq: '', color: Colors.blue, refillDays: 0),
+      );
       if (medMatch.freq.toLowerCase().contains('as needed')) continue;
       if (isOffDay(medMatch, now)) continue;
       if (isRuleBeforeCreation(rule, medMatch, now)) continue;
@@ -413,8 +429,8 @@ class HistoryProvider extends ChangeNotifier {
       }
     }
 
-    if (totalDoses == 0) return 0.0;
-    return (takenDoses / totalDoses) * 100;
+    _weeklyAdherenceCache = totalDoses == 0 ? 0.0 : (takenDoses / totalDoses) * 100;
+    return _weeklyAdherenceCache!;
   }
 
   bool _hasTimePassed(String timeStr) {
