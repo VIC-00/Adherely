@@ -37,10 +37,14 @@ class _AlarmOverlayDialogState extends State<AlarmOverlayDialog>
   @override
   void initState() {
     super.initState();
-    try {
-      final settingsState = context.read<SettingsProvider>();
-      _selectedSnoozeMinutes = settingsState.snoozeDuration;
-    } catch (_) {}
+    // Read stored value after the first frame so context.read is safe.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      try {
+        final stored = context.read<SettingsProvider>().snoozeDuration;
+        setState(() => _selectedSnoozeMinutes = stored);
+      } catch (_) {}
+    });
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
@@ -300,9 +304,12 @@ class _AlarmOverlayDialogState extends State<AlarmOverlayDialog>
                     ],
                     onChanged: (val) {
                       if (val != null) {
-                        setState(() {
-                          _selectedSnoozeMinutes = val;
-                        });
+                        setState(() => _selectedSnoozeMinutes = val);
+                        // Persist the user's choice so the next alarm dialog
+                        // opens with the same duration they just selected.
+                        try {
+                          context.read<SettingsProvider>().updateSnoozeDuration(val);
+                        } catch (_) {}
                       }
                     },
                     style: const TextStyle(
