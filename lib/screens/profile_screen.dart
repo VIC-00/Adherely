@@ -13,14 +13,13 @@ import 'onboarding_screen.dart';
 
 void _showEditMedDialog(
     BuildContext context, SettingsProvider settingsState, Medication med) {
-  final medState = context.read<MedicationProvider>();
   final nameController = TextEditingController(text: med.name);
   final doseController = TextEditingController(text: med.dose);
   final refillDaysController = TextEditingController(text: '${med.refillDays}');
 
   showDialog(
     context: context,
-    builder: (context) => AlertDialog(
+    builder: (dialogContext) => AlertDialog(
       title: const Text('Edit Medication'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -45,7 +44,7 @@ void _showEditMedDialog(
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => Navigator.of(dialogContext).pop(),
           child: const Text('Cancel'),
         ),
         ElevatedButton(
@@ -56,27 +55,13 @@ void _showEditMedDialog(
                 int.tryParse(refillDaysController.text) ?? med.refillDays;
 
             if (name.isNotEmpty && dose.isNotEmpty) {
-              medState.editMedication(
+              // Read provider from the dialog's own context — avoids stale
+              // reference if the caller widget was rebuilt between open & Save.
+              dialogContext.read<MedicationProvider>().editMedication(
                 med.id!,
-                Medication(
-                  id: med.id,
-                  name: name,
-                  dose: dose,
-                  freq: med.freq,
-                  color: med.color,
-                  refillDays: refillDays,
-                  description: med.description,
-                  drugClass: med.drugClass,
-                  sideEffects: med.sideEffects,
-                  doctor: med.doctor,
-                  notes: med.notes,
-                  form: med.form,
-                  intakeQty: med.intakeQty,
-                  supplyQty: med.supplyQty,
-                  initialSupply: med.initialSupply,
-                ),
+                med.copyWith(name: name, dose: dose, refillDays: refillDays),
               );
-              Navigator.of(context).pop();
+              Navigator.of(dialogContext).pop();
               SuccessOverlay.showMedicationUpdated(context, medName: name);
             }
           },
@@ -89,22 +74,23 @@ void _showEditMedDialog(
 
 void _showDeleteMedDialog(
     BuildContext context, SettingsProvider settingsState, Medication med) {
-  final medState = context.read<MedicationProvider>();
   showDialog(
     context: context,
-    builder: (context) => AlertDialog(
+    builder: (dialogContext) => AlertDialog(
       title: const Text('Delete Medication'),
       content: Text(
           'Are you sure you want to delete ${med.name}? All associated alert rules will also be removed.'),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => Navigator.of(dialogContext).pop(),
           child: const Text('Cancel'),
         ),
         ElevatedButton(
           onPressed: () {
-            medState.removeMedication(med.id!);
-            Navigator.of(context).pop();
+            // Read provider from the dialog's own context — avoids stale
+            // reference if the caller widget was rebuilt between open & Delete.
+            dialogContext.read<MedicationProvider>().removeMedication(med.id!);
+            Navigator.of(dialogContext).pop();
             SuccessOverlay.showMedicationDeleted(context, medName: med.name);
           },
           style: ElevatedButton.styleFrom(
