@@ -16,6 +16,7 @@ class HistoryProvider extends ChangeNotifier {
 
   void previousHistoryMonth() {
     _currentHistoryMonth = DateTime(_currentHistoryMonth.year, _currentHistoryMonth.month - 1, 1);
+    _missedDosesCache = null; // month changed — recount on next read
     notifyListeners();
   }
 
@@ -25,12 +26,18 @@ class HistoryProvider extends ChangeNotifier {
     final next = DateTime(_currentHistoryMonth.year, _currentHistoryMonth.month + 1, 1);
     if (next.isAfter(currentMonth)) return; // don't go past the current month
     _currentHistoryMonth = next;
+    _missedDosesCache = null; // month changed — recount on next read
     notifyListeners();
   }
 
+  /// Cached count of missed doses for the currently displayed calendar month.
+  /// Invalidated by [load], [logHistory], [previousHistoryMonth], and [nextHistoryMonth].
+  int? _missedDosesCache;
+
   int get missedDoses {
-    // Only count missed doses within the currently displayed calendar month
-    return _historyItems.where((i) {
+    if (_missedDosesCache != null) return _missedDosesCache!;
+    // Only count missed doses within the currently displayed calendar month.
+    _missedDosesCache = _historyItems.where((i) {
       if (i.taken) return false;
       try {
         final date = DateTime.parse(i.date);
@@ -40,6 +47,7 @@ class HistoryProvider extends ChangeNotifier {
         return false;
       }
     }).length;
+    return _missedDosesCache!;
   }
 
   List<List<CalendarCell>> getCalRows(List<ReminderRule> rules, List<Medication> meds) {
@@ -136,6 +144,7 @@ class HistoryProvider extends ChangeNotifier {
     )));
     _adherenceCache.clear();      // invalidate stale cached adherence values
     _weeklyAdherenceCache = null; // invalidate stale weekly adherence
+    _missedDosesCache = null;     // invalidate stale missed-dose count
     notifyListeners();
   }
   
@@ -145,6 +154,9 @@ class HistoryProvider extends ChangeNotifier {
 
   void setInMemoryDefaults() {
     _historyItems.clear();
+    _adherenceCache.clear();
+    _weeklyAdherenceCache = null;
+    _missedDosesCache = null;
     notifyListeners();
   }
 
@@ -165,6 +177,7 @@ class HistoryProvider extends ChangeNotifier {
     _historyItems.insert(0, item);
     _adherenceCache.clear();      // new dose changes adherence for this medication
     _weeklyAdherenceCache = null; // new dose may shift this week's rate
+    _missedDosesCache = null;     // new dose may change the missed count
     notifyListeners();
     if (!_dbEnabled) return;
     try {
