@@ -251,16 +251,16 @@ class ReminderRule {
   final Color color;
   final bool active;
 
-  const ReminderRule({
+  ReminderRule({
     this.id,
     required this.med,
     required this.dose,
     required this.time,
-    required this.types,
+    required List<AlertType> types,
     required this.advance,
     required this.color,
     required this.active,
-  });
+  }) : types = List.unmodifiable(types);
 
   /// Returns a copy of this [ReminderRule] with only the specified fields replaced.
   ReminderRule copyWith({
