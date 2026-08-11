@@ -50,23 +50,56 @@ class HistoryProvider extends ChangeNotifier {
     return _missedDosesCache!;
   }
 
-  List<List<CalendarCell>> getCalRows(List<ReminderRule> rules, List<Medication> meds) {
-    final firstDay = DateTime(_currentHistoryMonth.year, _currentHistoryMonth.month, 1);
-    final daysInMonth = DateTime(_currentHistoryMonth.year, _currentHistoryMonth.month + 1, 0).day;
-    final startWeekday = firstDay.weekday % 7; 
-    
+  /// Pre-computes the creation [DateTime] for each rule in [rules], keyed by
+  /// index. Used by [getCalRows] and [getMissedDosesCount] to avoid calling
+  /// [isRuleBeforeCreation] (which does full DateTime arithmetic) for every
+  /// rule on every calendar cell.
+  ///
+  /// Returns `null` for rules whose medication has no usable creation stamp
+  /// (i.e. those that are always included).
+  List<DateTime?> _buildCreationThresholds(
+      List<ReminderRule> rules, List<Medication> meds) {
+    return rules.map((r) {
+      final medMatch = meds.firstWhere(
+        (m) => m.name.toLowerCase() == r.med.toLowerCase(),
+        orElse: () => const Medication(
+            name: '', dose: '', freq: '', color: Colors.blue, refillDays: 0),
+      );
+      final createdMs = medMatch.createdAt ?? medMatch.id;
+      if (createdMs == null || createdMs < 1000000000000) return null;
+      return DateTime.fromMillisecondsSinceEpoch(createdMs);
+    }).toList();
+  }
+
+  List<List<CalendarCell>> getCalRows(
+      List<ReminderRule> rules, List<Medication> meds) {
+    final firstDay =
+        DateTime(_currentHistoryMonth.year, _currentHistoryMonth.month, 1);
+    final daysInMonth =
+        DateTime(_currentHistoryMonth.year, _currentHistoryMonth.month + 1, 0)
+            .day;
+    final startWeekday = firstDay.weekday % 7;
+
+    // Precompute creation thresholds once — avoids redundant DateTime arithmetic
+    // inside the per-cell getDosesForDay call.
+    final thresholds = _buildCreationThresholds(rules, meds);
+
     List<List<CalendarCell>> rows = [];
-    List<CalendarCell> currentRow = List.filled(startWeekday, const CalendarCell(0, DayStatus.empty), growable: true);
-    
+    List<CalendarCell> currentRow = List.filled(
+        startWeekday, const CalendarCell(0, DayStatus.empty),
+        growable: true);
+
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
     for (int day = 1; day <= daysInMonth; day++) {
-      final cellDate = DateTime(_currentHistoryMonth.year, _currentHistoryMonth.month, day);
+      final cellDate =
+          DateTime(_currentHistoryMonth.year, _currentHistoryMonth.month, day);
       DayStatus status = DayStatus.future;
-      
+
       if (!cellDate.isAfter(today)) {
-        final dayItems = getDosesForDay(cellDate, rules, meds);
+        final dayItems =
+            getDosesForDay(cellDate, rules, meds, creationThresholds: thresholds);
         if (dayItems.isEmpty) {
           status = DayStatus.future; // stays white
         } else {
@@ -80,8 +113,8 @@ class HistoryProvider extends ChangeNotifier {
           }
         }
       }
-      
-      currentRow.add(CalendarCell(day, status)); 
+
+      currentRow.add(CalendarCell(day, status));
       if (currentRow.length == 7) {
         rows.add(currentRow);
         currentRow = [];
@@ -97,11 +130,17 @@ class HistoryProvider extends ChangeNotifier {
   }
 
   int getMissedDosesCount(List<ReminderRule> rules, List<Medication> meds) {
-    final daysInMonth = DateTime(_currentHistoryMonth.year, _currentHistoryMonth.month + 1, 0).day;
+    final daysInMonth =
+        DateTime(_currentHistoryMonth.year, _currentHistoryMonth.month + 1, 0)
+            .day;
+    // Precompute creation thresholds once before the day-loop.
+    final thresholds = _buildCreationThresholds(rules, meds);
     int count = 0;
     for (int day = 1; day <= daysInMonth; day++) {
-      final cellDate = DateTime(_currentHistoryMonth.year, _currentHistoryMonth.month, day);
-      final dayItems = getDosesForDay(cellDate, rules, meds);
+      final cellDate =
+          DateTime(_currentHistoryMonth.year, _currentHistoryMonth.month, day);
+      final dayItems =
+          getDosesForDay(cellDate, rules, meds, creationThresholds: thresholds);
       count += dayItems.where((h) => !h.taken).length;
     }
     return count;
@@ -226,11 +265,19 @@ class HistoryProvider extends ChangeNotifier {
     return false;
   }
 
-  List<HistoryItem> getDosesForDay(DateTime checkDate, List<ReminderRule> rules, List<Medication> meds) {
+  List<HistoryItem> getDosesForDay(
+    DateTime checkDate,
+    List<ReminderRule> rules,
+    List<Medication> meds, {
+    /// Precomputed creation thresholds from [_buildCreationThresholds].
+    /// When provided, skips the per-rule [isRuleBeforeCreation] call (which
+    /// does redundant DateTime arithmetic) and uses a cheap index lookup.
+    List<DateTime?>? creationThresholds,
+  }) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final checkDateOnly = DateTime(checkDate.year, checkDate.month, checkDate.day);
-    
+
     if (checkDateOnly.isAfter(today)) {
       return [];
     }
@@ -242,7 +289,8 @@ class HistoryProvider extends ChangeNotifier {
     final actualItems = _historyItems.where((h) => historyDateMatchesDay(h.date, checkDateOnly)).toList();
 
     final Map<String, List<ReminderRule>> groupedRules = {};
-    for (final r in rules) {
+    for (int i = 0; i < rules.length; i++) {
+      final r = rules[i];
       if (!r.active) continue;
       final medMatch = meds.firstWhere(
         (m) => m.name.toLowerCase() == r.med.toLowerCase(),
@@ -250,7 +298,23 @@ class HistoryProvider extends ChangeNotifier {
       );
       if (medMatch.freq.toLowerCase().contains('as needed')) continue;
       if (isOffDay(medMatch, checkDateOnly)) continue;
-      if (isRuleBeforeCreation(r, medMatch, checkDateOnly)) continue;
+
+      // Use the precomputed threshold if available (O(1)), otherwise fall
+      // back to the full isRuleBeforeCreation check.
+      if (creationThresholds != null) {
+        final creationDate = creationThresholds[i];
+        if (creationDate != null) {
+          final creationDateOnly =
+              DateTime(creationDate.year, creationDate.month, creationDate.day);
+          if (checkDateOnly.isBefore(creationDateOnly)) continue;
+          if (checkDateOnly.isAtSameMomentAs(creationDateOnly)) {
+            final ruleDateTime = TimeUtils.toDateTime(r.time, checkDateOnly);
+            if (ruleDateTime != null && ruleDateTime.isBefore(creationDate)) continue;
+          }
+        }
+      } else {
+        if (isRuleBeforeCreation(r, medMatch, checkDateOnly)) continue;
+      }
 
       final key = '${r.med} ${r.dose}'.trim().toLowerCase();
       groupedRules[key] = (groupedRules[key] ?? [])..add(r);
