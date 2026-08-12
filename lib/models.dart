@@ -167,6 +167,25 @@ class HistoryItem {
     required this.taken,
     required this.note,
   });
+
+  /// Returns a copy of this [HistoryItem] with only the specified fields replaced.
+  HistoryItem copyWith({
+    int? id,
+    String? date,
+    String? med,
+    String? time,
+    bool? taken,
+    String? note,
+  }) {
+    return HistoryItem(
+      id:    id    ?? this.id,
+      date:  date  ?? this.date,
+      med:   med   ?? this.med,
+      time:  time  ?? this.time,
+      taken: taken ?? this.taken,
+      note:  note  ?? this.note,
+    );
+  }
 }
 
 class VitalStat {

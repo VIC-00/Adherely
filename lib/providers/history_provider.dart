@@ -230,14 +230,7 @@ class HistoryProvider extends ChangeNotifier {
       });
       final idx = _historyItems.indexOf(item);
       if (idx != -1) {
-        _historyItems[idx] = HistoryItem(
-          id: id,
-          med: item.med,
-          date: item.date,
-          time: item.time,
-          taken: item.taken,
-          note: item.note,
-        );
+        _historyItems[idx] = item.copyWith(id: id);
       }
     } catch (e) {
       debugPrint("DB Write Error: $e");
