@@ -71,6 +71,56 @@ class HistoryProvider extends ChangeNotifier {
     }).toList();
   }
 
+  /// Pre-computes the most recent logged [DateTime] for each "every other day"
+  /// medication in [meds], keyed by lowercased medication name.
+  ///
+  /// Makes a single O(historyItems) pass so that [getDosesForDay] can replace
+  /// the O(n) [isOffDay] scan with a O(1) map-lookup + arithmetic check when
+  /// called in a loop (e.g., calendar grid).
+  Map<String, DateTime?> _buildLastLoggedDates(List<Medication> meds) {
+    // Only bother for medications that actually use every-other-day frequency.
+    final eodMedNames = meds
+        .where((m) => m.freq.toLowerCase().contains('every other day'))
+        .map((m) => m.name.toLowerCase())
+        .toSet();
+
+    if (eodMedNames.isEmpty) return const {};
+
+    final Map<String, DateTime?> result = {};
+    for (final h in _historyItems) {
+      final medKey = eodMedNames.firstWhere(
+        (name) => h.med.toLowerCase().contains(name),
+        orElse: () => '',
+      );
+      if (medKey.isEmpty) continue;
+
+      DateTime? hDate;
+      if (h.date == 'Today' || h.date.startsWith('Today,')) {
+        hDate = DateTime.now();
+      } else if (h.date == 'Yesterday' || h.date.startsWith('Yesterday,')) {
+        hDate = DateTime.now().subtract(const Duration(days: 1));
+      } else {
+        hDate = DateTime.tryParse(h.date);
+        if (hDate == null) {
+          try {
+            final parsed = DateFormat('MMM d').parse(h.date);
+            hDate = DateTime(DateTime.now().year, parsed.month, parsed.day);
+          } catch (_) {}
+        }
+      }
+
+      if (hDate != null) {
+        final hDateClean =
+            DateTime(hDate.year, hDate.month, hDate.day);
+        final current = result[medKey];
+        if (current == null || hDateClean.isAfter(current)) {
+          result[medKey] = hDateClean;
+        }
+      }
+    }
+    return result;
+  }
+
   List<List<CalendarCell>> getCalRows(
       List<ReminderRule> rules, List<Medication> meds) {
     final firstDay =
@@ -80,9 +130,10 @@ class HistoryProvider extends ChangeNotifier {
             .day;
     final startWeekday = firstDay.weekday % 7;
 
-    // Precompute creation thresholds once — avoids redundant DateTime arithmetic
-    // inside the per-cell getDosesForDay call.
+    // Precompute creation thresholds and last-logged dates once —
+    // avoids redundant per-cell scans inside getDosesForDay.
     final thresholds = _buildCreationThresholds(rules, meds);
+    final lastLoggedDates = _buildLastLoggedDates(meds);
 
     List<List<CalendarCell>> rows = [];
     List<CalendarCell> currentRow = List.filled(
@@ -98,8 +149,9 @@ class HistoryProvider extends ChangeNotifier {
       DayStatus status = DayStatus.future;
 
       if (!cellDate.isAfter(today)) {
-        final dayItems =
-            getDosesForDay(cellDate, rules, meds, creationThresholds: thresholds);
+        final dayItems = getDosesForDay(cellDate, rules, meds,
+            creationThresholds: thresholds,
+            lastLoggedDates: lastLoggedDates);
         if (dayItems.isEmpty) {
           status = DayStatus.future; // stays white
         } else {
@@ -133,14 +185,16 @@ class HistoryProvider extends ChangeNotifier {
     final daysInMonth =
         DateTime(_currentHistoryMonth.year, _currentHistoryMonth.month + 1, 0)
             .day;
-    // Precompute creation thresholds once before the day-loop.
+    // Precompute creation thresholds and last-logged dates once before the day-loop.
     final thresholds = _buildCreationThresholds(rules, meds);
+    final lastLoggedDates = _buildLastLoggedDates(meds);
     int count = 0;
     for (int day = 1; day <= daysInMonth; day++) {
       final cellDate =
           DateTime(_currentHistoryMonth.year, _currentHistoryMonth.month, day);
-      final dayItems =
-          getDosesForDay(cellDate, rules, meds, creationThresholds: thresholds);
+      final dayItems = getDosesForDay(cellDate, rules, meds,
+          creationThresholds: thresholds,
+          lastLoggedDates: lastLoggedDates);
       count += dayItems.where((h) => !h.taken).length;
     }
     return count;
@@ -266,6 +320,10 @@ class HistoryProvider extends ChangeNotifier {
     /// When provided, skips the per-rule [isRuleBeforeCreation] call (which
     /// does redundant DateTime arithmetic) and uses a cheap index lookup.
     List<DateTime?>? creationThresholds,
+    /// Precomputed last-logged dates from [_buildLastLoggedDates].
+    /// When provided, replaces the O(historyItems) [isOffDay] scan with an
+    /// O(1) map-lookup + single arithmetic check per rule.
+    Map<String, DateTime?>? lastLoggedDates,
   }) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -290,7 +348,20 @@ class HistoryProvider extends ChangeNotifier {
         orElse: () => const Medication(name: '', dose: '', freq: '', color: Colors.blue, refillDays: 0),
       );
       if (medMatch.freq.toLowerCase().contains('as needed')) continue;
-      if (isOffDay(medMatch, checkDateOnly)) continue;
+
+      // Use the precomputed last-logged map for the every-other-day check if
+      // available (O(1)), otherwise fall back to the full isOffDay scan.
+      if (lastLoggedDates != null &&
+          medMatch.freq.toLowerCase().contains('every other day')) {
+        final medKey = medMatch.name.toLowerCase();
+        final lastLogged = lastLoggedDates[medKey];
+        if (lastLogged != null) {
+          final diffDays = checkDateOnly.difference(lastLogged).inDays;
+          if (diffDays % 2 != 0) continue; // off-day: skip this rule
+        }
+      } else {
+        if (isOffDay(medMatch, checkDateOnly)) continue;
+      }
 
       // Use the precomputed threshold if available (O(1)), otherwise fall
       // back to the full isRuleBeforeCreation check.
