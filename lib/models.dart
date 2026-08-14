@@ -208,6 +208,29 @@ class VitalStat {
     required this.border,
     required this.icon,
   });
+
+  /// Returns a copy of this [VitalStat] with only the specified fields replaced.
+  VitalStat copyWith({
+    String? label,
+    String? value,
+    String? unit,
+    String? trend,
+    Color? color,
+    Color? bg,
+    Color? border,
+    String? icon,
+  }) {
+    return VitalStat(
+      label:  label  ?? this.label,
+      value:  value  ?? this.value,
+      unit:   unit   ?? this.unit,
+      trend:  trend  ?? this.trend,
+      color:  color  ?? this.color,
+      bg:     bg     ?? this.bg,
+      border: border ?? this.border,
+      icon:   icon   ?? this.icon,
+    );
+  }
 }
 
 class MedImpact {

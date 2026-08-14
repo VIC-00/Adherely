@@ -175,15 +175,12 @@ class VitalsProvider extends ChangeNotifier {
         }
       }
       
-      _vitals[idx] = VitalStat(
-        label: label,
+      _vitals[idx] = old.copyWith(
         value: value,
-        unit: old.unit,
         trend: trend,
         color: color,
         bg: bg,
         border: border,
-        icon: old.icon,
       );
       
       notifyListeners();
