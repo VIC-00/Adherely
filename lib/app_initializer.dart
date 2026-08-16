@@ -48,7 +48,25 @@ class _MedAdhereAppState extends State<MedAdhereApp> {
       final vitalsData = await db.query('vitals');
       final caregiversData = await db.query('caregivers');
       final togglesData = await db.query('profile_toggles');
-      final historyData = await db.query('history_items', orderBy: 'id DESC');
+      // Bound to the last 365 days: covers the full 365-day streak lookback,
+      // calendar (1 month), and weekly adherence (7 days). Older rows remain
+      // in the DB but are not loaded into memory, keeping the working set small.
+      final cutoffDate = DateFormat('yyyy-MM-dd')
+          .format(DateTime.now().subtract(const Duration(days: 365)));
+      final historyData = await db.query(
+        'history_items',
+        where: "date >= ?",
+        whereArgs: [cutoffDate],
+        orderBy: 'id DESC',
+      );
+      // Separate query for today's taken counts — used by MedicationProvider
+      // to initialise _todayTakenCounts without iterating the full history list.
+      final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      final todayHistoryData = await db.query(
+        'history_items',
+        where: 'date = ? AND taken = 1',
+        whereArgs: [todayStr],
+      );
       final bpData = await db.query('bp_readings');
 
       // Check daily reset
@@ -121,9 +139,9 @@ class _MedAdhereAppState extends State<MedAdhereApp> {
         ''', [todayMidnight]);
         await prefs.setString('last_run_date', today);
         final resetTodayData = await db.query('today_meds');
-        await _medicationProvider.load(medsData, rulesData, resetTodayData, historyData);
+        await _medicationProvider.load(medsData, rulesData, resetTodayData, todayHistoryData);
       } else {
-        await _medicationProvider.load(medsData, rulesData, todayData, historyData);
+        await _medicationProvider.load(medsData, rulesData, todayData, todayHistoryData);
       }
 
       await _vitalsProvider.load(vitalsData, bpData);

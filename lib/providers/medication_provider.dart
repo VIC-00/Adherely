@@ -34,7 +34,7 @@ class MedicationProvider extends ChangeNotifier {
 
   bool _dbEnabled = true;
 
-  Future<void> load(List<Map<String, dynamic>> medsData, List<Map<String, dynamic>> rulesData, List<Map<String, dynamic>> todayData, List<Map<String, dynamic>> historyData) async {
+  Future<void> load(List<Map<String, dynamic>> medsData, List<Map<String, dynamic>> rulesData, List<Map<String, dynamic>> todayData, List<Map<String, dynamic>> todayHistoryData) async {
     _meds.clear();
     _meds.addAll(medsData.map((m) => Medication(
       id: m['id'] as int,
@@ -83,19 +83,16 @@ class MedicationProvider extends ChangeNotifier {
       _todayMeds[medId] = status;
     }
 
+    // todayHistoryData is already filtered to today's taken rows by the caller,
+    // so no date check is needed here.
     _todayTakenCounts.clear();
-    final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    for (final row in historyData) {
-      final date = row['date'] as String;
-      final taken = row['taken'] as int;
-      if (date == todayStr && taken == 1) {
-        final medName = (row['med'] as String).trim().toLowerCase();
-        final medMatch = _meds.firstWhere(
-            (m) => medName.startsWith(m.name.trim().toLowerCase()),
-            orElse: () => const Medication(name: '', dose: '', freq: '', color: Colors.blue, refillDays: 0));
-        if (medMatch.id != null) {
-          _todayTakenCounts[medMatch.id!] = (_todayTakenCounts[medMatch.id!] ?? 0) + 1;
-        }
+    for (final row in todayHistoryData) {
+      final medName = (row['med'] as String).trim().toLowerCase();
+      final medMatch = _meds.firstWhere(
+          (m) => medName.startsWith(m.name.trim().toLowerCase()),
+          orElse: () => const Medication(name: '', dose: '', freq: '', color: Colors.blue, refillDays: 0));
+      if (medMatch.id != null) {
+        _todayTakenCounts[medMatch.id!] = (_todayTakenCounts[medMatch.id!] ?? 0) + 1;
       }
     }
     notifyListeners();
