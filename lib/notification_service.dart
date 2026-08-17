@@ -259,10 +259,16 @@ class LocalNotificationService implements INotificationService {
   Future<void> cancelReminder(int ruleId) async {
     if (!_initialized) return;
     final int baseId = ruleId % 2147483647;
-    for (int i = 0; i < 15; i++) { // cancel today (0) and next 14 days
-      final int uniqueId = (baseId + i * 100000) % 2147483647;
-      await _flutterLocalNotificationsPlugin.cancel(uniqueId);
-      await _flutterLocalNotificationsPlugin.cancel((uniqueId + 5000) % 2147483647);
+    // scheduleReminderNotification books 7 instances with a day-step of 1
+    // (once-daily) or 2 (every-other-day), giving max offset of 6*2 = 12 days.
+    // We cancel both step values to cover all possible schedules for this rule.
+    for (int i = 0; i < 7; i++) {
+      for (final step in [1, 2]) {
+        final int dayOffset = i * step;
+        final int uniqueId = (baseId + dayOffset * 100000) % 2147483647;
+        await _flutterLocalNotificationsPlugin.cancel(uniqueId);
+        await _flutterLocalNotificationsPlugin.cancel((uniqueId + 5000) % 2147483647);
+      }
     }
     debugPrint('Cancelled notification and snooze for rule ID $ruleId');
   }
