@@ -307,10 +307,12 @@ Future<void> _handleTakeActionInBackground(String medName) async {
   try {
     final db = await DatabaseHelper.instance.database;
 
-    // 1. Find the medication ID in the database
+    // 1. Find the medication ID in the database.
+    // Use COLLATE NOCASE so a payload capitalisation mismatch (e.g. "lisinopril"
+    // vs stored "Lisinopril") doesn't silently skip the today_meds update.
     final List<Map<String, dynamic>> medMaps = await db.query(
       'medications',
-      where: 'name = ?',
+      where: 'name = ? COLLATE NOCASE',
       whereArgs: [medName],
     );
     if (medMaps.isNotEmpty) {
