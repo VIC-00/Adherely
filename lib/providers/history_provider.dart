@@ -238,6 +238,8 @@ class HistoryProvider extends ChangeNotifier {
     _adherenceCache.clear();      // invalidate stale cached adherence values
     _weeklyAdherenceCache = null; // invalidate stale weekly adherence
     _missedDosesCache = null;     // invalidate stale missed-dose count
+    _streakCache = null;           // invalidate cached streak
+    _streakCacheKey = null;
     notifyListeners();
   }
   
@@ -250,6 +252,8 @@ class HistoryProvider extends ChangeNotifier {
     _adherenceCache.clear();
     _weeklyAdherenceCache = null;
     _missedDosesCache = null;
+    _streakCache = null;
+    _streakCacheKey = null;
     notifyListeners();
   }
 
@@ -271,6 +275,8 @@ class HistoryProvider extends ChangeNotifier {
     _adherenceCache.clear();      // new dose changes adherence for this medication
     _weeklyAdherenceCache = null; // new dose may shift this week's rate
     _missedDosesCache = null;     // new dose may change the missed count
+    _streakCache = null;           // new dose may extend or break the streak
+    _streakCacheKey = null;
     notifyListeners();
     if (!_dbEnabled) return;
     try {
@@ -460,7 +466,30 @@ class HistoryProvider extends ChangeNotifier {
     }
   }
 
+  /// Memoised streak result and the key it was computed for.
+  /// Key encodes todayMeds status + history length so any change invalidates it.
+  int? _streakCache;
+  String? _streakCacheKey;
+
+  /// Returns a cache key for [todayMeds] combined with the current history length.
+  /// Cheap to compute: O(todayMeds.length) string concatenation.
+  String _makeStreakKey(Map<int, MedCardVariant> todayMeds) {
+    final buffer = StringBuffer();
+    buffer.write(_historyItems.length);
+    buffer.write('|');
+    for (final e in todayMeds.entries) {
+      buffer.write(e.key);
+      buffer.write(':');
+      buffer.write(e.value.index);
+      buffer.write(',');
+    }
+    return buffer.toString();
+  }
+
   int calculateStreak(Map<int, MedCardVariant> todayMeds) {
+    final key = _makeStreakKey(todayMeds);
+    if (_streakCache != null && _streakCacheKey == key) return _streakCache!;
+
     int current = 0;
     for (int i = 0; i <= 365; i++) {
       final checkDate = DateTime.now().subtract(Duration(days: i));
@@ -486,6 +515,8 @@ class HistoryProvider extends ChangeNotifier {
         }
       }
     }
+    _streakCache = current;
+    _streakCacheKey = key;
     return current;
   }
 
