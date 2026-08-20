@@ -22,14 +22,27 @@ class MedicationProvider extends ChangeNotifier {
   final Map<int, int> _todayTakenCounts = {};
   Map<int, int> get todayTakenCounts => _todayTakenCounts;
   
+  /// Cached result of [dynamicTodayMeds]. Nulled out in [notifyListeners] so
+  /// it is always recomputed after any state change and cheap on repeated reads
+  /// within the same frame/build cycle.
+  Map<int, MedCardVariant>? _dynamicTodayMedsCache;
+
   Map<int, MedCardVariant> get dynamicTodayMeds {
-    final Map<int, MedCardVariant> dynamicMeds = {};
+    if (_dynamicTodayMedsCache != null) return _dynamicTodayMedsCache!;
+    final Map<int, MedCardVariant> result = {};
     for (final med in _meds) {
       if (med.id != null) {
-        dynamicMeds[med.id!] = getTodayMedStatus(med);
+        result[med.id!] = getTodayMedStatus(med);
       }
     }
-    return dynamicMeds;
+    _dynamicTodayMedsCache = Map.unmodifiable(result);
+    return _dynamicTodayMedsCache!;
+  }
+
+  @override
+  void notifyListeners() {
+    _dynamicTodayMedsCache = null; // invalidate on every state change
+    super.notifyListeners();
   }
 
   bool _dbEnabled = true;
