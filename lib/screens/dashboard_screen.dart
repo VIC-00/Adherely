@@ -433,7 +433,8 @@ class DashboardScreen extends StatelessWidget {
                               final medRules = medState.rules.where((r) => r.med.toLowerCase() == med.name.toLowerCase() && r.active).toList();
                               final takenCount = medState.todayTakenCounts[med.id!] ?? 0;
 
-                              void logDose(ReminderRule rule) {
+                              // Shared helper — note string distinguishes on-time vs late logging.
+                              void logDose(ReminderRule rule, {required String note}) {
                                 medState.logMedication(med.id!, MedCardVariant.taken);
                                 final timeStr = DateFormat('h:mm a').format(DateTime.now());
                                 historyState.logHistory(HistoryItem(
@@ -441,7 +442,7 @@ class DashboardScreen extends StatelessWidget {
                                   date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
                                   time: timeStr,
                                   taken: true,
-                                  note: 'Took ${rule.time} dose',
+                                  note: note,
                                 ));
                                 SuccessOverlay.showDoseLogged(context, medName: med.name, dose: med.dose);
                               }
@@ -453,17 +454,17 @@ class DashboardScreen extends StatelessWidget {
                                   med: med,
                                   rules: medState.rules,
                                   takenCount: takenCount,
-                                  onSelected: logDose,
+                                  onSelected: (rule) => logDose(rule, note: 'Took ${rule.time} dose'),
                                 );
                               } else if (medRules.isNotEmpty) {
-                                logDose(medRules.first);
+                                logDose(medRules.first, note: 'Took ${medRules.first.time} dose');
                               }
                             },
                             onLogTaken: () {
                               final medRules = medState.rules.where((r) => r.med.toLowerCase() == med.name.toLowerCase() && r.active).toList();
                               final takenCount = medState.todayTakenCounts[med.id!] ?? 0;
 
-                              void logDose(ReminderRule rule) {
+                              void logDose(ReminderRule rule, {required String note}) {
                                 medState.logMedication(med.id!, MedCardVariant.taken);
                                 final timeStr = DateFormat('h:mm a').format(DateTime.now());
                                 historyState.logHistory(HistoryItem(
@@ -471,7 +472,7 @@ class DashboardScreen extends StatelessWidget {
                                   date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
                                   time: timeStr,
                                   taken: true,
-                                  note: 'Took ${rule.time} dose late',
+                                  note: note,
                                 ));
                                 SuccessOverlay.showDoseLogged(context, medName: med.name, dose: med.dose);
                               }
@@ -483,10 +484,10 @@ class DashboardScreen extends StatelessWidget {
                                   med: med,
                                   rules: medState.rules,
                                   takenCount: takenCount,
-                                  onSelected: logDose,
+                                  onSelected: (rule) => logDose(rule, note: 'Took ${rule.time} dose late'),
                                 );
                               } else if (medRules.isNotEmpty) {
-                                logDose(medRules.first);
+                                logDose(medRules.first, note: 'Took ${medRules.first.time} dose late');
                               }
                             },
                             onReschedule: () async {
