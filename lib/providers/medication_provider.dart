@@ -538,6 +538,7 @@ class MedicationProvider extends ChangeNotifier {
       if (finalRule.active) {
         _notificationService.scheduleReminderNotification(finalRule);
       }
+      await _syncMedFreq(rule.med); // sync freq label to actual rule count
       notifyListeners();
     } else {
       ReminderRule finalRule = rule;
@@ -593,7 +594,50 @@ class MedicationProvider extends ChangeNotifier {
       if (finalRule.active) {
         _notificationService.scheduleReminderNotification(finalRule);
       }
+      await _syncMedFreq(rule.med); // sync freq string to actual rule count
       notifyListeners();
+    }
+  }
+
+  /// Recomputes and persists the `freq` string for [medName] based on the
+  /// current active rules in [_rules]. Keeps the medication card display and
+  /// the notification subtitle in sync after any rule add/remove.
+  Future<void> _syncMedFreq(String medName) async {
+    final medIdx = _meds.indexWhere((m) => m.name.toLowerCase() == medName.toLowerCase());
+    if (medIdx == -1) return;
+
+    final medRules = _rules
+        .where((r) => r.med.toLowerCase() == medName.toLowerCase() && r.active)
+        .toList()
+      ..sort((a, b) => TimeUtils.toDouble(a.time).compareTo(TimeUtils.toDouble(b.time)));
+
+    String freqLabel;
+    switch (medRules.length) {
+      case 0:
+        return; // nothing to sync
+      case 1:
+        freqLabel = 'Once daily';
+        break;
+      case 2:
+        freqLabel = 'Twice daily';
+        break;
+      default:
+        freqLabel = 'Three times daily';
+    }
+    final times = medRules.map((r) => r.time).join(', ');
+    final newFreq = '$freqLabel · $times';
+
+    final old = _meds[medIdx];
+    if (old.freq == newFreq) return; // already in sync — skip DB write
+
+    _meds[medIdx] = old.copyWith(freq: newFreq);
+    if (!_dbEnabled) return;
+    try {
+      final db = await DatabaseHelper.instance.database;
+      await db.update('medications', {'freq': newFreq},
+          where: 'id = ?', whereArgs: [old.id]);
+    } catch (e) {
+      debugPrint('_syncMedFreq DB error: $e');
     }
   }
 
