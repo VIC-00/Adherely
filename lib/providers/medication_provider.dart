@@ -471,8 +471,9 @@ class MedicationProvider extends ChangeNotifier {
       if (_dbEnabled) {
         try {
           final db = await DatabaseHelper.instance.database;
+          // No 'id' field — let SQLite's AUTOINCREMENT assign it, then update
+          // the in-memory entry so it carries the real DB rowid.
           final insertedMedId = await db.insert('medications', {
-            'id': med.id,
             'name': med.name,
             'dose': med.dose,
             'freq': med.freq,
@@ -484,6 +485,13 @@ class MedicationProvider extends ChangeNotifier {
             'initialSupply': med.initialSupply,
             'createdAt': med.createdAt,
           });
+          // Patch the in-memory entry to use the real SQLite ID.
+          final medIdx = _meds.indexWhere((m) => m.id == newMedId);
+          if (medIdx != -1) {
+            _meds[medIdx] = _meds[medIdx].copyWith(id: insertedMedId);
+          }
+          _todayMeds.remove(newMedId);
+          _todayMeds[insertedMedId] = MedCardVariant.upcoming;
           await db.insert('today_meds', {
             'med_id': insertedMedId,
             'status': 'upcoming',
