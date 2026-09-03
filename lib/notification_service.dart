@@ -367,6 +367,17 @@ Future<void> _handleSnoozeActionInBackground(int ruleId, String med, String dose
     final snoozeTime = now.add(Duration(minutes: snoozeMinutes));
 
     final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+    // In a background isolate the plugin is not pre-configured by the main app,
+    // so it must be initialised here before zonedSchedule will work on Android.
+    try {
+      await flutterLocalNotificationsPlugin.initialize(
+        const InitializationSettings(
+          android: AndroidInitializationSettings('ic_notification'),
+        ),
+      );
+    } catch (initErr) {
+      debugPrint('Background plugin init warning: $initErr');
+    }
 
     bool loopAlarm = true;
     try {
